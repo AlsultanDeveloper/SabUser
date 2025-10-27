@@ -1,4 +1,3 @@
-// about-us.tsx - dummy content
 import React from 'react';
 import {
   View,

@@ -1,4 +1,3 @@
-// home.tsx - dummy content
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,

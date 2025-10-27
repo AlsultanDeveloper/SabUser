@@ -1,4 +1,3 @@
-// edit.tsx - dummy content
 import { useState, useEffect } from 'react';
 import {
   View,

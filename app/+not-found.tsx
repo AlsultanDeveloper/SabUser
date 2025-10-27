@@ -1,4 +1,3 @@
-// +not-found.tsx - dummy content
 import { Link, Stack } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 import { Colors, FontSizes, Spacing } from '@/constants/theme';

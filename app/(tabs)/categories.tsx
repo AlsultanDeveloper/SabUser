@@ -1,4 +1,3 @@
-// categories.tsx - dummy content
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
