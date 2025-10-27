@@ -13,6 +13,30 @@ import {
   OAuthProvider,
   signInWithPopup,
 } from 'firebase/auth';
+import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import { auth, isConfigured } from '@/constants/firebase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import { Platform } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
+import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+// AuthContext.tsx - dummy content
+import createContextHook from '@nkzw/create-context-hook';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+  User,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  onAuthStateChanged,
+  PhoneAuthProvider,
+  signInWithCredential,
+  GoogleAuthProvider,
+  OAuthProvider,
+  signInWithPopup,
+} from 'firebase/auth';
 import { auth, isConfigured } from '@/constants/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as AppleAuthentication from 'expo-apple-authentication';
@@ -75,6 +99,18 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         };
       }
       const result = await signInWithEmailAndPassword(auth, email, password);
+      // Firestore user doc creation logic
+      const db = getFirestore();
+      const userDocRef = doc(db, 'users', result.user.uid);
+      const docSnap = await getDoc(userDocRef);
+      if (!docSnap.exists()) {
+        await setDoc(userDocRef, {
+          email: result.user.email,
+          fullName: result.user.displayName || '',
+          signInMethod: 'email',
+          createdAt: new Date().toISOString(),
+        });
+      }
       return { success: true, user: result.user };
     } catch (error: any) {
       console.error('❌ Email sign in error:', error);
@@ -98,6 +134,15 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         };
       }
       const result = await createUserWithEmailAndPassword(auth, email, password);
+      // Firestore user doc creation logic
+      const db = getFirestore();
+      const userDocRef = doc(db, 'users', result.user.uid);
+      await setDoc(userDocRef, {
+        email: result.user.email,
+        fullName: result.user.displayName || '',
+        signInMethod: 'email',
+        createdAt: new Date().toISOString(),
+      });
       return { success: true, user: result.user };
     } catch (error: any) {
       console.error('❌ Email sign up error:', error);
@@ -169,7 +214,18 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       const credential = GoogleAuthProvider.credential(idToken, null);
       const result = await signInWithCredential(auth, credential);
       console.log('✅ Successfully signed in to Firebase:', result.user.uid);
-      
+      // Firestore user doc creation logic
+      const db = getFirestore();
+      const userDocRef = doc(db, 'users', result.user.uid);
+      const docSnap = await getDoc(userDocRef);
+      if (!docSnap.exists()) {
+        await setDoc(userDocRef, {
+          email: result.user.email,
+          fullName: result.user.displayName || '',
+          signInMethod: 'google',
+          createdAt: new Date().toISOString(),
+        });
+      }
       return { success: true, user: result.user };
     } catch (error: any) {
       console.error('❌ Google sign in error:', error);
