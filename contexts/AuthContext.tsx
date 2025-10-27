@@ -1,48 +1,23 @@
-// AuthContext.tsx - dummy content
-import createContextHook from '@nkzw/create-context-hook';
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-  User,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  onAuthStateChanged,
-  PhoneAuthProvider,
-  signInWithCredential,
-  GoogleAuthProvider,
-  OAuthProvider,
-  signInWithPopup,
-} from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, isConfigured } from '@/constants/firebase';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as AppleAuthentication from 'expo-apple-authentication';
-import { Platform } from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
-import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
-// AuthContext.tsx - dummy content
-import createContextHook from '@nkzw/create-context-hook';
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
-  User,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  onAuthStateChanged,
-  PhoneAuthProvider,
-  signInWithCredential,
-  GoogleAuthProvider,
-  OAuthProvider,
-  signInWithPopup,
-} from 'firebase/auth';
-import { auth, isConfigured } from '@/constants/firebase';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as AppleAuthentication from 'expo-apple-authentication';
-import { Platform } from 'react-native';
 
-// ✅ Google via AuthSession (Native)
+import createContextHook from '@nkzw/create-context-hook';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  User,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  onAuthStateChanged,
+  PhoneAuthProvider,
+  signInWithCredential,
+  GoogleAuthProvider,
+  OAuthProvider,
+  signInWithPopup,
+} from 'firebase/auth';
+import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import { auth, isConfigured } from '@/constants/firebase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 
