@@ -1,10 +1,11 @@
+import { collections } from '@/constants/firestore';
 // NotificationContext.tsx - dummy content
 import createContextHook from '@nkzw/create-context-hook';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { registerForPushNotificationsAsync } from '@/constants/notifications';
-import { updateDocument, collections } from '@/constants/firestore';
+import { getFirestore, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { useAuth } from './AuthContext';
 
 interface NotificationData {
@@ -63,11 +64,20 @@ export const [NotificationProvider, useNotifications] = createContextHook(() => 
   const savePushTokenToUser = useCallback(async (userId: string, token: string) => {
     try {
       console.log('💾 Saving push token to user profile:', userId);
-      await updateDocument(collections.users, userId, {
+      const db = getFirestore();
+      const userDocRef = doc(db, collections.users, userId);
+      const docSnap = await getDoc(userDocRef);
+      const pushTokenData = {
         pushToken: token,
         pushTokenUpdatedAt: new Date().toISOString(),
-      });
-      console.log('✅ Push token saved successfully');
+      };
+      if (docSnap.exists()) {
+        await updateDoc(userDocRef, pushTokenData);
+        console.log('✅ Push token updated successfully');
+      } else {
+        await setDoc(userDocRef, pushTokenData);
+        console.log('✅ Push token document created successfully');
+      }
     } catch (error) {
       console.error('❌ Error saving push token:', error);
     }
