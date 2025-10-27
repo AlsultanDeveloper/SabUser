@@ -1,0 +1,1 @@
+// firebase.ts - dummy content

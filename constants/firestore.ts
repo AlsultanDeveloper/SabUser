@@ -1,0 +1,1 @@
+// firestore.ts - dummy content

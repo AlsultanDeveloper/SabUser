@@ -1,0 +1,1 @@
+// categories.tsx - dummy content
