@@ -1,3 +1,4 @@
+
 {
   "expo": {
     "name": "Sab Store",
@@ -24,9 +25,7 @@
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
         "NSLocationAlwaysUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
         "NSLocationWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
-        "UIBackgroundModes": [
-          "location"
-        ]
+        "UIBackgroundModes": ["location"]
       }
     },
     "android": {
@@ -40,14 +39,15 @@
         "android.permission.SCHEDULE_EXACT_ALARM",
         "android.permission.REQUEST_INSTALL_PACKAGES",
         "android.permission.VIBRATE",
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION",
-        "FOREGROUND_SERVICE",
-        "FOREGROUND_SERVICE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION"
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -56,15 +56,12 @@
     "plugins": [
       [
         "expo-router",
-        {
-          "origin": "https://rork.com/"
-        }
+        { "origin": "https://rork.com/" }
       ],
       "expo-apple-authentication",
       [
         "expo-notifications",
         {
-          "icon": "./local/assets/notification_icon.png",
           "color": "#ffffff",
           "defaultChannel": "default",
           "enableBackgroundRemoteNotifications": false
@@ -91,16 +88,18 @@
     },
     "updates": {
       "enabled": true,
-      "url": "<UNKNOWN>",
-      "requestHeaders": {},
+      "url": "https://u.expo.dev/d5069f4c-8710-4ecf-8aa3-7dce45e85b18",
       "checkAutomatically": "ALWAYS",
-      "fallbackToCacheTimeout": 0,
-      "useEmbeddedUpdate": true,
-      "codeSigningCertificate": "<UNKNOWN>",
-      "codeSigningMetadata": "<UNKNOWN>",
-      "assetPatternsToBeBundled": [],
-      "disableAntiBrickingMeasures": false
+      "fallbackToCacheTimeout": 0
     },
-    "runtimeVersion": "<UNKNOWN>"
+    "runtimeVersion": "1.0.14",
+    "extra": {
+      "router": {
+        "origin": "https://rork.com/"
+      },
+      "eas": {
+        "projectId": "d5069f4c-8710-4ecf-8aa3-7dce45e85b18"
+      }
+    }
   }
 }
