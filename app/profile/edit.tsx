@@ -1,3 +1,4 @@
+import { Stack } from 'expo-router';
 import { useState, useEffect } from 'react';
 import {
   View,
@@ -8,27 +9,19 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
-  Image,
+  // Image removed
   Platform,
   KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '@/contexts/AppContext';
 import { Feather } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { Colors, Spacing, BorderRadius, FontSizes } from '@/constants/theme';
-import { getUserProfile, updateUserProfile, createUserProfile } from '@/constants/firestore';
-
-interface UserProfile {
-  displayName: string;
-  email: string | null;
-  phoneNumber: string | null;
-  photoURL: string | null;
-  signInMethod: 'email' | 'phone' | 'google' | 'apple';
-}
+import { getUserProfile, updateUserProfile } from '@/constants/firestore';
+import { updateProfile } from 'firebase/auth';
 
 export default function EditProfileScreen() {
   const { t } = useApp();
@@ -37,11 +30,15 @@ export default function EditProfileScreen() {
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [profile, setProfile] = useState<UserProfile>({
+  const [profile, setProfile] = useState<{
+    displayName: string;
+    email: string | null;
+    phoneNumber: string | null;
+    signInMethod: string;
+  }>({
     displayName: '',
     email: null,
     phoneNumber: null,
-    photoURL: null,
     signInMethod: 'email',
   });
 
@@ -53,6 +50,7 @@ export default function EditProfileScreen() {
 
   useEffect(() => {
     loadUserProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const loadUserProfile = async () => {
@@ -76,7 +74,6 @@ export default function EditProfileScreen() {
         displayName: userDoc?.displayName || user.displayName || '',
         email: userDoc?.email || user.email || null,
         phoneNumber: userDoc?.phoneNumber || user.phoneNumber || null,
-        photoURL: userDoc?.photoURL || user.photoURL || null,
         signInMethod,
       });
     } catch (error) {
@@ -134,8 +131,10 @@ export default function EditProfileScreen() {
         displayName: profile.displayName,
         email: profile.email,
         phoneNumber: profile.phoneNumber,
-        photoURL: profile.photoURL,
       });
+
+      // Update Firebase Auth displayName
+      await updateProfile(user, { displayName: profile.displayName });
 
       Alert.alert(
         t('common.success'),
@@ -163,39 +162,9 @@ export default function EditProfileScreen() {
     }
   };
 
-  const handlePickImage = async () => {
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
+  // Removed profile photo picker logic
 
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
-    if (status !== 'granted') {
-      Alert.alert(
-        t('common.error'),
-        t('profile.permissionDenied')
-      );
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.5,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      setProfile({ ...profile, photoURL: result.assets[0].uri });
-    }
-  };
-
-  const handleRemovePhoto = () => {
-    if (Platform.OS !== 'web') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }
-    setProfile({ ...profile, photoURL: null });
-  };
+  // Removed profile photo removal logic
 
   const handleDeleteAccount = () => {
     if (Platform.OS !== 'web') {
@@ -252,225 +221,192 @@ export default function EditProfileScreen() {
   const isPhoneReadOnly = profile.signInMethod === 'phone';
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color={Colors.text.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('profile.editProfile')}</Text>
-        <View style={styles.placeholder} />
-      </View>
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Feather name="arrow-left" size={24} color={Colors.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{t('profile.editProfile')}</Text>
+          <View style={styles.placeholder} />
+        </View>
 
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-      >
-        <ScrollView
-          style={styles.content}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
-        <View style={styles.photoSection}>
-          <View style={styles.photoContainer}>
-            {profile.photoURL ? (
-              <Image source={{ uri: profile.photoURL }} style={styles.photo} />
-            ) : (
-              <View style={styles.photoPlaceholder}>
-                <Feather name="user" size={48} color={Colors.primary} />
+          <ScrollView
+            style={styles.content}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+          {/* Profile photo section removed */}
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t('profile.personalInfo')}</Text>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>{t('profile.name')}</Text>
+              <TextInput
+                style={[styles.input, errors.displayName && styles.inputError]}
+                value={profile.displayName}
+                onChangeText={(text) => {
+                  setProfile({ ...profile, displayName: text });
+                  if (errors.displayName) {
+                    setErrors({ ...errors, displayName: undefined });
+                  }
+                }}
+                placeholder={t('profile.enterName')}
+                placeholderTextColor={Colors.text.secondary}
+              />
+              {errors.displayName && (
+                <Text style={styles.errorText}>{errors.displayName}</Text>
+              )}
+            </View>
+
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <Text style={styles.label}>{t('profile.email')}</Text>
+                {isEmailReadOnly && (
+                  <View style={styles.readOnlyBadge}>
+                    <Feather name="lock" size={12} color={Colors.text.secondary} />
+                    <Text style={styles.readOnlyText}>{t('profile.readOnly')}</Text>
+                  </View>
+                )}
               </View>
-            )}
+              <TextInput
+                style={[
+                  styles.input,
+                  isEmailReadOnly && styles.inputReadOnly,
+                  errors.email && styles.inputError,
+                ]}
+                value={profile.email || ''}
+                onChangeText={(text) => {
+                  if (!isEmailReadOnly) {
+                    setProfile({ ...profile, email: text });
+                    if (errors.email) {
+                      setErrors({ ...errors, email: undefined });
+                    }
+                  }
+                }}
+                placeholder={t('profile.enterEmail')}
+                placeholderTextColor={Colors.text.secondary}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                editable={!isEmailReadOnly}
+              />
+              {errors.email && (
+                <Text style={styles.errorText}>{errors.email}</Text>
+              )}
+              {!isEmailReadOnly && !profile.email && (
+                <Text style={styles.helperText}>{t('profile.emailHelper')}</Text>
+              )}
+            </View>
+
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <Text style={styles.label}>{t('profile.phone')}</Text>
+                {isPhoneReadOnly && (
+                  <View style={styles.readOnlyBadge}>
+                    <Feather name="lock" size={12} color={Colors.text.secondary} />
+                    <Text style={styles.readOnlyText}>{t('profile.readOnly')}</Text>
+                  </View>
+                )}
+              </View>
+              <TextInput
+                style={[
+                  styles.input,
+                  isPhoneReadOnly && styles.inputReadOnly,
+                  errors.phoneNumber && styles.inputError,
+                ]}
+                value={profile.phoneNumber || ''}
+                onChangeText={(text) => {
+                  if (!isPhoneReadOnly) {
+                    setProfile({ ...profile, phoneNumber: text });
+                    if (errors.phoneNumber) {
+                      setErrors({ ...errors, phoneNumber: undefined });
+                    }
+                  }
+                }}
+                placeholder={t('profile.enterPhone')}
+                placeholderTextColor={Colors.text.secondary}
+                keyboardType="phone-pad"
+                editable={!isPhoneReadOnly}
+              />
+              {errors.phoneNumber && (
+                <Text style={styles.errorText}>{errors.phoneNumber}</Text>
+              )}
+              {!isPhoneReadOnly && !profile.phoneNumber && (
+                <Text style={styles.helperText}>{t('profile.phoneHelper')}</Text>
+              )}
+            </View>
           </View>
-          
-          <View style={styles.photoActions}>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t('profile.accountInfo')}</Text>
+            
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>{t('profile.signInMethod')}</Text>
+              <View style={styles.methodBadge}>
+                <Feather 
+                  name={
+                    profile.signInMethod === 'google' ? 'mail' :
+                    profile.signInMethod === 'apple' ? 'smartphone' :
+                    profile.signInMethod === 'phone' ? 'phone' :
+                    'mail'
+                  } 
+                  size={14} 
+                  color={Colors.primary} 
+                />
+                <Text style={styles.methodText}>
+                  {profile.signInMethod === 'google' ? 'Google' :
+                   profile.signInMethod === 'apple' ? 'Apple' :
+                   profile.signInMethod === 'phone' ? 'Phone' :
+                   'Email'}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t('account.dangerZone')}</Text>
+            
             <TouchableOpacity
-              style={styles.photoButton}
-              onPress={handlePickImage}
+              style={styles.deleteButton}
+              onPress={handleDeleteAccount}
               activeOpacity={0.7}
             >
-              <Feather name="camera" size={18} color={Colors.primary} />
-              <Text style={styles.photoButtonText}>
-                {profile.photoURL ? t('profile.changePhoto') : t('profile.addPhoto')}
-              </Text>
-            </TouchableOpacity>
-            
-            {profile.photoURL && (
-              <TouchableOpacity
-                style={[styles.photoButton, styles.removeButton]}
-                onPress={handleRemovePhoto}
-                activeOpacity={0.7}
-              >
-                <Feather name="trash-2" size={18} color={Colors.error} />
-                <Text style={[styles.photoButtonText, styles.removeButtonText]}>
-                  {t('profile.removePhoto')}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('profile.personalInfo')}</Text>
-          
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>{t('profile.name')}</Text>
-            <TextInput
-              style={[styles.input, errors.displayName && styles.inputError]}
-              value={profile.displayName}
-              onChangeText={(text) => {
-                setProfile({ ...profile, displayName: text });
-                if (errors.displayName) {
-                  setErrors({ ...errors, displayName: undefined });
-                }
-              }}
-              placeholder={t('profile.enterName')}
-              placeholderTextColor={Colors.text.secondary}
-            />
-            {errors.displayName && (
-              <Text style={styles.errorText}>{errors.displayName}</Text>
-            )}
-          </View>
-
-          <View style={styles.inputGroup}>
-            <View style={styles.labelRow}>
-              <Text style={styles.label}>{t('profile.email')}</Text>
-              {isEmailReadOnly && (
-                <View style={styles.readOnlyBadge}>
-                  <Feather name="lock" size={12} color={Colors.text.secondary} />
-                  <Text style={styles.readOnlyText}>{t('profile.readOnly')}</Text>
+              <View style={styles.deleteButtonContent}>
+                <Feather name="trash-2" size={20} color={Colors.error} />
+                <View style={styles.deleteButtonTextContainer}>
+                  <Text style={styles.deleteButtonText}>{t('account.deleteAccount')}</Text>
+                  <Text style={styles.deleteButtonSubtext}>{t('account.deleteAccountWarning')}</Text>
                 </View>
-              )}
-            </View>
-            <TextInput
-              style={[
-                styles.input,
-                isEmailReadOnly && styles.inputReadOnly,
-                errors.email && styles.inputError,
-              ]}
-              value={profile.email || ''}
-              onChangeText={(text) => {
-                if (!isEmailReadOnly) {
-                  setProfile({ ...profile, email: text });
-                  if (errors.email) {
-                    setErrors({ ...errors, email: undefined });
-                  }
-                }
-              }}
-              placeholder={t('profile.enterEmail')}
-              placeholderTextColor={Colors.text.secondary}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              editable={!isEmailReadOnly}
-            />
-            {errors.email && (
-              <Text style={styles.errorText}>{errors.email}</Text>
-            )}
-            {!isEmailReadOnly && !profile.email && (
-              <Text style={styles.helperText}>{t('profile.emailHelper')}</Text>
-            )}
-          </View>
-
-          <View style={styles.inputGroup}>
-            <View style={styles.labelRow}>
-              <Text style={styles.label}>{t('profile.phone')}</Text>
-              {isPhoneReadOnly && (
-                <View style={styles.readOnlyBadge}>
-                  <Feather name="lock" size={12} color={Colors.text.secondary} />
-                  <Text style={styles.readOnlyText}>{t('profile.readOnly')}</Text>
-                </View>
-              )}
-            </View>
-            <TextInput
-              style={[
-                styles.input,
-                isPhoneReadOnly && styles.inputReadOnly,
-                errors.phoneNumber && styles.inputError,
-              ]}
-              value={profile.phoneNumber || ''}
-              onChangeText={(text) => {
-                if (!isPhoneReadOnly) {
-                  setProfile({ ...profile, phoneNumber: text });
-                  if (errors.phoneNumber) {
-                    setErrors({ ...errors, phoneNumber: undefined });
-                  }
-                }
-              }}
-              placeholder={t('profile.enterPhone')}
-              placeholderTextColor={Colors.text.secondary}
-              keyboardType="phone-pad"
-              editable={!isPhoneReadOnly}
-            />
-            {errors.phoneNumber && (
-              <Text style={styles.errorText}>{errors.phoneNumber}</Text>
-            )}
-            {!isPhoneReadOnly && !profile.phoneNumber && (
-              <Text style={styles.helperText}>{t('profile.phoneHelper')}</Text>
-            )}
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('profile.accountInfo')}</Text>
-          
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>{t('profile.signInMethod')}</Text>
-            <View style={styles.methodBadge}>
-              <Feather 
-                name={
-                  profile.signInMethod === 'google' ? 'mail' :
-                  profile.signInMethod === 'apple' ? 'smartphone' :
-                  profile.signInMethod === 'phone' ? 'phone' :
-                  'mail'
-                } 
-                size={14} 
-                color={Colors.primary} 
-              />
-              <Text style={styles.methodText}>
-                {profile.signInMethod === 'google' ? 'Google' :
-                 profile.signInMethod === 'apple' ? 'Apple' :
-                 profile.signInMethod === 'phone' ? 'Phone' :
-                 'Email'}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('account.dangerZone')}</Text>
-          
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={handleDeleteAccount}
-            activeOpacity={0.7}
-          >
-            <View style={styles.deleteButtonContent}>
-              <Feather name="trash-2" size={20} color={Colors.error} />
-              <View style={styles.deleteButtonTextContainer}>
-                <Text style={styles.deleteButtonText}>{t('account.deleteAccount')}</Text>
-                <Text style={styles.deleteButtonSubtext}>{t('account.deleteAccountWarning')}</Text>
               </View>
-            </View>
-            <Feather name="chevron-right" size={20} color={Colors.error} />
+              <Feather name="chevron-right" size={20} color={Colors.error} />
+            </TouchableOpacity>
+          </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+            onPress={handleSave}
+            disabled={saving}
+            activeOpacity={0.8}
+          >
+            {saving ? (
+              <ActivityIndicator color={Colors.white} />
+            ) : (
+              <Text style={styles.saveButtonText}>{t('common.save')}</Text>
+            )}
           </TouchableOpacity>
         </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-          onPress={handleSave}
-          disabled={saving}
-          activeOpacity={0.8}
-        >
-          {saving ? (
-            <ActivityIndicator color={Colors.white} />
-          ) : (
-            <Text style={styles.saveButtonText}>{t('common.save')}</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </>
   );
 }
 
@@ -511,53 +447,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  photoSection: {
-    backgroundColor: Colors.white,
-    alignItems: 'center',
-    paddingVertical: Spacing.xl,
-    marginBottom: Spacing.md,
-  },
-  photoContainer: {
-    marginBottom: Spacing.md,
-  },
-  photo: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-  },
-  photoPlaceholder: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: Colors.primary + '20',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  photoActions: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  photoButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.primary,
-  },
-  photoButtonText: {
-    fontSize: FontSizes.sm,
-    color: Colors.primary,
-    fontWeight: '600' as const,
-  },
-  removeButton: {
-    borderColor: Colors.error,
-  },
-  removeButtonText: {
-    color: Colors.error,
-  },
+  // Profile photo styles removed
   section: {
     backgroundColor: Colors.white,
     paddingHorizontal: Spacing.md,

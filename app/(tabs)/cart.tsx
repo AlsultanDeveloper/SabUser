@@ -102,7 +102,7 @@ export default function CartScreen() {
       <View style={styles.container}>
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconContainer}>
-            <Feather name="shopping-bag" size={80} color={Colors.primary} />
+            <Feather name="gift" size={80} color={Colors.secondary} />
           </View>
           <Text style={styles.emptyTitle}>{t('cart.empty')}</Text>
           <Text style={styles.emptyDescription}>{t('cart.emptyDescription')}</Text>

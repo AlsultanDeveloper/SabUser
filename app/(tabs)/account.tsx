@@ -6,7 +6,9 @@ import {
   ScrollView,
   TouchableOpacity,
   Platform,
+  Alert,
   Modal,
+  // Image removed
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -63,10 +65,8 @@ export default function AccountScreen() {
     <View style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.profileSection}>
-          <View style={styles.avatar}>
-            <Feather name="user" size={40} color={Colors.primary} />
-          </View>
-          <Text style={styles.guestText}>{user?.email || 'User'}</Text>
+          {/* Avatar removed, reduce space */}
+          <Text style={styles.guestText}>{user?.displayName || 'User'}</Text>
           <Text style={styles.guestSubtext}>{user?.email}</Text>
           <TouchableOpacity
             style={styles.editProfileButton}
@@ -185,31 +185,24 @@ export default function AccountScreen() {
             <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
           </TouchableOpacity>
 
-          {Platform.OS !== 'web' && (
-            <TouchableOpacity 
-              style={styles.menuItem} 
-              activeOpacity={0.7}
-              onPress={() => router.push('/admin-test-notifications' as any)}
-            >
-              <View style={styles.menuItemLeft}>
-                <View style={[styles.iconContainer, { backgroundColor: '#FF6B6B20' }]}>
-                  <Feather name="bell" size={20} color="#FF6B6B" />
-                </View>
-                <Text style={styles.menuItemText}>Test Notifications</Text>
-              </View>
-              <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
-            </TouchableOpacity>
-          )}
+          {/* Test Notifications button removed */}
         </View>
 
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={async () => {
+            onPress={() => {
               if (Platform.OS !== 'web') {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }
-              await signOut();
+              Alert.alert(
+                'Sign Out',
+                'Are you sure you want to sign out?',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Sign Out', style: 'destructive', onPress: async () => await signOut() }
+                ]
+              );
             }}
             activeOpacity={0.7}
           >
@@ -385,19 +378,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   profileSection: {
-    backgroundColor: Colors.white,
-    alignItems: 'center',
-    paddingVertical: Spacing.xl,
-    marginBottom: Spacing.md,
+  backgroundColor: Colors.white,
+  alignItems: 'center',
+  paddingVertical: Spacing.md,
+  marginBottom: Spacing.sm,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: Colors.primary + '20',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
+  // Avatar removed
   },
   guestText: {
     fontSize: FontSizes.xl,

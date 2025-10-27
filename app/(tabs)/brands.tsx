@@ -36,9 +36,9 @@ export default function BrandsScreen() {
   if (brands.length === 0) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <Feather name="package" size={64} color={Colors.gray[300]} />
-        <Text style={styles.emptyTitle}>{t('brands.noBrands')}</Text>
-        <Text style={styles.emptyText}>{t('brands.noBrandsAvailable')}</Text>
+        <Feather name="gift" size={64} color={Colors.primary} />
+        <Text style={styles.emptyTitle}>🎉 Coming Soon! 🎉</Text>
+  <Text style={styles.emptyText}>We&apos;re preparing something special. Stay tuned for new brands!</Text>
       </View>
     );
   }
