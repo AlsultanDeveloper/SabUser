@@ -1,1 +1,0 @@
-// account.tsx - dummy content

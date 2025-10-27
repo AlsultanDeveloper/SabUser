@@ -1,0 +1,638 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Platform,
+  Modal,
+} from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'expo-router';
+import { Colors, Spacing, BorderRadius, FontSizes } from '@/constants/theme';
+
+export default function AccountScreen() {
+  const { t, currency, changeCurrency } = useApp();
+  const { user, isAuthenticated, signOut } = useAuth();
+  const router = useRouter();
+  
+  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+  const [showHelpMenu, setShowHelpMenu] = useState(false);
+
+  const handleCurrencySelect = async (newCurrency: 'USD' | 'LBP') => {
+    if (newCurrency !== currency) {
+      await changeCurrency(newCurrency);
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    }
+    setShowCurrencyModal(false);
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.notAuthenticatedContainer}>
+          <View style={styles.notAuthenticatedContent}>
+            <View style={styles.lockIconContainer}>
+              <Feather name="lock" size={60} color={Colors.primary} />
+            </View>
+            <Text style={styles.notAuthenticatedTitle}>{t('account.loginRequired')}</Text>
+            <Text style={styles.notAuthenticatedDescription}>
+              {t('account.loginRequiredDescription')}
+            </Text>
+            <TouchableOpacity
+              style={styles.loginRequiredButton}
+              onPress={() => router.push('/auth/login' as any)}
+              activeOpacity={0.8}
+            >
+              <Feather name="log-in" size={20} color={Colors.white} />
+              <Text style={styles.loginRequiredButtonText}>{t('account.signIn')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <View style={styles.profileSection}>
+          <View style={styles.avatar}>
+            <Feather name="user" size={40} color={Colors.primary} />
+          </View>
+          <Text style={styles.guestText}>{user?.email || 'User'}</Text>
+          <Text style={styles.guestSubtext}>{user?.email}</Text>
+          <TouchableOpacity
+            style={styles.editProfileButton}
+            onPress={() => router.push('/profile/edit' as any)}
+            activeOpacity={0.8}
+          >
+            <Feather name="edit-2" size={16} color={Colors.primary} />
+            <Text style={styles.editProfileButtonText}>{t('profile.editProfile')}</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('account.preferences')}</Text>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+              if (Platform.OS !== 'web') {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }
+              setShowCurrencyModal(true);
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={styles.menuItemLeft}>
+              <View style={[styles.iconContainer, { backgroundColor: Colors.secondary + '20' }]}>
+                <Feather name="dollar-sign" size={20} color={Colors.secondary} />
+              </View>
+              <Text style={styles.menuItemText}>{t('common.currency')}</Text>
+            </View>
+            <View style={styles.menuItemRight}>
+              <Text style={styles.valueText}>{currency}</Text>
+              <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('account.settings')}</Text>
+          
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => router.push('/(tabs)/orders' as any)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.menuItemLeft}>
+              <View style={[styles.iconContainer, { backgroundColor: Colors.orange + '20' }]}>
+                <Feather name="package" size={20} color={Colors.orange} />
+              </View>
+              <Text style={styles.menuItemText}>{t('account.orders')}</Text>
+            </View>
+            <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.menuItem} 
+            activeOpacity={0.7}
+            onPress={() => router.push('/addresses' as any)}
+          >
+            <View style={styles.menuItemLeft}>
+              <View style={[styles.iconContainer, { backgroundColor: Colors.success + '20' }]}>
+                <Feather name="map-pin" size={20} color={Colors.success} />
+              </View>
+              <Text style={styles.menuItemText}>{t('account.addresses')}</Text>
+            </View>
+            <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.menuItem} 
+            activeOpacity={0.7}
+            onPress={() => router.push('/wishlist' as any)}
+          >
+            <View style={styles.menuItemLeft}>
+              <View style={[styles.iconContainer, { backgroundColor: Colors.accent + '20' }]}>
+                <Feather name="heart" size={20} color={Colors.accent} />
+              </View>
+              <Text style={styles.menuItemText}>{t('account.wishlist')}</Text>
+            </View>
+            <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.menuItem} 
+            activeOpacity={0.7}
+            onPress={() => router.push('/notifications' as any)}
+          >
+            <View style={styles.menuItemLeft}>
+              <View style={[styles.iconContainer, { backgroundColor: Colors.warning + '20' }]}>
+                <Feather name="bell" size={20} color={Colors.warning} />
+              </View>
+              <Text style={styles.menuItemText}>{t('account.notifications')}</Text>
+            </View>
+            <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('account.helpSupport')}</Text>
+          
+          <TouchableOpacity 
+            style={styles.helpSupportButton} 
+            activeOpacity={0.7}
+            onPress={() => {
+              if (Platform.OS !== 'web') {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }
+              setShowHelpMenu(true);
+            }}
+          >
+            <View style={styles.menuItemLeft}>
+              <View style={[styles.iconContainer, { backgroundColor: Colors.primary + '20' }]}>
+                <Feather name="help-circle" size={20} color={Colors.primary} />
+              </View>
+              <Text style={styles.menuItemText}>{t('account.helpSupport')}</Text>
+            </View>
+            <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
+          </TouchableOpacity>
+
+          {Platform.OS !== 'web' && (
+            <TouchableOpacity 
+              style={styles.menuItem} 
+              activeOpacity={0.7}
+              onPress={() => router.push('/admin-test-notifications' as any)}
+            >
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.iconContainer, { backgroundColor: '#FF6B6B20' }]}>
+                  <Feather name="bell" size={20} color="#FF6B6B" />
+                </View>
+                <Text style={styles.menuItemText}>Test Notifications</Text>
+              </View>
+              <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={async () => {
+              if (Platform.OS !== 'web') {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }
+              await signOut();
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={styles.menuItemLeft}>
+              <View style={[styles.iconContainer, { backgroundColor: Colors.error + '20' }]}>
+                <Feather name="log-out" size={20} color={Colors.error} />
+              </View>
+              <Text style={[styles.menuItemText, { color: Colors.error }]}>{t('account.logout')}</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.versionContainer}>
+          <Text style={styles.versionText}>{t('account.version')}</Text>
+        </View>
+      </ScrollView>
+      
+      <Modal
+        visible={showCurrencyModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCurrencyModal(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowCurrencyModal(false)}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{t('account.selectCurrency')}</Text>
+            
+            <TouchableOpacity
+              style={[styles.modalOption, currency === 'USD' && styles.modalOptionSelected]}
+              onPress={() => handleCurrencySelect('USD')}
+              activeOpacity={0.7}
+            >
+              <View>
+                <Text style={[styles.modalOptionText, currency === 'USD' && styles.modalOptionTextSelected]}>
+                  USD
+                </Text>
+                <Text style={styles.modalOptionSubtext}>US Dollar</Text>
+              </View>
+              {currency === 'USD' && (
+                <Feather name="check" size={20} color={Colors.primary} />
+              )}
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.modalOption, currency === 'LBP' && styles.modalOptionSelected]}
+              onPress={() => handleCurrencySelect('LBP')}
+              activeOpacity={0.7}
+            >
+              <View>
+                <Text style={[styles.modalOptionText, currency === 'LBP' && styles.modalOptionTextSelected]}>
+                  LBP
+                </Text>
+                <Text style={styles.modalOptionSubtext}>Lebanese Pound</Text>
+              </View>
+              {currency === 'LBP' && (
+                <Feather name="check" size={20} color={Colors.primary} />
+              )}
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal
+        visible={showHelpMenu}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowHelpMenu(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowHelpMenu(false)}
+        >
+          <View style={styles.helpMenuModal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('account.helpSupport')}</Text>
+              <TouchableOpacity onPress={() => setShowHelpMenu(false)}>
+                <Feather name="x" size={24} color={Colors.text.secondary} />
+              </TouchableOpacity>
+            </View>
+            
+            <TouchableOpacity 
+              style={styles.helpMenuItem} 
+              activeOpacity={0.7}
+              onPress={() => {
+                setShowHelpMenu(false);
+                router.push('/contact-support' as any);
+              }}
+            >
+              <View style={styles.helpMenuItemLeft}>
+                <Feather name="headphones" size={20} color={Colors.primary} />
+                <Text style={styles.helpMenuItemText}>{t('profile.support')}</Text>
+              </View>
+              <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.helpMenuItem} 
+              activeOpacity={0.7}
+              onPress={() => {
+                setShowHelpMenu(false);
+                router.push('/faq' as any);
+              }}
+            >
+              <View style={styles.helpMenuItemLeft}>
+                <Feather name="help-circle" size={20} color={Colors.success} />
+                <Text style={styles.helpMenuItemText}>{t('account.help')}</Text>
+              </View>
+              <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.helpMenuItem} 
+              activeOpacity={0.7}
+              onPress={() => {
+                setShowHelpMenu(false);
+                router.push('/about-us' as any);
+              }}
+            >
+              <View style={styles.helpMenuItemLeft}>
+                <Feather name="info" size={20} color={Colors.secondary} />
+                <Text style={styles.helpMenuItemText}>{t('account.about')}</Text>
+              </View>
+              <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.helpMenuItem} 
+              activeOpacity={0.7}
+              onPress={() => {
+                setShowHelpMenu(false);
+                router.push('/terms-of-use' as any);
+              }}
+            >
+              <View style={styles.helpMenuItemLeft}>
+                <Feather name="file-text" size={20} color={Colors.primary} />
+                <Text style={styles.helpMenuItemText}>{t('account.termsOfUse')}</Text>
+              </View>
+              <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.helpMenuItem} 
+              activeOpacity={0.7}
+              onPress={() => {
+                setShowHelpMenu(false);
+                router.push('/privacy-policy' as any);
+              }}
+            >
+              <View style={styles.helpMenuItemLeft}>
+                <Feather name="shield" size={20} color={Colors.accent} />
+                <Text style={styles.helpMenuItemText}>{t('account.privacyPolicy')}</Text>
+              </View>
+              <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.surface,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  profileSection: {
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+    marginBottom: Spacing.md,
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: Colors.primary + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  guestText: {
+    fontSize: FontSizes.xl,
+    fontWeight: 'bold' as const,
+    color: Colors.text.primary,
+  },
+  guestSubtext: {
+    fontSize: FontSizes.sm,
+    color: Colors.text.secondary,
+    marginTop: 4,
+  },
+  section: {
+    backgroundColor: Colors.white,
+    marginBottom: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  sectionTitle: {
+    fontSize: FontSizes.sm,
+    fontWeight: '600' as const,
+    color: Colors.text.secondary,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    textTransform: 'uppercase',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+  },
+  menuItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  menuItemRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.md,
+  },
+  menuItemText: {
+    fontSize: FontSizes.md,
+    color: Colors.text.primary,
+    fontWeight: '500' as const,
+  },
+  valueText: {
+    fontSize: FontSizes.md,
+    color: Colors.text.secondary,
+    marginRight: Spacing.sm,
+  },
+  versionContainer: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+  },
+  versionText: {
+    fontSize: FontSizes.sm,
+    color: Colors.text.secondary,
+  },
+  signInButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    marginTop: Spacing.md,
+  },
+  signInButtonText: {
+    color: Colors.white,
+    fontSize: FontSizes.md,
+    fontWeight: 'bold' as const,
+  },
+  editProfileButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    backgroundColor: Colors.primary + '20',
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    marginTop: Spacing.md,
+  },
+  editProfileButtonText: {
+    color: Colors.primary,
+    fontSize: FontSizes.md,
+    fontWeight: '600' as const,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  modalContent: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    width: '100%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: FontSizes.xl,
+    fontWeight: 'bold' as const,
+    color: Colors.text.primary,
+    marginBottom: Spacing.md,
+    textAlign: 'center',
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.sm,
+    backgroundColor: Colors.surface,
+  },
+  modalOptionSelected: {
+    backgroundColor: Colors.primary + '15',
+    borderWidth: 2,
+    borderColor: Colors.primary,
+  },
+  modalOptionText: {
+    fontSize: FontSizes.lg,
+    fontWeight: '600' as const,
+    color: Colors.text.primary,
+  },
+  modalOptionTextSelected: {
+    color: Colors.primary,
+    fontWeight: 'bold' as const,
+  },
+  modalOptionSubtext: {
+    fontSize: FontSizes.sm,
+    color: Colors.text.secondary,
+    marginTop: 2,
+  },
+  helpSupportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+  },
+  helpMenuModal: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '70%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
+  },
+  helpMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray[100],
+  },
+  helpMenuItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    flex: 1,
+  },
+  helpMenuItemText: {
+    fontSize: FontSizes.md,
+    color: Colors.text.primary,
+    fontWeight: '500' as const,
+  },
+  notAuthenticatedContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.xl,
+    backgroundColor: Colors.surface,
+  },
+  notAuthenticatedContent: {
+    alignItems: 'center',
+    maxWidth: 400,
+  },
+  lockIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: Colors.primary + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.xl,
+  },
+  notAuthenticatedTitle: {
+    fontSize: FontSizes.xxl,
+    fontWeight: 'bold' as const,
+    color: Colors.text.primary,
+    textAlign: 'center',
+    marginBottom: Spacing.md,
+  },
+  notAuthenticatedDescription: {
+    fontSize: FontSizes.md,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+    marginBottom: Spacing.xl,
+    lineHeight: 24,
+  },
+  loginRequiredButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.xl * 2,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  loginRequiredButtonText: {
+    color: Colors.white,
+    fontSize: FontSizes.lg,
+    fontWeight: 'bold' as const,
+  },
+});

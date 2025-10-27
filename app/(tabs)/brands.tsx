@@ -1,0 +1,196 @@
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { router } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
+import { useApp } from '@/contexts/AppContext';
+import { Colors, Spacing, FontSizes, FontWeights } from '@/constants/theme';
+import { useBrands } from '@/hooks/useFirestore';
+import SafeImage from '@/components/SafeImage';
+
+export default function BrandsScreen() {
+  const { t, language } = useApp();
+  const { brands, loading, error, refetch } = useBrands();
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={styles.loadingText}>{t('brands.loading')}</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Feather name="alert-circle" size={64} color={Colors.error} />
+        <Text style={styles.errorTitle}>{t('brands.error')}</Text>
+        <Text style={styles.errorText}>{t('brands.errorLoadingBrands')}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={refetch}>
+          <Feather name="refresh-cw" size={20} color={Colors.white} />
+          <Text style={styles.retryButtonText}>{t('brands.tryAgain')}</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (brands.length === 0) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Feather name="package" size={64} color={Colors.gray[300]} />
+        <Text style={styles.emptyTitle}>{t('brands.noBrands')}</Text>
+        <Text style={styles.emptyText}>{t('brands.noBrandsAvailable')}</Text>
+      </View>
+    );
+  }
+
+  return (
+      <View style={styles.container}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={styles.grid}>
+            {brands.map((brand) => (
+              <TouchableOpacity
+                key={brand.id}
+                style={styles.brandCard}
+                onPress={() => router.push(`/brand/${brand.id}`)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.imageContainer}>
+                  <SafeImage uri={brand.image} style={styles.brandImage} />
+                  {brand.logo && (
+                    <View style={styles.logoContainer}>
+                      <SafeImage uri={brand.logo} style={styles.logoImage} />
+                    </View>
+                  )}
+                </View>
+                <View style={styles.brandInfo}>
+                  <Text style={styles.brandName}>{brand.name[language]}</Text>
+                  {brand.description && brand.description[language] && (
+                    <Text style={styles.brandDescription} numberOfLines={2}>
+                      {brand.description[language]}
+                    </Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <View style={{ height: 20 }} />
+        </ScrollView>
+      </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.xl,
+  },
+  loadingText: {
+    marginTop: Spacing.md,
+    fontSize: FontSizes.md,
+    color: Colors.text.secondary,
+    fontWeight: FontWeights.medium,
+  },
+  errorTitle: {
+    fontSize: FontSizes.xl,
+    fontWeight: FontWeights.bold,
+    color: Colors.text.primary,
+    marginTop: Spacing.lg,
+  },
+  errorText: {
+    fontSize: FontSizes.md,
+    color: Colors.text.secondary,
+    marginTop: Spacing.sm,
+    textAlign: 'center',
+    fontWeight: FontWeights.medium,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: 12,
+    marginTop: Spacing.lg,
+  },
+  retryButtonText: {
+    color: Colors.white,
+    fontSize: FontSizes.md,
+    fontWeight: FontWeights.bold,
+  },
+  emptyTitle: {
+    fontSize: FontSizes.xl,
+    fontWeight: FontWeights.bold,
+    color: Colors.text.primary,
+    marginTop: Spacing.lg,
+  },
+  emptyText: {
+    fontSize: FontSizes.md,
+    color: Colors.text.secondary,
+    marginTop: Spacing.sm,
+    textAlign: 'center',
+    fontWeight: FontWeights.medium,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 8,
+    paddingTop: 16,
+  },
+  brandCard: {
+    width: '50%',
+    padding: 8,
+  },
+  imageContainer: {
+    position: 'relative',
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: Colors.gray[100],
+    aspectRatio: 1,
+  },
+  brandImage: {
+    width: '100%',
+    height: '100%',
+  },
+  logoContainer: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: Colors.white,
+    padding: 8,
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  logoImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 22,
+  },
+  brandInfo: {
+    paddingTop: 12,
+    paddingHorizontal: 4,
+  },
+  brandName: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: Colors.text.primary,
+    marginBottom: 4,
+  },
+  brandDescription: {
+    fontSize: 12,
+    color: Colors.gray[500],
+    lineHeight: 16,
+  },
+});
