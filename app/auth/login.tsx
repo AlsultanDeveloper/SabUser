@@ -614,7 +614,7 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
   },
   switchButtonTextBold: {
-    fontWeight: 'bold' as const,
+  fontWeight: 'bold',
     color: Colors.primary,
   },
   phoneInputWrapper: {
