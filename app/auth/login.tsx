@@ -16,7 +16,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, Stack } from 'expo-router';
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
+import { AntDesign } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAuth } from '@/contexts/AuthContext';
@@ -335,21 +336,19 @@ export default function LoginScreen() {
                 disabled={loading}
                 activeOpacity={0.7}
               >
-                <Ionicons name="logo-google" size={22} color="#DB4437" />
+                <AntDesign name="google" size={22} color="#DB4437" />
                 <Text style={styles.socialButtonText}>Google</Text>
               </TouchableOpacity>
 
-              {Platform.OS === 'ios' && (
-                <TouchableOpacity
-                  style={styles.appleButton}
-                  onPress={handleAppleSignIn}
-                  disabled={loading}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="logo-apple" size={20} color="#FFFFFF" />
-                  <Text style={styles.appleButtonText}>Sign in with Apple</Text>
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity
+                style={styles.appleButton}
+                onPress={handleAppleSignIn}
+                disabled={loading}
+                activeOpacity={0.8}
+              >
+                <AntDesign name="apple1" size={22} color="#000" />
+                <Text style={styles.appleButtonText}>Apple</Text>
+              </TouchableOpacity>
             </View>
 
             {loginMethod === 'email' && (
