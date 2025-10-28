@@ -601,9 +601,9 @@ const styles = StyleSheet.create({
     height: 56,
   },
   appleButtonText: {
-  fontSize: FontSizes.md,
-  fontWeight: '600',
-  color: '#FFFFFF',
+    fontSize: FontSizes.md,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   switchButton: {
     alignItems: 'center',
@@ -637,9 +637,9 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
   countryCode: {
-    fontSize: FontSizes.md,
-    fontWeight: '600' as const,
-    color: Colors.text.primary,
+  fontSize: FontSizes.md,
+  fontWeight: '600',
+  color: Colors.text.primary,
   },
   phoneInputContainer: {
     flex: 1,
