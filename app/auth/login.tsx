@@ -431,8 +431,9 @@ const styles = StyleSheet.create({
     height: 56,
   },
   signinImg: {
-    width: '100%',
+    width: 220,
     height: 48,
+    resizeMode: 'contain',
     maxWidth: 220,
   },
   container: {
@@ -586,19 +587,108 @@ const styles = StyleSheet.create({
     borderColor: Colors.gray[200],
     gap: Spacing.sm,
   },
-  socialButtonImg: {
+  appleButtonText: {
+    fontSize: FontSizes.md,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  switchButton: {
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
+    paddingVertical: Spacing.md,
+  },
+  switchButtonText: {
+    fontSize: FontSizes.md,
+    color: Colors.text.secondary,
+  },
+  switchButtonTextBold: {
+    fontWeight: 'bold',
+    color: Colors.primary,
+  },
+  phoneInputWrapper: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  countrySelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
     borderRadius: BorderRadius.lg,
-    paddingVertical: 0,
+    paddingHorizontal: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.gray[200],
+    gap: 6,
+    minWidth: 120,
   },
-  signinImg: {
-    width: 220,
-    height: 48,
-    resizeMode: 'contain',
+  countryFlag: {
+    fontSize: 24,
   },
+  countryCode: {
+    fontSize: FontSizes.md,
+    fontWeight: '600',
+    color: Colors.text.primary,
+  },
+  phoneInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.md,
     height: 56,
+    borderWidth: 1,
+    borderColor: Colors.gray[200],
+  },
+  oninput: {
+    flex: 1,
+    fontSize: FontSizes.md,
+    color: Colors.text.primary,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
+    maxHeight: '80%',
+    paddingBottom: Spacing.xl,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: Spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray[200],
+  },
+  modalTitle: {
+    fontSize: FontSizes.xl,
+    fontWeight: 'bold',
+    color: Colors.text.primary,
+  },
+  countryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    gap: Spacing.md,
+  },
+  countryItemFlag: {
+    fontSize: 28,
+  },
+  countryItemName: {
+    flex: 1,
+    fontSize: FontSizes.md,
+    color: Colors.text.primary,
+    fontWeight: '500',
+  },
+  countryItemDialCode: {
+    fontSize: FontSizes.md,
+    color: Colors.text.secondary,
+    fontWeight: '600',
   },
   appleButtonText: {
     fontSize: FontSizes.md,
@@ -634,12 +724,12 @@ const styles = StyleSheet.create({
     minWidth: 120,
   },
   countryFlag: {
-    fontSize: 24,
+    fontSize: 24
   },
   countryCode: {
-  fontSize: FontSizes.md,
-  fontWeight: '600',
-  color: Colors.text.primary,
+    fontSize: FontSizes.md,
+    fontWeight: '600',
+    color: Colors.text.primary
   },
   phoneInputContainer: {
     flex: 1,
@@ -652,7 +742,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.gray[200],
   },
-  phoneInput: {
+  oninput: {
     flex: 1,
     fontSize: FontSizes.md,
     color: Colors.text.primary,
@@ -669,17 +759,9 @@ const styles = StyleSheet.create({
     maxHeight: '80%',
     paddingBottom: Spacing.xl,
   },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: Spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray[200],
-  },
   modalTitle: {
     fontSize: FontSizes.xl,
-    fontWeight: 'bold' as const,
+    fontWeight: 'bold',
     color: Colors.text.primary,
   },
   countryItem: {
@@ -696,11 +778,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FontSizes.md,
     color: Colors.text.primary,
-    fontWeight: '500' as const,
+    fontWeight: '500',
   },
   countryItemDialCode: {
     fontSize: FontSizes.md,
     color: Colors.text.secondary,
-    fontWeight: '600' as const,
+    fontWeight: '600',
   },
 });
