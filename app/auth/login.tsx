@@ -343,18 +343,20 @@ export default function LoginScreen() {
                 />
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.socialButtonImg}
-                onPress={handleAppleSignIn}
-                disabled={loading}
-                activeOpacity={0.8}
-              >
-                <Image
-                  source={require('@/assets/images/apple_signin_btn.png')}
-                  style={styles.signinImg}
-                  resizeMode="contain"
-                />
-              </TouchableOpacity>
+              {Platform.OS === 'ios' && (
+                <TouchableOpacity
+                  style={styles.socialButtonImg}
+                  onPress={handleAppleSignIn}
+                  disabled={loading}
+                  activeOpacity={0.8}
+                >
+                  <Image
+                    source={require('@/assets/images/apple_signin_btn.png')}
+                    style={styles.signinImg}
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
+              )}
             </View>
 
             {loginMethod === 'email' && (
