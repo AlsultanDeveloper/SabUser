@@ -569,9 +569,10 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
   },
   socialButtons: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     gap: Spacing.md,
     marginBottom: Spacing.lg,
+    alignItems: 'center',
   },
   socialButton: {
     flex: 1,
@@ -585,26 +586,24 @@ const styles = StyleSheet.create({
     borderColor: Colors.gray[200],
     gap: Spacing.sm,
   },
-  socialButtonText: {
-    fontSize: FontSizes.md,
-    fontWeight: '600' as const,
-    color: Colors.text.primary,
-  },
-  appleButton: {
-    flex: 1,
-    flexDirection: 'row',
+  socialButtonImg: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#000000',
+    backgroundColor: 'transparent',
     borderRadius: BorderRadius.lg,
-    paddingVertical: Spacing.md,
-    gap: Spacing.sm,
+    paddingVertical: 0,
+  },
+  signinImg: {
+    width: 220,
+    height: 48,
+    resizeMode: 'contain',
+  },
     height: 56,
   },
   appleButtonText: {
-    fontSize: FontSizes.md,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
+  fontSize: FontSizes.md,
+  fontWeight: '600',
+  color: '#FFFFFF',
   },
   switchButton: {
     alignItems: 'center',
