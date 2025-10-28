@@ -13,11 +13,11 @@ import {
   Alert,
   Modal,
   FlatList,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, Stack } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { AntDesign } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAuth } from '@/contexts/AuthContext';
@@ -331,23 +331,29 @@ export default function LoginScreen() {
 
             <View style={styles.socialButtons}>
               <TouchableOpacity
-                style={styles.socialButton}
+                style={styles.socialButtonImg}
                 onPress={handleGoogleSignIn}
                 disabled={loading}
                 activeOpacity={0.7}
               >
-                <AntDesign name="google" size={22} color="#DB4437" />
-                <Text style={styles.socialButtonText}>Google</Text>
+                <Image
+                  source={require('@/assets/images/google_signin_btn.png')}
+                  style={styles.signinImg}
+                  resizeMode="contain"
+                />
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.appleButton}
+                style={styles.socialButtonImg}
                 onPress={handleAppleSignIn}
                 disabled={loading}
                 activeOpacity={0.8}
               >
-                <AntDesign name="apple1" size={22} color="#000" />
-                <Text style={styles.appleButtonText}>Apple</Text>
+                <Image
+                  source={require('@/assets/images/apple_signin_btn.png')}
+                  style={styles.signinImg}
+                  resizeMode="contain"
+                />
               </TouchableOpacity>
             </View>
 
@@ -415,6 +421,20 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  socialButtonImg: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.sm,
+    height: 56,
+  },
+  signinImg: {
+    width: '100%',
+    height: 48,
+    maxWidth: 220,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.background,
