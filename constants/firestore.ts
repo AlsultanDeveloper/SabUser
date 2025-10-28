@@ -1,4 +1,3 @@
-// firestore.ts - dummy content
 import {
   collection,
   doc,
@@ -31,6 +30,7 @@ export const collections = {
   wishlists: 'wishlists',
   brands: 'brands',
   notifications: 'notifications',
+  supportMessages: 'supportMessages',
 } as const;
 
 export async function getDocument<T = DocumentData>(

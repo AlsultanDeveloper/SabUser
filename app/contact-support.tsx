@@ -1,4 +1,3 @@
-// contact-support.tsx - dummy content
 import React, { useState } from 'react';
 import {
   View,
@@ -15,10 +14,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Colors, Spacing, BorderRadius, FontSizes } from '@/constants/theme';
+import { createDocument } from '@/constants/firestore';
 
 export default function ContactSupportScreen() {
   const { t } = useApp();
+  const { user } = useAuth();
   const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -64,7 +66,15 @@ export default function ContactSupportScreen() {
 
     setLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await createDocument('supportMessages', {
+        name: name.trim(),
+        email: email.trim(),
+        message: message.trim(),
+        userId: user?.uid || null,
+        status: 'pending',
+        read: false,
+      });
+      
       Alert.alert(t('common.success'), t('contactSupport.messageSent'));
       setName('');
       setEmail('');
