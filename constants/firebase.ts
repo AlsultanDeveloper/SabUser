@@ -22,15 +22,23 @@ const getEnvVar = (key: string): string | undefined => {
   return process.env[key] ?? (Constants.expoConfig as any)?.extra?.[key];
 };
 
+
 const firebaseConfig = {
-  apiKey: getEnvVar("EXPO_PUBLIC_FIREBASE_API_KEY") ?? "AIzaSyCqeIKe6itUxPXTLHCYxIaxnl-wsCmcIYY",
-  authDomain: getEnvVar("EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN") ?? "sab-store-9b947.firebaseapp.com",
-  projectId: getEnvVar("EXPO_PUBLIC_FIREBASE_PROJECT_ID") ?? "sab-store-9b947",
-  storageBucket: getEnvVar("EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET") ?? "sab-store-9b947.appspot.com",
-  messagingSenderId: getEnvVar("EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID") ?? "263235150197",
-  appId: getEnvVar("EXPO_PUBLIC_FIREBASE_APP_ID") ?? "1:263235150197:web:3519534187b75d9006b33c",
-  measurementId: getEnvVar("EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID") ?? "G-1ZPF2J52WZ",
+  apiKey: Constants.expoConfig?.extra?.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: Constants.expoConfig?.extra?.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: Constants.expoConfig?.extra?.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: Constants.expoConfig?.extra?.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: Constants.expoConfig?.extra?.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: Constants.expoConfig?.extra?.EXPO_PUBLIC_FIREBASE_APP_ID,
+  measurementId: Constants.expoConfig?.extra?.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
+
+console.log('✓ Firebase config loaded from .env via Constants:', {
+  apiKey: firebaseConfig.apiKey ? '✓' : '✗',
+  authDomain: firebaseConfig.authDomain ? '✓' : '✗',
+  projectId: firebaseConfig.projectId ? '✓' : '✗',
+  appId: firebaseConfig.appId ? '✓' : '✗',
+});
 
 const isConfigValid =
   !!firebaseConfig.apiKey &&

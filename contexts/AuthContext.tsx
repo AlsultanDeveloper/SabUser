@@ -1,6 +1,6 @@
 
 import createContextHook from '@nkzw/create-context-hook';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, use } from 'react';
 import {
   User,
   signInWithEmailAndPassword,
@@ -58,7 +58,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       iosClientId: GOOGLE_IOS_CLIENT_ID,
       webClientId: GOOGLE_WEB_CLIENT_ID,
       responseType: 'id_token',
-      redirectUri: AuthSession.makeRedirectUri({ scheme: 'sabstore' }),
+  redirectUri: AuthSession.makeRedirectUri({ projectNameForProxy: '@sultandeveloper/sab-store' } as any),
     }),
     [GOOGLE_ANDROID_CLIENT_ID, GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID]
   );

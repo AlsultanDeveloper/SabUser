@@ -96,9 +96,19 @@
       "eas": {
         "projectId": "d5069f4c-8710-4ecf-8aa3-7dce45e85b18"
       },
-      "const googleClientId": "263235150197-7ur5kp8iath4f503m1f7juq5nha1nvqj.apps.googleusercontent.com",
-      "const googleClientIdIos": "263235150197-7ur5kp8iath4f503m1f7juq5nha1nvqj.apps.googleusercontent.com",
-      "const googleClientIdAndroid": "263235150197-7ur5kp8iath4f503m1f7juq5nha1nvqj.apps.googleusercontent.com"
+      "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyCqeIKe6itUxPXTLHCYxIaxnl-wsCmcIYY",
+      "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "sab-store-9b947.firebaseapp.com",
+      "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "sab-store-9b947",
+      "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "sab-store-9b947.appspot.com",
+      "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "263235150197",
+      "EXPO_PUBLIC_FIREBASE_APP_ID": "1:263235150197:web:3519534187b75d9006b33c",
+      "EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID": "G-1ZPF2J52WZ",
+      "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "263235150197-7ur5kp8iath4f503m1f7juq5nha1nvqj.apps.googleusercontent.com",
+      "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "263235150197-uearggvrhr7u97uh9likv6hsbs73muqu.apps.googleusercontent.com",
+      "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "263235150197-71q01c46r4923tdgsei29oohkfthkk9i.apps.googleusercontent.com",
+      "EXPO_PUBLIC_OTP_GATEWAY_URL": "https://api-mavdolrtja-uc.a.run.app/check-otp",
+      "EXPO_PUBLIC_SEND_OTP_URL": "https://us-central1-sab-store-9b947.cloudfunctions.net/sendOTP",
+      "EXPO_PUBLIC_VERIFY_OTP_URL": "https://us-central1-sab-store-9b947.cloudfunctions.net/verifyOTP"
     }
   }
 }
