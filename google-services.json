@@ -14,11 +14,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "263235150197-lqo4bdc6p2c1imhbstb27hfqe8dolhti.apps.googleusercontent.com",
+          "client_id": "263235150197-71q01c46r4923tdgsei29oohkfthkk9i.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "app.rork.lebanonmultivendorecommerceplatform",
-            "certificate_hash": "434173458eee9a28469bdf4c2a979bb6dbaa1cfd"
+            "certificate_hash": "4d8351938e1196548a86475bda2fe4ac8e292d9c"
           }
         },
         {
