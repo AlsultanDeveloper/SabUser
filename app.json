@@ -5,7 +5,7 @@
     "version": "1.0.14",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "sabstore",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -95,7 +95,10 @@
       },
       "eas": {
         "projectId": "d5069f4c-8710-4ecf-8aa3-7dce45e85b18"
-      }
+      },
+      "const googleClientId": "263235150197-7ur5kp8iath4f503m1f7juq5nha1nvqj.apps.googleusercontent.com",
+      "const googleClientIdIos": "263235150197-7ur5kp8iath4f503m1f7juq5nha1nvqj.apps.googleusercontent.com",
+      "const googleClientIdAndroid": "263235150197-7ur5kp8iath4f503m1f7juq5nha1nvqj.apps.googleusercontent.com"
     }
   }
 }
