@@ -9,13 +9,11 @@ import {
   setPersistence,
   browserLocalPersistence,
   inMemoryPersistence,
-  getReactNativePersistence,      // ✅ أضف هذا
   GoogleAuthProvider,
   Auth,
 } from "firebase/auth";
 import { getFirestore, Firestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getStorage, FirebaseStorage, connectStorageEmulator } from "firebase/storage";
-import AsyncStorage from "@react-native-async-storage/async-storage"; // ✅ استيراد مباشر
 
 // -------------------- ENV helpers --------------------
 const getEnvVar = (key: string): string | undefined => {
@@ -24,19 +22,21 @@ const getEnvVar = (key: string): string | undefined => {
 
 
 const firebaseConfig = {
-  apiKey: Constants.expoConfig?.extra?.EXPO_PUBLIC_FIREBASE_API_KEY,
-  authDomain: Constants.expoConfig?.extra?.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: Constants.expoConfig?.extra?.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: Constants.expoConfig?.extra?.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: Constants.expoConfig?.extra?.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: Constants.expoConfig?.extra?.EXPO_PUBLIC_FIREBASE_APP_ID,
-  measurementId: Constants.expoConfig?.extra?.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  apiKey: Constants.expoConfig?.extra?.EXPO_PUBLIC_FIREBASE_API_KEY || process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: Constants.expoConfig?.extra?.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: Constants.expoConfig?.extra?.EXPO_PUBLIC_FIREBASE_PROJECT_ID || process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: Constants.expoConfig?.extra?.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: Constants.expoConfig?.extra?.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: Constants.expoConfig?.extra?.EXPO_PUBLIC_FIREBASE_APP_ID || process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+  measurementId: Constants.expoConfig?.extra?.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-console.log('✓ Firebase config loaded from .env via Constants:', {
+console.log('🔧 Firebase config check:', {
   apiKey: firebaseConfig.apiKey ? '✓' : '✗',
   authDomain: firebaseConfig.authDomain ? '✓' : '✗',
   projectId: firebaseConfig.projectId ? '✓' : '✗',
+  storageBucket: firebaseConfig.storageBucket ? '✓' : '✗',
+  messagingSenderId: firebaseConfig.messagingSenderId ? '✓' : '✗',
   appId: firebaseConfig.appId ? '✓' : '✗',
 });
 
@@ -47,14 +47,17 @@ const isConfigValid =
   !!firebaseConfig.appId;
 
 if (!isConfigValid) {
-  console.error("✗ Firebase config is incomplete. Check your env (.env/.env.local) and app.json 'extra'.");
+  console.error("✗ Firebase config is incomplete.");
   console.error("Missing keys:", {
     apiKey: !!firebaseConfig.apiKey,
     authDomain: !!firebaseConfig.authDomain,
     projectId: !!firebaseConfig.projectId,
+    storageBucket: !!firebaseConfig.storageBucket,
+    messagingSenderId: !!firebaseConfig.messagingSenderId,
     appId: !!firebaseConfig.appId,
   });
-  throw new Error("Firebase configuration is incomplete");
+  console.error("Constants.expoConfig?.extra:", JSON.stringify(Constants.expoConfig?.extra, null, 2));
+  throw new Error("Firebase configuration is incomplete. Please restart the development server.");
 }
 
 // Optional local emulators toggle
@@ -76,14 +79,10 @@ try {
       setPersistence(auth, inMemoryPersistence).catch(() => {});
     });
   } else {
-    // ✅ الأجهزة: initializeAuth مع AsyncStorage مرة واحدة
     try {
-      auth = initializeAuth(app, {
-        persistence: getReactNativePersistence(AsyncStorage),
-      });
-    } catch (e: any) {
-      // إذا كان مهيأ مسبقًا (Fast Refresh)
       auth = getAuth(app);
+    } catch {
+      auth = initializeAuth(app);
     }
   }
 
@@ -127,4 +126,3 @@ export const signOutSafely = async () => {
 // -------------------- Exports --------------------
 export { app, auth, db, storage, isConfigValid, isConfigValid as isConfigured };
 export type { FirebaseApp };
-``
