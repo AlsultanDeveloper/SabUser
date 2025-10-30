@@ -488,7 +488,7 @@ export default function AddressMapPickerScreen() {
                     style={styles.formInput}
                     value={addressForm.phoneNumber}
                     onChangeText={(text) => setAddressForm({ ...addressForm, phoneNumber: text })}
-                    placeholder="+966 xx xxx xxxx"
+                    placeholder="ضع رقم هاتفك"
                     placeholderTextColor={Colors.gray[400]}
                     keyboardType="phone-pad"
                   />
@@ -520,7 +520,7 @@ export default function AddressMapPickerScreen() {
                       style={styles.formInput}
                       value={addressForm.city}
                       onChangeText={(text) => setAddressForm({ ...addressForm, city: text })}
-                      placeholder="الرياض"
+                      placeholder="مدينتك"
                       placeholderTextColor={Colors.gray[400]}
                     />
                   </View>

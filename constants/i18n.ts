@@ -156,11 +156,11 @@ const translations = {
       orderFailed: 'Failed to place order',
       loading: 'Loading addresses...',
       placeholder: {
-        fullName: 'John Doe',
-        phone: '+966 xx xxx xxxx',
+        fullName: 'Write your full name',
+        phone: 'Write your phone number',
         address: 'Street address',
-        city: 'Riyadh',
-        postalCode: '12345',
+        city: 'your city',
+        postalCode: 'xxxxx',
       },
     },
     product: {
@@ -507,11 +507,11 @@ const translations = {
       orderFailed: 'فشل تقديم الطلب',
       loading: 'جارٍ تحميل العناوين...',
       placeholder: {
-        fullName: 'أحمد محمد',
-        phone: '+966 xx xxx xxxx',
+        fullName: 'ضع اسمك الكامل',
+        phone: 'ضع رقم هاتفك',
         address: 'عنوان الشارع',
-        city: 'الرياض',
-        postalCode: '12345',
+        city: 'مدينتك',
+        postalCode: 'xxxxx',
       },
     },
     product: {
