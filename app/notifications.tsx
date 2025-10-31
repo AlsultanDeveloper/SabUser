@@ -8,21 +8,17 @@ import {
   TouchableOpacity,
   Switch,
   Platform,
-  Alert,
-  Linking,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import * as Notifications from 'expo-notifications';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNotifications } from '@/contexts/NotificationContext';
-import { getDocument, getDocuments, collections, where, orderBy } from '@/constants/firestore';
-import { registerForPushNotificationsAsync } from '@/constants/notifications';
+import { getDocuments, collections, where, orderBy } from '@/constants/firestore';
 import { Colors, Spacing, BorderRadius, FontSizes } from '@/constants/theme';
+
 
 interface Notification {
   id: string;
@@ -31,12 +27,13 @@ interface Notification {
   timestamp: Date;
   read: boolean;
   type: 'order' | 'promotion' | 'system';
+  orderId?: string;
+  supportMessageId?: string;
 }
 
 export default function NotificationsScreen() {
   const { t } = useApp();
   const { user } = useAuth();
-  const { expoPushToken, savePushTokenToUser } = useNotifications();
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,6 +66,8 @@ export default function NotificationsScreen() {
           timestamp: notif.createdAt?.toDate() || new Date(),
           read: notif.read || false,
           type: notif.type === 'support_reply' ? 'system' : 'order',
+          orderId: notif.orderId,
+          supportMessageId: notif.supportMessageId,
         }));
 
         setNotifications(formattedNotifs);
@@ -82,48 +81,6 @@ export default function NotificationsScreen() {
     fetchNotifications();
   }, [user]);
 
-  // التحقق من Push Token
-  const handleCheckPushToken = async () => {
-    if (!user?.uid) {
-      Alert.alert('خطأ', 'يجب تسجيل الدخول أولاً');
-      return;
-    }
-
-    try {
-      // احصل على push token من Context
-      const currentToken = expoPushToken;
-      
-      // احصل على push token من Firestore
-      const userProfile = await getDocument(collections.users, user.uid);
-      const savedToken = userProfile?.pushToken;
-      
-      let message = `معرف المستخدم: ${user.uid}\n\n`;
-      message += `📱 Push Token الحالي:\n${currentToken || 'غير متوفر'}\n\n`;
-      message += `💾 Token المحفوظ في Firestore:\n${savedToken || 'غير موجود'}\n\n`;
-      
-      if (currentToken && savedToken && currentToken === savedToken) {
-        message += '✅ الحالة: Token مُسجل بنجاح!';
-      } else if (currentToken && !savedToken) {
-        message += '⚠️ الحالة: Token موجود لكن غير محفوظ!\nسيتم حفظه الآن...';
-        await savePushTokenToUser(user.uid, currentToken);
-        message += '\n✅ تم الحفظ!';
-      } else if (!currentToken) {
-        message += '❌ الحالة: لم يتم الحصول على Token\nتأكد من منح صلاحيات الإشعارات';
-      } else {
-        message += '⚠️ الحالة: Token مختلف، سيتم التحديث...';
-        if (currentToken) {
-          await savePushTokenToUser(user.uid, currentToken);
-          message += '\n✅ تم التحديث!';
-        }
-      }
-      
-      Alert.alert('معلومات Push Token', message);
-    } catch (error) {
-      console.error('Error checking push token:', error);
-      Alert.alert('خطأ', 'حدث خطأ أثناء التحقق من Token');
-    }
-  };
-
   const handleNotificationPress = (notification: Notification) => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -131,7 +88,16 @@ export default function NotificationsScreen() {
     setNotifications((prev) =>
       prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n))
     );
-    if (notification.type === 'order') {
+    
+    // توجيه حسب نوع الإشعار
+    if (notification.type === 'order' && notification.orderId) {
+      // فتح صفحة تفاصيل الطلب المحدد
+      router.push(`/order/${notification.orderId}` as any);
+    } else if (notification.type === 'system' && notification.supportMessageId) {
+      // فتح صفحة الدعم (يمكنك تعديل هذا حسب الحاجة)
+      router.push('/contact-support' as any);
+    } else if (notification.type === 'order') {
+      // إذا لم يكن هناك orderId، اذهب لقائمة الطلبات
       router.push('/(tabs)/orders' as any);
     }
   };
