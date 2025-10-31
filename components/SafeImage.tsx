@@ -1,6 +1,5 @@
-// SafeImage.tsx - dummy content
-import React, { useState } from 'react';
-import { Image, ImageProps, View, StyleSheet } from 'react-native';
+import React, { useState, useCallback, memo } from 'react';
+import { Image, ImageProps, View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
 
@@ -8,16 +7,21 @@ interface SafeImageProps extends Omit<ImageProps, 'source'> {
   uri?: string;
   fallbackIconSize?: number;
   fallbackIconName?: keyof typeof Feather.glyphMap;
+  showLoader?: boolean;
+  resizeMode?: 'cover' | 'contain' | 'stretch' | 'repeat' | 'center';
 }
 
-export default function SafeImage({
+const SafeImage = memo(function SafeImage({
   uri,
   style,
   fallbackIconSize = 40,
   fallbackIconName = 'image',
+  showLoader = true,
+  resizeMode = 'cover',
   ...props
 }: SafeImageProps) {
   const [hasError, setHasError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
   const trimmedUri = uri?.trim();
   
@@ -29,44 +33,69 @@ export default function SafeImage({
       trimmedUri.startsWith('data:')
     );
 
-  if (!isValidUri) {
-    return (
-      <View style={[styles.fallback, style]}>
-        <Feather 
-          name={fallbackIconName} 
-          size={fallbackIconSize} 
-          color={Colors.gray[300]} 
-        />
-      </View>
-    );
-  }
+  const handleError = useCallback(() => {
+    setHasError(true);
+    setIsLoading(false);
+  }, []);
 
-  if (hasError) {
-    return (
-      <View style={[styles.fallback, style]}>
-        <Feather 
-          name={fallbackIconName} 
-          size={fallbackIconSize} 
-          color={Colors.gray[300]} 
-        />
-      </View>
-    );
+  const handleLoad = useCallback(() => {
+    setIsLoading(false);
+  }, []);
+
+  const handleLoadStart = useCallback(() => {
+    setIsLoading(true);
+    setHasError(false);
+  }, []);
+
+  const renderFallback = () => (
+    <View style={[styles.fallback, style]}>
+      <Feather 
+        name={fallbackIconName} 
+        size={fallbackIconSize} 
+        color={Colors.gray[300]} 
+      />
+    </View>
+  );
+
+  if (!isValidUri || hasError) {
+    return renderFallback();
   }
 
   return (
-    <Image
-      {...props}
-      source={{ uri: trimmedUri }}
-      style={style}
-      onError={() => {
-        setHasError(true);
-      }}
-    />
+    <View style={style}>
+      <Image
+        {...props}
+        source={{ 
+          uri: trimmedUri,
+          cache: 'force-cache' // Enable caching
+        }}
+        style={[StyleSheet.absoluteFillObject, { resizeMode }]}
+        onError={handleError}
+        onLoad={handleLoad}
+        onLoadStart={handleLoadStart}
+      />
+      {isLoading && showLoader && (
+        <View style={[styles.loader, style]}>
+          <ActivityIndicator 
+            size="small" 
+            color={Colors.primary} 
+          />
+        </View>
+      )}
+    </View>
   );
-}
+});
+
+export default SafeImage;
 
 const styles = StyleSheet.create({
   fallback: {
+    backgroundColor: Colors.gray[100],
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loader: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: Colors.gray[100],
     justifyContent: 'center',
     alignItems: 'center',

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   Platform,
   Modal,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -31,10 +32,11 @@ const BANNER_WIDTH = width - Spacing.md * 2;
 export default function HomeScreen() {
   const { t, language, formatPrice, changeLanguage } = useApp();
   const router = useRouter();
-  const { categories, loading: categoriesLoading } = useCategories();
-  const { products, loading: productsLoading } = useProducts({ featured: true, limit: 6 });
+  const { categories, loading: categoriesLoading, refetch: refetchCategories } = useCategories();
+  const { products, loading: productsLoading, refetch: refetchProducts } = useProducts({ featured: true, limit: 6 });
 
-  const hardcodedBanners = [
+  // Hardcoded banners with memoization for performance
+  const hardcodedBanners = useMemo(() => [
     {
       id: 'YByfRqFBV1qfqzN5M4PG',
       image: 'https://firebasestorage.googleapis.com/v0/b/sab-store-9b947.firebasestorage.app/o/Banners%2FSab%20Market.png?alt=media&token=a9bfbcc4-55d7-4d74-a29f-d042b618d4c9',
@@ -44,17 +46,35 @@ export default function HomeScreen() {
       isActive: true,
       order: 1,
     },
-  ];
+  ], []);
 
-  const activeBanners = hardcodedBanners.filter(b => b.isActive);
-
+  const activeBanners = useMemo(() => 
+    hardcodedBanners.filter(b => b.isActive), 
+    [hardcodedBanners]
+  );
 
   const [activeSlide, setActiveSlide] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const scrollViewRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
+
+  // Refresh handler
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        refetchCategories(),
+        refetchProducts(),
+      ]);
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetchCategories, refetchProducts]);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
@@ -215,6 +235,14 @@ export default function HomeScreen() {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[Colors.primary]}
+            tintColor={Colors.primary}
+          />
+        }
       >
         {activeBanners.length > 0 && (
           <View style={styles.bannerSection}>
