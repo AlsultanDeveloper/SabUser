@@ -11,6 +11,7 @@ import {
   GoogleAuthProvider,
   OAuthProvider,
   signInWithPopup,
+  updateProfile,
 } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, isConfigured } from '@/constants/firebase';
@@ -21,6 +22,7 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import * as AuthSession from 'expo-auth-session';
 import Constants from 'expo-constants';
+import type { SignUpData, User as AppUser } from '@/types';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -121,20 +123,114 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     }
   }, []);
 
-  const signUpWithEmail = useCallback(async (email: string, password: string) => {
+  const signUpWithEmail = useCallback(async (
+    email: string, 
+    password: string,
+    additionalData?: SignUpData
+  ) => {
     try {
       if (!isConfigured || !auth) {
         return { success: false, error: 'Firebase is not configured.' };
       }
+      
+      console.log('📝 Creating new user account...');
       const result = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // بناء الاسم الكامل
+      const fullName = additionalData 
+        ? `${additionalData.firstName} ${additionalData.lastName}`
+        : '';
+      
+      // تحديث الـ displayName في Firebase Auth
+      if (fullName) {
+        console.log('✏️ Updating profile display name...');
+        await updateProfile(result.user, {
+          displayName: fullName,
+        });
+      }
+      
+      console.log('💾 Saving user data to Firestore...');
       const db = getFirestore();
       const userDocRef = doc(db, 'users', result.user.uid);
-      await setDoc(userDocRef, {
-        email: result.user.email,
-        fullName: result.user.displayName || '',
+      
+      // بناء بيانات المستخدم الكاملة
+      const userData: AppUser = {
+        // معلومات أساسية
+        uid: result.user.uid,
+        email: result.user.email!,
+        emailVerified: result.user.emailVerified,
+        
+        // الاسم
+        fullName: fullName,
+        firstName: additionalData?.firstName || '',
+        lastName: additionalData?.lastName || '',
+        displayName: fullName || undefined,
+        
+        // الصورة
+        photoURL: result.user.photoURL || undefined,
+        
+        // المصادقة
         signInMethod: 'email',
+        
+        // الاتصال
+        phoneNumber: additionalData?.phoneNumber,
+        phoneVerified: false,
+        
+        // التفضيلات
+        preferences: {
+          language: additionalData?.language || 'en',
+          currency: 'USD',
+          notifications: {
+            push: true,
+            email: true,
+            sms: false,
+            orders: true,
+            promotions: true,
+          },
+          theme: 'auto',
+        },
+        
+        // الإحصائيات
+        stats: {
+          totalOrders: 0,
+          totalSpent: 0,
+          wishlistCount: 0,
+          loyaltyPoints: 0,
+          membershipLevel: 'bronze',
+        },
+        
+        // الحالة
+        status: {
+          isActive: true,
+          isVerified: false,
+          isBlocked: false,
+          twoFactorEnabled: false,
+        },
+        
+        // التواريخ
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString(),
+        
+        // Metadata
+        metadata: {
+          registrationSource: Platform.OS as any,
+          deviceInfo: {
+            platform: Platform.OS,
+            version: Platform.Version.toString(),
+          },
+        },
+      };
+      
+      await setDoc(userDocRef, userData);
+      
+      console.log('✅ User document created successfully with complete data');
+      console.log('👤 User:', {
+        name: fullName,
+        email: result.user.email,
+        phone: additionalData?.phoneNumber || 'Not provided',
       });
+      
       return { success: true, user: result.user };
     } catch (error: any) {
       console.error('❌ Email sign up error:', error);

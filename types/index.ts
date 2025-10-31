@@ -139,3 +139,114 @@ export interface OrderStatusUpdate {
     ar: string;
   };
 }
+
+// ===== User Types =====
+
+export type SignInMethod = 'email' | 'google' | 'apple' | 'phone';
+export type Theme = 'light' | 'dark' | 'auto';
+export type MembershipLevel = 'bronze' | 'silver' | 'gold' | 'platinum';
+
+export interface UserNotificationSettings {
+  push: boolean;
+  email: boolean;
+  sms: boolean;
+  orders: boolean;
+  promotions: boolean;
+}
+
+export interface UserPreferences {
+  language: Language;
+  currency: Currency;
+  notifications: UserNotificationSettings;
+  theme: Theme;
+}
+
+export interface UserAddress {
+  id: string;
+  label: string;
+  fullAddress: string;
+  city: string;
+  country: string;
+  postalCode?: string;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+}
+
+export interface UserStats {
+  totalOrders: number;
+  totalSpent: number;
+  wishlistCount: number;
+  loyaltyPoints: number;
+  membershipLevel: MembershipLevel;
+}
+
+export interface UserStatus {
+  isActive: boolean;
+  isVerified: boolean;
+  isBlocked: boolean;
+  blockReason?: string;
+  twoFactorEnabled: boolean;
+}
+
+export interface UserMetadata {
+  registrationSource: 'web' | 'ios' | 'android';
+  referralCode?: string;
+  referredBy?: string;
+  deviceInfo?: {
+    platform: string;
+    version: string;
+  };
+}
+
+export interface User {
+  // معلومات أساسية
+  uid: string;
+  email: string;
+  emailVerified: boolean;
+  
+  // الاسم
+  fullName: string;
+  firstName: string;
+  lastName: string;
+  displayName?: string;
+  
+  // الصورة
+  photoURL?: string;
+  
+  // المصادقة
+  signInMethod: SignInMethod;
+  
+  // الاتصال
+  phoneNumber?: string;
+  phoneVerified: boolean;
+  
+  // العنوان الافتراضي
+  defaultAddressId?: string;
+  
+  // التفضيلات
+  preferences: UserPreferences;
+  
+  // الإحصائيات
+  stats: UserStats;
+  
+  // الحالة
+  status: UserStatus;
+  
+  // التواريخ
+  createdAt: string;
+  updatedAt: string;
+  lastLoginAt: string;
+  lastPasswordChange?: string;
+  
+  // بيانات إضافية
+  metadata?: UserMetadata;
+}
+
+export interface SignUpData {
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
+  language?: Language;
+}

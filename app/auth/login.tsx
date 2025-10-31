@@ -35,7 +35,6 @@ export default function LoginScreen() {
     signUpWithEmail,
     signInWithGoogle,
     signInWithApple,
-    sendPhoneVerification,
   } = useAuth();
 
   const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('email');
@@ -44,6 +43,9 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [signupPhoneNumber, setSignupPhoneNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<Country>(COUNTRIES[0]);
@@ -51,24 +53,18 @@ export default function LoginScreen() {
 
   const handlePhoneAuth = async () => {
     if (!phoneNumber) {
-      Alert.alert('Error', 'Please enter your phone number');
+      Alert.alert(t('common.error'), t('auth.errors.enterPhone'));
       return;
     }
     setLoading(true);
     try {
-      const fullPhoneNumber = `${selectedCountry.dialCode}${phoneNumber}`;
-      const result = await sendPhoneVerification(fullPhoneNumber);
-      if (result.success) {
-        Alert.alert('Success', 'Verification code sent to your phone');
-      } else {
-        Alert.alert(
-          'Note',
-          result.error ??
-            'Phone authentication requires React Native Firebase. Please use email, Google, or Apple sign-in instead.'
-        );
-      }
+      // Phone authentication is not implemented yet
+      Alert.alert(
+        t('common.error'),
+        t('auth.errors.phoneAuthNote')
+      );
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      Alert.alert(t('common.error'), error.message);
     } finally {
       setLoading(false);
     }
@@ -76,26 +72,44 @@ export default function LoginScreen() {
 
   const handleEmailAuth = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert(t('common.error'), t('auth.errors.fillAllFields'));
       return;
     }
-    if (isSignUp && password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
-      return;
+
+    if (isSignUp) {
+      // التحقق من الحقول الإضافية عند التسجيل
+      if (!firstName.trim()) {
+        Alert.alert(t('common.error'), t('auth.errors.enterFirstName'));
+        return;
+      }
+      if (!lastName.trim()) {
+        Alert.alert(t('common.error'), t('auth.errors.enterLastName'));
+        return;
+      }
+      if (password !== confirmPassword) {
+        Alert.alert(t('common.error'), t('auth.errors.passwordMismatch'));
+        return;
+      }
     }
+
     setLoading(true);
     try {
       const result = isSignUp
-        ? await signUpWithEmail(email, password)
+        ? await signUpWithEmail(email, password, {
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+            phoneNumber: signupPhoneNumber.trim() || undefined,
+            language,
+          })
         : await signInWithEmail(email, password);
       if (result.success) {
-        console.log('Auth successful');
+        console.log('✅ Auth successful');
         router.back();
       } else {
-        Alert.alert('Error', result.error ?? 'Authentication failed');
+        Alert.alert(t('common.error'), result.error ?? t('auth.errors.authFailed'));
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      Alert.alert(t('common.error'), error.message);
     } finally {
       setLoading(false);
     }
@@ -161,17 +175,20 @@ export default function LoginScreen() {
             <Feather name="x" size={24} color={Colors.text.primary} />
           </TouchableOpacity>
 
-          <LinearGradient
-            colors={[Colors.primary, Colors.secondary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.header}
-          >
-            <Text style={styles.headerTitle}>SAB STORE</Text>
-            <Text style={styles.headerSubtitle}>
+          <View style={styles.headerContainer}>
+            <LinearGradient
+              colors={[Colors.primary, Colors.secondary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.logoGradient}
+            >
+              <Text style={styles.logoText}>SAB STORE</Text>
+            </LinearGradient>
+            
+            <Text style={styles.pageTitle}>
               {isSignUp ? t('auth.createAccount') : t('auth.welcomeBack')}
             </Text>
-          </LinearGradient>
+          </View>
 
           <View style={styles.tabContainer}>
             <TouchableOpacity
@@ -267,6 +284,51 @@ export default function LoginScreen() {
                     autoCorrect={false}
                   />
                 </View>
+
+                {isSignUp && (
+                  <>
+                    <View style={styles.nameRow}>
+                      <View style={[styles.inputContainer, styles.halfInput]}>
+                        <Feather name="user" size={20} color={Colors.gray[400]} style={styles.inputIcon} />
+                        <TextInput
+                          style={styles.input}
+                          placeholder={t('auth.placeholders.firstName')}
+                          placeholderTextColor={Colors.gray[400]}
+                          value={firstName}
+                          onChangeText={setFirstName}
+                          autoCapitalize="words"
+                          autoCorrect={false}
+                        />
+                      </View>
+
+                      <View style={[styles.inputContainer, styles.halfInput]}>
+                        <Feather name="user" size={20} color={Colors.gray[400]} style={styles.inputIcon} />
+                        <TextInput
+                          style={styles.input}
+                          placeholder={t('auth.placeholders.lastName')}
+                          placeholderTextColor={Colors.gray[400]}
+                          value={lastName}
+                          onChangeText={setLastName}
+                          autoCapitalize="words"
+                          autoCorrect={false}
+                        />
+                      </View>
+                    </View>
+
+                    <View style={styles.inputContainer}>
+                      <Feather name="phone" size={20} color={Colors.gray[400]} style={styles.inputIcon} />
+                      <TextInput
+                        style={styles.input}
+                        placeholder={t('auth.placeholders.phoneNumber')}
+                        placeholderTextColor={Colors.gray[400]}
+                        value={signupPhoneNumber}
+                        onChangeText={setSignupPhoneNumber}
+                        keyboardType="phone-pad"
+                        autoCapitalize="none"
+                      />
+                    </View>
+                  </>
+                )}
 
                 <View style={styles.inputContainer}>
                   <Feather name="lock" size={20} color={Colors.gray[400]} style={styles.inputIcon} />
@@ -373,6 +435,48 @@ export default function LoginScreen() {
                 </Text>
               </TouchableOpacity>
             )}
+
+            {/* Footer Links */}
+            <View style={styles.footer}>
+              <View style={styles.footerLinks}>
+                <TouchableOpacity
+                  onPress={() => router.push('/privacy-policy')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.footerLink}>{t('account.privacyPolicy')}</Text>
+                </TouchableOpacity>
+                <Text style={styles.footerDivider}>•</Text>
+                <TouchableOpacity
+                  onPress={() => router.push('/about-us')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.footerLink}>{t('account.about')}</Text>
+                </TouchableOpacity>
+                <Text style={styles.footerDivider}>•</Text>
+                <TouchableOpacity
+                  onPress={() => router.push('/terms-of-use')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.footerLink}>{t('account.termsOfUse')}</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <TouchableOpacity
+                onPress={() => {
+                  // Open website in browser
+                  console.log('🌐 Opening website: https://www.sab-store.com');
+                }}
+                activeOpacity={0.7}
+                style={styles.websiteLink}
+              >
+                <Feather name="globe" size={14} color={Colors.primary} />
+                <Text style={styles.websiteText}>www.sab-store.com</Text>
+              </TouchableOpacity>
+
+              <Text style={styles.footerCopyright}>
+                © 2025 SAB Store. {t('aboutUs.footer')}
+              </Text>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -429,14 +533,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'transparent',
     borderRadius: BorderRadius.lg,
-    paddingVertical: Spacing.sm,
-    height: 56,
+    paddingVertical: Spacing.xs,
+    height: 44,
   },
   signinImg: {
-    width: 220,
-    height: 48,
+    width: 200,
+    height: 40,
     resizeMode: 'contain',
-    maxWidth: 220,
+    maxWidth: 200,
   },
   container: {
     flex: 1,
@@ -465,26 +569,60 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  headerContainer: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.md,
+  },
+  logoGradient: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.md,
+  },
+  logoText: {
+    fontSize: FontSizes.lg,
+    fontWeight: 'bold' as const,
+    color: Colors.white,
+    letterSpacing: 0.5,
+  },
+  pageTitle: {
+    fontSize: FontSizes.xxl,
+    fontWeight: 'bold' as const,
+    color: Colors.text.primary,
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
   header: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.xxl * 2,
     paddingBottom: Spacing.xl,
     alignItems: 'center',
+    borderBottomLeftRadius: BorderRadius.xl * 2,
+    borderBottomRightRadius: BorderRadius.xl * 2,
   },
   headerTitle: {
-    fontSize: FontSizes.xxxl + 8,
+    fontSize: FontSizes.xxxl + 12,
     fontWeight: 'bold' as const,
     color: Colors.white,
-    marginBottom: Spacing.sm,
+    marginBottom: 1,
+    letterSpacing: 1,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   headerSubtitle: {
     fontSize: FontSizes.lg,
     color: Colors.white,
+    opacity: 0.95,
+    letterSpacing: 0.5,
   },
   tabContainer: {
     flexDirection: 'row',
     marginHorizontal: Spacing.lg,
-    marginTop: Spacing.lg,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
     backgroundColor: Colors.gray[100],
     borderRadius: BorderRadius.lg,
     padding: 4,
@@ -495,7 +633,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.md,
     gap: 6,
   },
@@ -518,7 +656,16 @@ const styles = StyleSheet.create({
   formContainer: {
     flex: 1,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
+    paddingTop: Spacing.sm,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: 0,
+  },
+  halfInput: {
+    flex: 1,
+    marginBottom: Spacing.sm,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -526,10 +673,15 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.lg,
     paddingHorizontal: Spacing.md,
-    marginBottom: Spacing.md,
-    height: 56,
-    borderWidth: 1,
+    marginBottom: Spacing.sm,
+    height: 48,
+    borderWidth: 2,
     borderColor: Colors.gray[200],
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   inputIcon: {
     marginRight: Spacing.sm,
@@ -542,24 +694,30 @@ const styles = StyleSheet.create({
   primaryButton: {
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
-    marginTop: Spacing.md,
-    marginBottom: Spacing.lg,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   buttonGradient: {
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 56,
+    height: 48,
   },
   primaryButtonText: {
     fontSize: FontSizes.lg,
     fontWeight: 'bold' as const,
     color: Colors.white,
+    letterSpacing: 0.5,
   },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: Spacing.lg,
+    marginVertical: Spacing.sm,
   },
   dividerLine: {
     flex: 1,
@@ -567,14 +725,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray[300],
   },
   dividerText: {
-    marginHorizontal: Spacing.md,
-    fontSize: FontSizes.sm,
+    marginHorizontal: Spacing.sm,
+    fontSize: FontSizes.xs,
     color: Colors.text.secondary,
   },
   socialButtons: {
     flexDirection: 'column',
-    gap: Spacing.md,
-    marginBottom: Spacing.lg,
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
     alignItems: 'center',
   },
   socialButton: {
@@ -674,15 +832,57 @@ const styles = StyleSheet.create({
     },
       switchButton: {
         alignItems: 'center',
-        paddingVertical: Spacing.md,
+        paddingVertical: Spacing.sm,
       },
       switchButtonText: {
-        fontSize: FontSizes.md,
+        fontSize: FontSizes.sm,
         color: Colors.text.secondary,
       },
       switchButtonTextBold: {
         fontWeight: 'bold',
         color: Colors.primary,
+      },
+      footer: {
+        marginTop: Spacing.lg,
+        paddingTop: Spacing.md,
+        borderTopWidth: 1,
+        borderTopColor: Colors.gray[200],
+        alignItems: 'center',
+      },
+      footerLinks: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexWrap: 'wrap',
+        marginBottom: Spacing.sm,
+      },
+      footerLink: {
+        fontSize: FontSizes.xs,
+        color: Colors.text.secondary,
+        fontWeight: '500' as const,
+      },
+      footerDivider: {
+        fontSize: FontSizes.xs,
+        color: Colors.gray[400],
+        marginHorizontal: Spacing.xs,
+      },
+      websiteLink: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 4,
+        marginBottom: Spacing.xs,
+        paddingVertical: Spacing.xs,
+      },
+      websiteText: {
+        fontSize: FontSizes.xs,
+        color: Colors.primary,
+        fontWeight: '600' as const,
+      },
+      footerCopyright: {
+        fontSize: 10,
+        color: Colors.gray[400],
+        textAlign: 'center',
       },
       modalHeader: {
         flexDirection: 'row',
