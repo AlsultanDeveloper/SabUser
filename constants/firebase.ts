@@ -14,6 +14,22 @@ import {
 } from "firebase/auth";
 import { getFirestore, Firestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getStorage, FirebaseStorage, connectStorageEmulator } from "firebase/storage";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// React Native Persistence Adapter
+// This is needed for Firebase Auth to work properly on React Native
+// @ts-ignore - Used in initializeAuth below
+const ReactNativeAsyncStorage = {
+  async getItem(key: string): Promise<string | null> {
+    return AsyncStorage.getItem(key);
+  },
+  async setItem(key: string, value: string): Promise<void> {
+    return AsyncStorage.setItem(key, value);
+  },
+  async removeItem(key: string): Promise<void> {
+    return AsyncStorage.removeItem(key);
+  },
+};
 
 // -------------------- ENV helpers --------------------
 const getEnvVar = (key: string): string | undefined => {
@@ -79,11 +95,17 @@ try {
       setPersistence(auth, inMemoryPersistence).catch(() => {});
     });
   } else {
+    // ✅ React Native: initializeAuth مع AsyncStorage persistence
     try {
+      // محاولة الحصول على auth إذا كان موجود بالفعل
       auth = getAuth(app);
     } catch {
-      auth = initializeAuth(app);
+      // إذا لم يكن موجود، قم بتهيئته مع persistence
+      auth = initializeAuth(app, {
+        persistence: ReactNativeAsyncStorage as any,
+      });
     }
+    console.log('✅ Firebase Auth initialized with AsyncStorage persistence');
   }
 
   db = getFirestore(app);

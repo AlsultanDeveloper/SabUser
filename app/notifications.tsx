@@ -1,5 +1,5 @@
 // notifications.tsx - dummy content
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,20 @@ import {
   TouchableOpacity,
   Switch,
   Platform,
+  Alert,
+  Linking,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import * as Notifications from 'expo-notifications';
 import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNotifications } from '@/contexts/NotificationContext';
+import { getDocument, getDocuments, collections, where, orderBy } from '@/constants/firestore';
+import { registerForPushNotificationsAsync } from '@/constants/notifications';
 import { Colors, Spacing, BorderRadius, FontSizes } from '@/constants/theme';
 
 interface Notification {
@@ -27,14 +35,99 @@ interface Notification {
 
 export default function NotificationsScreen() {
   const { t } = useApp();
+  const { user } = useAuth();
+  const { expoPushToken, savePushTokenToUser } = useNotifications();
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [settings, setSettings] = useState({
     orders: true,
     promotions: true,
     system: true,
   });
+
+  // جلب الإشعارات من Firestore
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (!user?.uid) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const userNotifs = await getDocuments(collections.userNotifications, [
+          where('userId', '==', user.uid),
+          orderBy('createdAt', 'asc'),
+        ]);
+
+        const formattedNotifs: Notification[] = userNotifs.reverse().map((notif: any) => ({
+          id: notif.id,
+          title: notif.title || 'إشعار',
+          message: notif.replyText || notif.message?.ar || notif.message?.en || '',
+          timestamp: notif.createdAt?.toDate() || new Date(),
+          read: notif.read || false,
+          type: notif.type === 'support_reply' ? 'system' : 'order',
+        }));
+
+        setNotifications(formattedNotifs);
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNotifications();
+  }, [user]);
+
+    };
+
+    fetchNotifications();
+  }, [user]);
+
+  const handleNotificationPress = (notification: Notification) => {  // التحقق من Push Token
+  const handleCheckPushToken = async () => {
+    if (!user?.uid) {
+      Alert.alert('خطأ', 'يجب تسجيل الدخول أولاً');
+      return;
+    }
+
+    try {
+      // احصل على push token من Context
+      const currentToken = expoPushToken;
+      
+      // احصل على push token من Firestore
+      const userProfile = await getDocument(collections.users, user.uid);
+      const savedToken = userProfile?.pushToken;
+      
+      let message = `معرف المستخدم: ${user.uid}\n\n`;
+      message += `📱 Push Token الحالي:\n${currentToken || 'غير متوفر'}\n\n`;
+      message += `💾 Token المحفوظ في Firestore:\n${savedToken || 'غير موجود'}\n\n`;
+      
+      if (currentToken && savedToken && currentToken === savedToken) {
+        message += '✅ الحالة: Token مُسجل بنجاح!';
+      } else if (currentToken && !savedToken) {
+        message += '⚠️ الحالة: Token موجود لكن غير محفوظ!\nسيتم حفظه الآن...';
+        await savePushTokenToUser(user.uid, currentToken);
+        message += '\n✅ تم الحفظ!';
+      } else if (!currentToken) {
+        message += '❌ الحالة: لم يتم الحصول على Token\nتأكد من منح صلاحيات الإشعارات';
+      } else {
+        message += '⚠️ الحالة: Token مختلف، سيتم التحديث...';
+        if (currentToken) {
+          await savePushTokenToUser(user.uid, currentToken);
+          message += '\n✅ تم التحديث!';
+        }
+      }
+      
+      Alert.alert('معلومات Push Token', message);
+    } catch (error) {
+      console.error('Error checking push token:', error);
+      Alert.alert('خطأ', 'حدث خطأ أثناء التحقق من Token');
+    }
+  };
 
   const handleNotificationPress = (notification: Notification) => {
     if (Platform.OS !== 'web') {
@@ -135,38 +228,45 @@ export default function NotificationsScreen() {
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {notifications.length > 0 && (
-          <View style={styles.actionsRow}>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={handleMarkAllAsRead}
-              activeOpacity={0.7}
-            >
-              <Feather name="check-circle" size={18} color={Colors.primary} />
-              <Text style={styles.actionButtonText}>{t('notifications.markAllRead')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={handleClearAll}
-              activeOpacity={0.7}
-            >
-              <Feather name="trash-2" size={18} color={Colors.error} />
-              <Text style={[styles.actionButtonText, { color: Colors.error }]}>
-                {t('notifications.clearAll')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {notifications.length === 0 ? (
+        {loading ? (
           <View style={styles.emptyContainer}>
-            <Feather name="bell-off" size={80} color={Colors.gray[300]} />
-            <Text style={styles.emptyTitle}>{t('notifications.noNotifications')}</Text>
-            <Text style={styles.emptyDescription}>
-              {t('notifications.noNotificationsDesc')}
-            </Text>
+            <ActivityIndicator size="large" color={Colors.primary} />
+            <Text style={[styles.emptyTitle, { marginTop: 16 }]}>جاري التحميل...</Text>
           </View>
         ) : (
+          <>
+            {notifications.length > 0 && (
+              <View style={styles.actionsRow}>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={handleMarkAllAsRead}
+                  activeOpacity={0.7}
+                >
+                  <Feather name="check-circle" size={18} color={Colors.primary} />
+                  <Text style={styles.actionButtonText}>{t('notifications.markAllRead')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={handleClearAll}
+                  activeOpacity={0.7}
+                >
+                  <Feather name="trash-2" size={18} color={Colors.error} />
+                  <Text style={[styles.actionButtonText, { color: Colors.error }]}>
+                    {t('notifications.clearAll')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {notifications.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Feather name="bell-off" size={80} color={Colors.gray[300]} />
+                <Text style={styles.emptyTitle}>{t('notifications.noNotifications')}</Text>
+                <Text style={styles.emptyDescription}>
+                  {t('notifications.noNotificationsDesc')}
+                </Text>
+              </View>
+            ) : (
           <View style={styles.notificationsList}>
             {notifications.map((notification) => (
               <TouchableOpacity
@@ -186,7 +286,7 @@ export default function NotificationsScreen() {
                 >
                   <Feather
                     name={getNotificationIcon(notification.type) as any}
-                    size={20}
+                    size={18}
                     color={getNotificationColor(notification.type)}
                   />
                 </View>
@@ -206,9 +306,13 @@ export default function NotificationsScreen() {
             ))}
           </View>
         )}
+          </>
+        )}
 
         <View style={styles.settingsSection}>
-          <Text style={styles.sectionTitle}>{t('notifications.settingsTitle')}</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>{t('notifications.settingsTitle')}</Text>
+          </View>
           <View style={styles.settingsCard}>
             <View style={styles.settingItem}>
               <View style={styles.settingLeft}>
@@ -347,13 +451,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   notificationsList: {
-    padding: Spacing.md,
+    padding: Spacing.sm,
   },
   notificationCard: {
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
+    marginBottom: Spacing.sm,
     flexDirection: 'row',
     borderWidth: 1,
     borderColor: Colors.gray[200],
@@ -363,12 +467,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary + '05',
   },
   notificationIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: BorderRadius.md,
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.sm,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: Spacing.md,
+    marginRight: Spacing.sm,
   },
   notificationContent: {
     flex: 1,
@@ -379,7 +483,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   notificationTitle: {
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.sm,
     fontWeight: '600' as const,
     color: Colors.text.primary,
     flex: 1,
@@ -392,10 +496,10 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.xs,
   },
   notificationMessage: {
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.xs,
     color: Colors.text.secondary,
-    lineHeight: 18,
-    marginBottom: Spacing.xs,
+    lineHeight: 16,
+    marginBottom: 4,
   },
   notificationTime: {
     fontSize: FontSizes.xs,
@@ -404,11 +508,44 @@ const styles = StyleSheet.create({
   settingsSection: {
     padding: Spacing.md,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
   sectionTitle: {
     fontSize: FontSizes.md,
     fontWeight: '600' as const,
     color: Colors.text.primary,
-    marginBottom: Spacing.md,
+  },
+  debugButtons: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+  },
+  debugButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.primary + '10',
+    borderWidth: 1,
+    borderColor: Colors.primary + '30',
+  },
+  retryButton: {
+    backgroundColor: Colors.secondary + '10',
+    borderColor: Colors.secondary + '30',
+  },
+  settingsButton: {
+    backgroundColor: Colors.accent + '10',
+    borderColor: Colors.accent + '30',
+  },
+  debugButtonText: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: Colors.primary,
   },
   settingsCard: {
     backgroundColor: Colors.white,

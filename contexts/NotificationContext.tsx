@@ -64,19 +64,33 @@ export const [NotificationProvider, useNotifications] = createContextHook(() => 
   const savePushTokenToUser = useCallback(async (userId: string, token: string) => {
     try {
       console.log('💾 Saving push token to user profile:', userId);
+      console.log('📱 Token:', token);
       const db = getFirestore();
       const userDocRef = doc(db, collections.users, userId);
-      const docSnap = await getDoc(userDocRef);
+      
       const pushTokenData = {
         pushToken: token,
         pushTokenUpdatedAt: new Date().toISOString(),
+        platform: Platform.OS,
       };
-      if (docSnap.exists()) {
-        await updateDoc(userDocRef, pushTokenData);
-        console.log('✅ Push token updated successfully');
-      } else {
-        await setDoc(userDocRef, pushTokenData);
-        console.log('✅ Push token document created successfully');
+      
+      // Always try to update or create
+      try {
+        const docSnap = await getDoc(userDocRef);
+        if (docSnap.exists()) {
+          await updateDoc(userDocRef, pushTokenData);
+          console.log('✅ Push token updated successfully');
+        } else {
+          // Create user document with push token
+          await setDoc(userDocRef, {
+            ...pushTokenData,
+            createdAt: new Date().toISOString(),
+          });
+          console.log('✅ User document with push token created successfully');
+        }
+      } catch (error) {
+        console.error('❌ Error in push token operation:', error);
+        throw error;
       }
     } catch (error) {
       console.error('❌ Error saving push token:', error);
@@ -85,7 +99,17 @@ export const [NotificationProvider, useNotifications] = createContextHook(() => 
 
   useEffect(() => {
     if (user?.uid && expoPushToken) {
+      console.log('🔄 User and token available, saving...');
+      console.log('👤 User ID:', user.uid);
+      console.log('📱 Push Token:', expoPushToken);
       savePushTokenToUser(user.uid, expoPushToken);
+    } else {
+      if (user?.uid) {
+        console.log('⚠️ User available but no push token yet');
+      }
+      if (expoPushToken) {
+        console.log('⚠️ Push token available but no user yet');
+      }
     }
   }, [user, expoPushToken, savePushTokenToUser]);
 

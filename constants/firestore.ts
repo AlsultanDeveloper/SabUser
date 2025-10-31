@@ -30,6 +30,7 @@ export const collections = {
   wishlists: 'wishlists',
   brands: 'brands',
   notifications: 'notifications',
+  userNotifications: 'userNotifications',
   supportMessages: 'supportMessages',
 } as const;
 

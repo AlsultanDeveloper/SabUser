@@ -9,6 +9,7 @@ import {
   Alert,
   Linking,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -23,7 +24,7 @@ export default function ContactSupportScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -57,9 +58,9 @@ export default function ContactSupportScreen() {
   };
 
   const handleSendMessage = async () => {
-    console.log('Sending message...', { name, email, message });
+    console.log('Sending message...', { name, phoneNumber, message });
     
-    if (!name.trim() || !email.trim() || !message.trim()) {
+    if (!name.trim() || !phoneNumber.trim() || !message.trim()) {
       Alert.alert(t('common.error'), t('contactSupport.fillAllFields'));
       return;
     }
@@ -68,7 +69,7 @@ export default function ContactSupportScreen() {
     try {
       await createDocument('supportMessages', {
         name: name.trim(),
-        email: email.trim(),
+        phoneNumber: phoneNumber.trim(),
         message: message.trim(),
         userId: user?.uid || null,
         status: 'pending',
@@ -77,7 +78,7 @@ export default function ContactSupportScreen() {
       
       Alert.alert(t('common.success'), t('contactSupport.messageSent'));
       setName('');
-      setEmail('');
+      setPhoneNumber('');
       setMessage('');
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -103,7 +104,17 @@ export default function ContactSupportScreen() {
         <View style={styles.headerPlaceholder} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <ScrollView 
+          style={styles.content} 
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.scrollContentContainer}
+        >
         <View style={styles.introSection}>
           <Text style={styles.mainTitle}>{t('contactSupport.howCanWeHelp')}</Text>
           <Text style={styles.subtitle}>{t('contactSupport.subtitle')}</Text>
@@ -186,15 +197,14 @@ export default function ContactSupportScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>{t('auth.email')}</Text>
+            <Text style={styles.inputLabel}>{t('auth.phoneNumber')}</Text>
             <TextInput
               style={styles.input}
-              placeholder={t('accountInfo.enterEmail')}
+              placeholder={t('auth.phoneNumber')}
               placeholderTextColor={Colors.text.secondary}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+              keyboardType="phone-pad"
             />
           </View>
 
@@ -224,6 +234,7 @@ export default function ContactSupportScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -254,9 +265,16 @@ const styles = StyleSheet.create({
   headerPlaceholder: {
     width: 40,
   },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
   content: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  scrollContentContainer: {
+    flexGrow: 1,
+    paddingBottom: Platform.OS === 'ios' ? Spacing.xl : Spacing.xxl,
   },
   introSection: {
     backgroundColor: Colors.white,
