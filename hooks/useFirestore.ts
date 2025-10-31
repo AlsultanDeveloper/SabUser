@@ -243,6 +243,29 @@ export function useProducts(options: UseProductsOptions = {}) {
       let loadedProducts: Product[] = [];
       querySnapshot.forEach((docSnap) => {
         const data = docSnap.data();
+        
+        // 🔍 طباعة البيانات الفعلية من Firestore
+        if (loadedProducts.length === 0) {
+          console.log('🔍 === فحص بيانات المنتج من Firestore ===');
+          console.log('📦 Product ID:', docSnap.id);
+          console.log('📝 Raw data from Firestore:');
+          console.log('  name:', JSON.stringify(data.name));
+          console.log('  description:', JSON.stringify(data.description));
+          console.log('  price:', data.price);
+          console.log('  image:', data.image);
+          console.log('  images:', data.images);
+          console.log('  brand:', data.brand);
+          console.log('  brandId:', data.brandId);
+          console.log('  categoryId:', data.categoryId);
+          console.log('  rating:', data.rating);
+          console.log('  reviews:', data.reviews);
+          console.log('  inStock:', data.inStock);
+          console.log('  discount:', data.discount);
+          console.log('  featured:', data.featured);
+          console.log('  createdAt:', data.createdAt);
+          console.log('🔍 === نهاية الفحص ===');
+        }
+        
         const imageUrl = data.image && typeof data.image === 'string' && data.image.trim() ? data.image.trim() : undefined;
         const images = Array.isArray(data.images) 
           ? data.images.filter((img: any) => img && typeof img === 'string' && img.trim())
