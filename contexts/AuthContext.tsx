@@ -1,13 +1,12 @@
 
 import createContextHook from '@nkzw/create-context-hook';
-import { useState, useEffect, useCallback, useMemo, use } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   User,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
   onAuthStateChanged,
-  PhoneAuthProvider,
   signInWithCredential,
   GoogleAuthProvider,
   OAuthProvider,
@@ -21,6 +20,7 @@ import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import * as AuthSession from 'expo-auth-session';
+import Constants from 'expo-constants';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -37,19 +37,38 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     phoneVerificationId: null,
   });
 
-  // ---- OAuth Client IDs from ENV ----
+  // ---- OAuth Client IDs from ENV (with fallback to Constants) ----
   const GOOGLE_ANDROID_CLIENT_ID = useMemo(
-    () => process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '',
+    () => 
+      Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ||
+      process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || 
+      '',
     []
   );
   const GOOGLE_IOS_CLIENT_ID = useMemo(
-    () => process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '',
+    () => 
+      Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ||
+      process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || 
+      '',
     []
   );
   const GOOGLE_WEB_CLIENT_ID = useMemo(
-    () => process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '',
+    () => 
+      Constants.expoConfig?.extra?.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ||
+      process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || 
+      '',
     []
   );
+
+  // ---- Debug: Log Client IDs on mount ----
+  useEffect(() => {
+    console.log('🔐 Google Auth Configuration:');
+    console.log('  Platform:', Platform.OS);
+    console.log('  Android Client ID:', GOOGLE_ANDROID_CLIENT_ID ? '✓ Loaded' : '✗ Missing');
+    console.log('  iOS Client ID:', GOOGLE_IOS_CLIENT_ID ? '✓ Loaded' : '✗ Missing');
+    console.log('  Web Client ID:', GOOGLE_WEB_CLIENT_ID ? '✓ Loaded' : '✗ Missing');
+    console.log('  Redirect URI:', AuthSession.makeRedirectUri({ scheme: 'sabstore' }));
+  }, [GOOGLE_ANDROID_CLIENT_ID, GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID]);
 
   // ---- Google OAuth Config ----
   const googleConfig = useMemo(
@@ -127,45 +146,110 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   const signInWithGoogle = useCallback(async () => {
     try {
       if (!isConfigured || !auth) {
+        console.error('❌ Firebase not configured');
         return { success: false, error: 'Firebase is not configured.' };
       }
 
-      if (!GOOGLE_WEB_CLIENT_ID) return { success: false, error: 'Missing Google Web Client ID' };
-      if (!GOOGLE_ANDROID_CLIENT_ID && Platform.OS === 'android')
-        return { success: false, error: 'Missing Google Android Client ID' };
-      if (!GOOGLE_IOS_CLIENT_ID && Platform.OS === 'ios')
-        return { success: false, error: 'Missing Google iOS Client ID' };
+      // Validate Client IDs
+      console.log('🔍 Validating Google Client IDs...');
+      if (!GOOGLE_WEB_CLIENT_ID) {
+        console.error('❌ Missing GOOGLE_WEB_CLIENT_ID');
+        return { 
+          success: false, 
+          error: 'Google configuration is incomplete. Missing Web Client ID. Please contact support.' 
+        };
+      }
+      
+      if (Platform.OS === 'android' && !GOOGLE_ANDROID_CLIENT_ID) {
+        console.error('❌ Missing GOOGLE_ANDROID_CLIENT_ID');
+        return { 
+          success: false, 
+          error: 'Google configuration is incomplete for Android. Please contact support.' 
+        };
+      }
+      
+      if (Platform.OS === 'ios' && !GOOGLE_IOS_CLIENT_ID) {
+        console.error('❌ Missing GOOGLE_IOS_CLIENT_ID');
+        return { 
+          success: false, 
+          error: 'Google configuration is incomplete for iOS. Please contact support.' 
+        };
+      }
 
+      console.log('✅ All required Client IDs present');
       console.log('🔄 Starting Google sign-in flow...');
+      console.log('📱 Platform:', Platform.OS);
+      console.log('🔗 Redirect URI:', AuthSession.makeRedirectUri({ scheme: 'sabstore' }));
+      
       const res = await googlePromptAsync();
+      console.log('📨 Response type:', res.type);
 
-      if (res.type === 'cancel' || res.type === 'dismiss') return { success: false, cancelled: true };
-      if (res.type === 'error') return { success: false, error: (res as any).error?.message || 'Google authentication failed' };
-      if (res.type !== 'success') return { success: false, error: `Google sign-in returned: ${res.type}` };
+      if (res.type === 'cancel' || res.type === 'dismiss') {
+        console.log('ℹ️ User cancelled sign-in');
+        return { success: false, cancelled: true };
+      }
+      
+      if (res.type === 'error') {
+        console.error('❌ Google auth error:', (res as any).error);
+        return { 
+          success: false, 
+          error: (res as any).error?.message || 'Google authentication failed' 
+        };
+      }
+      
+      if (res.type !== 'success') {
+        console.error('❌ Unexpected response type:', res.type);
+        return { 
+          success: false, 
+          error: `Google sign-in returned unexpected result: ${res.type}` 
+        };
+      }
 
+      // Extract idToken
       const idToken = (res.params as any)?.id_token || (res as any).authentication?.idToken;
-      if (!idToken) return { success: false, error: 'No idToken received from Google' };
+      console.log('🔑 idToken received:', idToken ? '✓' : '✗');
+      
+      if (!idToken) {
+        console.error('❌ No idToken in response');
+        console.error('Response params:', JSON.stringify(res.params, null, 2));
+        return { 
+          success: false, 
+          error: 'No authentication token received from Google. Please try again.' 
+        };
+      }
 
       console.log('✅ Received idToken, signing in to Firebase...');
       const credential = GoogleAuthProvider.credential(idToken, null);
       const result = await signInWithCredential(auth, credential);
+      console.log('✅ Firebase sign-in successful:', result.user.uid);
 
+      // Save user to Firestore
       const db = getFirestore();
       const userDocRef = doc(db, 'users', result.user.uid);
       const docSnap = await getDoc(userDocRef);
+      
       if (!docSnap.exists()) {
+        console.log('📝 Creating new user document...');
         await setDoc(userDocRef, {
           email: result.user.email,
           fullName: result.user.displayName || '',
           signInMethod: 'google',
           createdAt: new Date().toISOString(),
         });
+        console.log('✅ User document created');
+      } else {
+        console.log('ℹ️ User document already exists');
       }
 
       return { success: true, user: result.user };
     } catch (error: any) {
-      console.error('❌ Google sign in error:', error);
+      console.error('❌ Google sign in exception:', error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+      
       let userFriendlyError = error.message;
+      
       if (error.code === 'auth/account-exists-with-different-credential') {
         userFriendlyError = 'An account already exists with the same email. Try signing in with a different method.';
       } else if (error.message?.includes('network')) {
@@ -174,7 +258,11 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         userFriendlyError = 'Unauthorized domain. Please add your domain to Firebase Console -> Authentication -> Settings -> Authorized domains.';
       } else if (error.code === 'auth/invalid-credential') {
         userFriendlyError = 'Invalid Google credentials. Please try again.';
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        console.log('ℹ️ User closed popup');
+        return { success: false, cancelled: true };
       }
+      
       return { success: false, error: userFriendlyError };
     }
   }, [GOOGLE_ANDROID_CLIENT_ID, GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID, googlePromptAsync]);
