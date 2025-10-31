@@ -191,18 +191,43 @@ export default function AccountScreen() {
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => {
+            onPress={async () => {
               if (Platform.OS !== 'web') {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }
-              Alert.alert(
-                'Sign Out',
-                'Are you sure you want to sign out?',
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Sign Out', style: 'destructive', onPress: async () => await signOut() }
-                ]
-              );
+              
+              // Handle sign out confirmation
+              const confirmSignOut = async () => {
+                console.log('🔄 User confirmed sign out');
+                const result = await signOut();
+                console.log('📋 Sign out result:', result);
+                
+                if (result.success) {
+                  console.log('✅ Sign out successful, redirecting...');
+                  router.replace('/auth/login');
+                } else {
+                  console.error('❌ Sign out failed:', result.error);
+                  if (Platform.OS === 'web') {
+                    alert('Failed to sign out: ' + result.error);
+                  }
+                }
+              };
+
+              // Use native confirm on web, Alert on mobile
+              if (Platform.OS === 'web') {
+                if (confirm('Are you sure you want to sign out?')) {
+                  await confirmSignOut();
+                }
+              } else {
+                Alert.alert(
+                  'Sign Out',
+                  'Are you sure you want to sign out?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Sign Out', style: 'destructive', onPress: confirmSignOut }
+                  ]
+                );
+              }
             }}
             activeOpacity={0.7}
           >

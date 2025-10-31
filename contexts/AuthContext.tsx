@@ -71,11 +71,21 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   }, [GOOGLE_ANDROID_CLIENT_ID, GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID]);
 
   // ---- Google OAuth Config ----
-  const googleConfig = useMemo(() => ({
-    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
-    iosClientId: GOOGLE_IOS_CLIENT_ID,
-    webClientId: GOOGLE_WEB_CLIENT_ID,
-  }), [GOOGLE_ANDROID_CLIENT_ID, GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID]);
+  const googleConfig = useMemo(() => {
+    const config: any = {
+      androidClientId: GOOGLE_ANDROID_CLIENT_ID,
+      iosClientId: GOOGLE_IOS_CLIENT_ID,
+      webClientId: GOOGLE_WEB_CLIENT_ID,
+    };
+    
+    // استخدام Expo Auth Proxy على Mobile بدلاً من Custom URI Scheme
+    if (Platform.OS !== 'web') {
+      config.redirectUri = 'https://auth.expo.io/@alsultandeveloper/sab-store';
+      console.log('🔧 Using Expo Auth Proxy redirect URI:', config.redirectUri);
+    }
+    
+    return config;
+  }, [GOOGLE_ANDROID_CLIENT_ID, GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID]);
 
   const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest(googleConfig);
 
@@ -407,15 +417,33 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
 
   // ---- Sign Out ----
   const signOut = useCallback(async () => {
+    console.log('🚪 Starting sign out...');
+    console.log('📱 Platform:', Platform.OS);
+    
     try {
       if (!isConfigured || !auth) {
+        console.error('❌ Firebase not configured');
         return { success: false, error: 'Firebase is not configured.' };
       }
+
+      console.log('🔐 Current user before sign out:', auth.currentUser?.uid);
+      
+      // Sign out from Firebase
       await firebaseSignOut(auth);
+      console.log('✅ Firebase sign out successful');
+      
+      // Clear AsyncStorage
       await AsyncStorage.removeItem('user');
+      console.log('✅ AsyncStorage cleared');
+      
+      // Clear state
+      setState({ user: null, loading: false, phoneVerificationId: null });
+      console.log('✅ Auth state cleared');
+      
       return { success: true };
     } catch (error: any) {
-      console.error('Sign out error:', error);
+      console.error('❌ Sign out error:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       return { success: false, error: error.message };
     }
   }, []);

@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "263235150197",
+    "project_id": "sab-store-9b947",
+    "storage_bucket": "sab-store-9b947.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:263235150197:android:dd5bf429305428bd06b33c",
+        "android_client_info": {
+          "package_name": "app.rork.lebanonmultivendorecommerceplatform"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "263235150197-71q01c46r4923tdgsei29oohkfthkk9i.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.rork.lebanonmultivendorecommerceplatform",
+            "certificate_hash": "4d8351938e1196548a86475bda2fe4ac8e292d9c"
+          }
+        },
+        {
+          "client_id": "263235150197-7ur5kp8iath4f503m1f7juq5nha1nvqj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBfhc8WX28GqwQoFlU2tqqCSaB3sZeRNuw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "263235150197-7ur5kp8iath4f503m1f7juq5nha1nvqj.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "263235150197-uearggvrhr7u97uh9likv6hsbs73muqu.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "app.rork.lebanon-multi-vendor-ecommerce-platform"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
