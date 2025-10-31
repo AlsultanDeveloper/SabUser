@@ -82,7 +82,43 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   // ---- Handle Google OAuth response ----
   useEffect(() => {
     if (googleResponse?.type === 'success') {
-      const { id_token } = googleResponse.params;
+      console.log('🎯 Google OAuth response received:', googleResponse);
+      
+      const { id_token, access_token } = googleResponse.params;
+      
+      // التحقق من وجود id_token
+      if (!id_token) {
+        console.error('❌ No id_token in response!');
+        console.log('📋 Response params:', googleResponse.params);
+        console.log('💡 Using access_token instead...');
+        
+        // استخدام access_token إذا لم يكن id_token موجوداً
+        if (access_token) {
+          const credential = GoogleAuthProvider.credential(null, access_token);
+          signInWithCredential(auth!, credential)
+            .then(async (result) => {
+              console.log('✅ Google sign in successful (with access_token):', result.user.uid);
+              const db = getFirestore();
+              const userDocRef = doc(db, 'users', result.user.uid);
+              const docSnap = await getDoc(userDocRef);
+              if (!docSnap.exists()) {
+                await setDoc(userDocRef, {
+                  email: result.user.email,
+                  fullName: result.user.displayName || '',
+                  photoURL: result.user.photoURL || '',
+                  signInMethod: 'google',
+                  createdAt: new Date().toISOString(),
+                });
+              }
+            })
+            .catch((error) => {
+              console.error('❌ Google sign in error (access_token):', error);
+            });
+        }
+        return;
+      }
+      
+      // استخدام id_token العادي
       const credential = GoogleAuthProvider.credential(id_token);
       signInWithCredential(auth!, credential)
         .then(async (result) => {
@@ -272,11 +308,22 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       
       if (!googleRequest) {
         console.error('❌ Google request not initialized');
+        console.log('🔍 Debug - Client IDs:');
+        console.log('  Android:', GOOGLE_ANDROID_CLIENT_ID ? 'Present' : 'Missing');
+        console.log('  iOS:', GOOGLE_IOS_CLIENT_ID ? 'Present' : 'Missing');
+        console.log('  Web:', GOOGLE_WEB_CLIENT_ID ? 'Present' : 'Missing');
         return { success: false, error: 'Google authentication not ready. Please try again.' };
       }
 
+      // إضافة معلومات تشخيصية مهمة
+      console.log('🔑 Web Client ID:', GOOGLE_WEB_CLIENT_ID?.substring(0, 20) + '...');
+      console.log('🔄 Redirect URI:', googleRequest.redirectUri);
+      console.log('🌐 Auth URL:', googleRequest.url ? 'Generated' : 'Missing');
+      console.log('⚠️ IMPORTANT: Allow popups if blocked!');
+
       const result = await googlePromptAsync();
       console.log('📋 Auth result type:', result?.type);
+      console.log('📋 Full result:', JSON.stringify(result, null, 2));
 
       if (result?.type === 'success') {
         console.log('✅ Authentication successful');
@@ -284,6 +331,20 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       } else if (result?.type === 'cancel') {
         console.log('ℹ️ User cancelled sign-in');
         return { success: false, cancelled: true };
+      } else if (result?.type === 'dismiss') {
+        console.error('❌ Popup was dismissed');
+        console.log('💡 Common causes:');
+        console.log('   1. Popup blocker is active');
+        console.log('   2. Redirect URI not configured in Google Cloud Console');
+        console.log('   3. User manually closed the popup');
+        console.log('');
+        console.log('🔧 TO FIX: Add this to Google Cloud Console:');
+        console.log('   → Credentials → Web OAuth Client → Authorized redirect URIs');
+        console.log('   → Add:', googleRequest.redirectUri);
+        return { 
+          success: false, 
+          error: 'Sign-in popup was closed. Please allow popups and ensure redirect URI is configured.' 
+        };
       } else {
         console.error('❌ Authentication failed:', result?.type);
         return { 
@@ -306,7 +367,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       
       return { success: false, error: userFriendlyError };
     }
-  }, [googleRequest, googlePromptAsync]);
+  }, [googleRequest, googlePromptAsync, GOOGLE_ANDROID_CLIENT_ID, GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID]);
 
   // ---- Apple Sign-In ----
   const signInWithApple = useCallback(async () => {
