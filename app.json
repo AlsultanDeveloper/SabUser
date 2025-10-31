@@ -55,6 +55,9 @@
     "plugins": [
       ["expo-router", { "origin": "https://rork.com/" }],
       "expo-apple-authentication",
+      ["@react-native-google-signin/google-signin", {
+        "iosUrlScheme": "com.googleusercontent.apps.263235150197-uearggvrhr7u97uh9likv6hsbs73muqu"
+      }],
       [
         "expo-notifications",
         {

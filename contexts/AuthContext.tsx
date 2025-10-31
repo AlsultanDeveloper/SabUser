@@ -19,8 +19,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
-import * as AuthSession from 'expo-auth-session';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import Constants from 'expo-constants';
 import type { SignUpData, User as AppUser } from '@/types';
 
@@ -69,23 +68,16 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     console.log('  Android Client ID:', GOOGLE_ANDROID_CLIENT_ID ? '✓ Loaded' : '✗ Missing');
     console.log('  iOS Client ID:', GOOGLE_IOS_CLIENT_ID ? '✓ Loaded' : '✗ Missing');
     console.log('  Web Client ID:', GOOGLE_WEB_CLIENT_ID ? '✓ Loaded' : '✗ Missing');
-    console.log('  Redirect URI:', AuthSession.makeRedirectUri({ scheme: 'sabstore' }));
+    
+    // تكوين Google Sign-In SDK
+    GoogleSignin.configure({
+      webClientId: GOOGLE_WEB_CLIENT_ID,
+      offlineAccess: true,
+      forceCodeForRefreshToken: true,
+    });
   }, [GOOGLE_ANDROID_CLIENT_ID, GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID]);
 
   // ---- Google OAuth Config ----
-  const googleConfig = useMemo(
-    () => ({
-      androidClientId: GOOGLE_ANDROID_CLIENT_ID,
-      iosClientId: GOOGLE_IOS_CLIENT_ID,
-      webClientId: GOOGLE_WEB_CLIENT_ID,
-      responseType: 'id_token',
-      redirectUri: AuthSession.makeRedirectUri({ scheme: 'sabstore' }),
-    }),
-    [GOOGLE_ANDROID_CLIENT_ID, GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID]
-  );
-
-  const [googleRequest, , googlePromptAsync] = Google.useAuthRequest(googleConfig);
-
   useEffect(() => {
     if (!isConfigured || !auth) {
       setState(prev => ({ ...prev, loading: false }));
@@ -246,71 +238,23 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         return { success: false, error: 'Firebase is not configured.' };
       }
 
-      // Validate Client IDs
-      console.log('🔍 Validating Google Client IDs...');
-      if (!GOOGLE_WEB_CLIENT_ID) {
-        console.error('❌ Missing GOOGLE_WEB_CLIENT_ID');
-        return { 
-          success: false, 
-          error: 'Google configuration is incomplete. Missing Web Client ID. Please contact support.' 
-        };
-      }
+      console.log('✅ Starting Google Sign-In with native SDK...');
       
-      if (Platform.OS === 'android' && !GOOGLE_ANDROID_CLIENT_ID) {
-        console.error('❌ Missing GOOGLE_ANDROID_CLIENT_ID');
-        return { 
-          success: false, 
-          error: 'Google configuration is incomplete for Android. Please contact support.' 
-        };
-      }
+      // تحقق من توفر Google Play Services
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       
-      if (Platform.OS === 'ios' && !GOOGLE_IOS_CLIENT_ID) {
-        console.error('❌ Missing GOOGLE_IOS_CLIENT_ID');
-        return { 
-          success: false, 
-          error: 'Google configuration is incomplete for iOS. Please contact support.' 
-        };
-      }
-
-      console.log('✅ All required Client IDs present');
-      console.log('🔄 Starting Google sign-in flow...');
-      console.log('📱 Platform:', Platform.OS);
-      console.log('🔗 Redirect URI:', AuthSession.makeRedirectUri({ scheme: 'sabstore' }));
+      // ابدأ عملية تسجيل الدخول
+      const response = await GoogleSignin.signIn();
+      console.log('✅ User info received:', response.data?.user.email || 'No email');
       
-      const res = await googlePromptAsync();
-      console.log('📨 Response type:', res.type);
-
-      if (res.type === 'cancel' || res.type === 'dismiss') {
-        console.log('ℹ️ User cancelled sign-in');
-        return { success: false, cancelled: true };
-      }
-      
-      if (res.type === 'error') {
-        console.error('❌ Google auth error:', (res as any).error);
-        return { 
-          success: false, 
-          error: (res as any).error?.message || 'Google authentication failed' 
-        };
-      }
-      
-      if (res.type !== 'success') {
-        console.error('❌ Unexpected response type:', res.type);
-        return { 
-          success: false, 
-          error: `Google sign-in returned unexpected result: ${res.type}` 
-        };
-      }
-
-      // Extract idToken
-      const idToken = (res.params as any)?.id_token || (res as any).authentication?.idToken;
-      console.log('🔑 idToken received:', idToken ? '✓' : '✗');
+      // احصل على idToken
+      const { idToken} = await GoogleSignin.getTokens();
       
       if (!idToken) {
-        console.error('❌ No idToken in response');
-        console.error('Response params:', JSON.stringify(res.params, null, 2));
+        console.error('❌ No idToken received');
         return { 
           success: false, 
-          error: 'No authentication token received from Google. Please try again.' 
+          error: 'No authentication token received from Google.' 
         };
       }
 
@@ -319,7 +263,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       const result = await signInWithCredential(auth, credential);
       console.log('✅ Firebase sign-in successful:', result.user.uid);
 
-      // Save user to Firestore
+      // حفظ بيانات المستخدم في Firestore
       const db = getFirestore();
       const userDocRef = doc(db, 'users', result.user.uid);
       const docSnap = await getDoc(userDocRef);
@@ -329,6 +273,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         await setDoc(userDocRef, {
           email: result.user.email,
           fullName: result.user.displayName || '',
+          photoURL: result.user.photoURL || '',
           signInMethod: 'google',
           createdAt: new Date().toISOString(),
         });
@@ -342,26 +287,29 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       console.error('❌ Google sign in exception:', error);
       console.error('Error code:', error.code);
       console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
       
       let userFriendlyError = error.message;
       
-      if (error.code === 'auth/account-exists-with-different-credential') {
-        userFriendlyError = 'An account already exists with the same email. Try signing in with a different method.';
-      } else if (error.message?.includes('network')) {
+      // معالجة الأخطاء الشائعة
+      if (error.code === '7') {
+        // NETWORK_ERROR
         userFriendlyError = 'Network error. Please check your connection and try again.';
-      } else if (error.code === 'auth/unauthorized-domain') {
-        userFriendlyError = 'Unauthorized domain. Please add your domain to Firebase Console -> Authentication -> Settings -> Authorized domains.';
+      } else if (error.code === '12501') {
+        // SIGN_IN_CANCELLED
+        console.log('ℹ️ User cancelled sign-in');
+        return { success: false, cancelled: true };
+      } else if (error.code === '10') {
+        // DEVELOPER_ERROR
+        userFriendlyError = 'Configuration error. Please check your Google Sign-In setup.';
+      } else if (error.code === 'auth/account-exists-with-different-credential') {
+        userFriendlyError = 'An account already exists with the same email. Try signing in with a different method.';
       } else if (error.code === 'auth/invalid-credential') {
         userFriendlyError = 'Invalid Google credentials. Please try again.';
-      } else if (error.code === 'auth/popup-closed-by-user') {
-        console.log('ℹ️ User closed popup');
-        return { success: false, cancelled: true };
       }
       
       return { success: false, error: userFriendlyError };
     }
-  }, [GOOGLE_ANDROID_CLIENT_ID, GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID, googlePromptAsync]);
+  }, []);
 
   // ---- Apple Sign-In ----
   const signInWithApple = useCallback(async () => {
@@ -424,8 +372,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       signInWithGoogle,
       signInWithApple,
       signOut,
-      googleRequestReady: !!googleRequest,
     }),
-    [state.user, state.loading, signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, signOut, googleRequest]
+    [state.user, state.loading, signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, signOut]
   );
 });
