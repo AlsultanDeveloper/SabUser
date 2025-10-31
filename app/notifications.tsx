@@ -82,12 +82,7 @@ export default function NotificationsScreen() {
     fetchNotifications();
   }, [user]);
 
-    };
-
-    fetchNotifications();
-  }, [user]);
-
-  const handleNotificationPress = (notification: Notification) => {  // التحقق من Push Token
+  // التحقق من Push Token
   const handleCheckPushToken = async () => {
     if (!user?.uid) {
       Alert.alert('خطأ', 'يجب تسجيل الدخول أولاً');
