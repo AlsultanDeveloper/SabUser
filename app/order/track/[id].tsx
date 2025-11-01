@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Linking,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -27,15 +28,22 @@ export default function OrderTrackingScreen() {
     return (
       <View style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
-        <SafeAreaView style={styles.headerContainer} edges={['top']}>
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <Feather name="arrow-left" size={24} color={Colors.text.primary} />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>{t('order.orderTracking')}</Text>
-            <View style={styles.backButton} />
-          </View>
-        </SafeAreaView>
+        <LinearGradient
+          colors={['#8B5CF6', '#6366F1']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradientHeader}
+        >
+          <SafeAreaView edges={['top']}>
+            <View style={styles.header}>
+              <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                <Feather name="arrow-left" size={24} color={Colors.white} />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>{t('order.orderTracking')}</Text>
+              <View style={styles.backButton} />
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>Order not found</Text>
         </View>
@@ -93,7 +101,7 @@ export default function OrderTrackingScreen() {
 
   const currentStatusIndex = order.statusHistory.length - 1;
   const expectedDeliveryTime = order.estimatedDelivery 
-    ? `${t('order.estimatedDelivery')}: ${formatDate(order.estimatedDelivery)} at ${formatTime(order.estimatedDelivery)}`
+    ? `${t('order.estimatedDelivery')}: ${formatDate(order.estimatedDelivery)}`
     : '';
 
   const handleContactSupport = () => {
@@ -104,128 +112,170 @@ export default function OrderTrackingScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
       
-      <SafeAreaView style={styles.headerContainer} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Feather name="arrow-left" size={24} color={Colors.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t('order.orderTracking')}</Text>
-          <View style={styles.backButton} />
-        </View>
-      </SafeAreaView>
+      <LinearGradient
+        colors={['#8B5CF6', '#6366F1']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientHeader}
+      >
+        <SafeAreaView edges={['top']}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <Feather name="arrow-left" size={24} color={Colors.white} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>{t('order.orderTracking')}</Text>
+            <View style={styles.backButton} />
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.topSection}>
-          <View style={styles.trackingHeader}>
-            <Text style={styles.trackingLabel}>{t('order.trackingNumber')}</Text>
-            <Text style={styles.trackingNumber}>{order.trackingNumber}</Text>
+        {/* Order Info Card */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Feather name="navigation" size={24} color="#8B5CF6" />
+            <Text style={styles.cardTitle}>{t('order.trackingNumber')}</Text>
           </View>
-          
-          <Text style={styles.orderNumber}>{order.orderNumber}</Text>
+          <Text style={styles.trackingNumber}>{order.trackingNumber}</Text>
+          <View style={styles.divider} />
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>{t('order.orderNumber')}</Text>
+            <Text style={styles.infoValue}>{order.orderNumber}</Text>
+          </View>
           {expectedDeliveryTime && (
-            <Text style={styles.deliveryTime}>{expectedDeliveryTime}</Text>
+            <View style={[styles.badge, styles.deliveryBadge]}>
+              <Feather name="clock" size={14} color="#854D0E" />
+              <Text style={styles.deliveryText}>{expectedDeliveryTime}</Text>
+            </View>
           )}
         </View>
 
-        <View style={styles.timelineContainer}>
-          {order.statusHistory.map((statusUpdate, index) => {
-            const isLast = index === currentStatusIndex;
-            const isCompleted = index <= currentStatusIndex;
-            const statusColor = getStatusColor(statusUpdate.status);
-            const statusIcon = getStatusIcon(statusUpdate.status);
+        {/* Status Timeline Card */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Feather name="activity" size={24} color="#8B5CF6" />
+            <Text style={styles.cardTitle}>{t('order.status')}</Text>
+          </View>
+          <View style={styles.timeline}>
+            {order.statusHistory.map((statusUpdate, index) => {
+              const isLast = index === currentStatusIndex;
+              const isCompleted = index <= currentStatusIndex;
+              const statusColor = getStatusColor(statusUpdate.status);
+              const statusIcon = getStatusIcon(statusUpdate.status);
 
-            return (
-              <View key={index} style={styles.timelineItem}>
-                <View style={styles.timelineLeft}>
-                  <View
-                    style={[
-                      styles.timelineIcon,
-                      {
-                        backgroundColor: isCompleted ? statusColor + '20' : Colors.gray[100],
-                        borderColor: isCompleted ? statusColor : Colors.gray[300],
-                      },
-                    ]}
-                  >
-                    <Feather
-                      name={statusIcon}
-                      size={20}
-                      color={isCompleted ? statusColor : Colors.gray[400]}
-                    />
-                  </View>
-                  {!isLast && (
+              return (
+                <View key={index} style={styles.timelineItem}>
+                  <View style={styles.timelineLeft}>
                     <View
                       style={[
-                        styles.timelineLine,
+                        styles.timelineIcon,
                         {
-                          backgroundColor: isCompleted ? statusColor : Colors.gray[200],
+                          backgroundColor: isCompleted ? statusColor + '20' : '#F3F4F6',
+                          borderColor: isCompleted ? statusColor : '#D1D5DB',
                         },
                       ]}
-                    />
-                  )}
-                </View>
+                    >
+                      <Feather
+                        name={statusIcon}
+                        size={20}
+                        color={isCompleted ? statusColor : '#9CA3AF'}
+                      />
+                    </View>
+                    {!isLast && (
+                      <View
+                        style={[
+                          styles.timelineLine,
+                          {
+                            backgroundColor: isCompleted ? statusColor : '#E5E7EB',
+                          },
+                        ]}
+                      />
+                    )}
+                  </View>
 
-                <View style={styles.timelineContent}>
-                  <Text
-                    style={[
-                      styles.statusTitle,
-                      { color: isCompleted ? Colors.text.primary : Colors.text.secondary },
-                    ]}
-                  >
-                    {statusUpdate.description[language]}
-                  </Text>
-                  <Text style={styles.statusDate}>
-                    {formatDate(statusUpdate.timestamp)}
-                  </Text>
-                  <Text style={styles.statusTime}>
-                    {formatTime(statusUpdate.timestamp)}
-                  </Text>
+                  <View style={styles.timelineContent}>
+                    <Text
+                      style={[
+                        styles.statusTitle,
+                        { 
+                          color: isCompleted ? '#1F2937' : '#6B7280',
+                          fontWeight: isCompleted ? '600' : '400',
+                        },
+                      ]}
+                    >
+                      {statusUpdate.description[language]}
+                    </Text>
+                    <View style={styles.statusTimeContainer}>
+                      <Text style={styles.statusDate}>
+                        {formatDate(statusUpdate.timestamp)}
+                      </Text>
+                      <Text style={styles.statusDot}>•</Text>
+                      <Text style={styles.statusTime}>
+                        {formatTime(statusUpdate.timestamp)}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
-              </View>
-            );
-          })}
+              );
+            })}
+          </View>
         </View>
 
-        <View style={styles.addressSection}>
-          <View style={styles.addressHeader}>
-            <Feather name="map-pin" size={20} color={Colors.primary} />
-            <Text style={styles.addressTitle}>{t('order.deliveryAddress')}</Text>
+        {/* Delivery Address Card */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Feather name="map-pin" size={24} color="#8B5CF6" />
+            <Text style={styles.cardTitle}>{t('order.deliveryAddress')}</Text>
           </View>
           <Text style={styles.addressName}>{order.address.fullName}</Text>
           <Text style={styles.addressText}>{order.address.address}</Text>
           <Text style={styles.addressText}>
             {order.address.city}, {order.address.country || 'Lebanon'}
           </Text>
+          <Text style={styles.phoneText}>
+            <Feather name="phone" size={14} color="#6B7280" /> {order.address.phoneNumber}
+          </Text>
         </View>
 
-        <View style={styles.productSection}>
-          <View style={styles.productHeader}>
-            <Feather name="package" size={20} color={Colors.primary} />
-            <Text style={styles.productHeaderText}>{t('order.products')}</Text>
+        {/* Products Summary Card */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Feather name="package" size={24} color="#8B5CF6" />
+            <Text style={styles.cardTitle}>{t('order.products')}</Text>
           </View>
-          <Text style={styles.itemCount}>
-            {order.items.reduce((sum, item) => sum + item.quantity, 0)} {t('common.item')}
-          </Text>
-          <Text style={styles.totalPrice}>
-            {t('common.total')}: ${order.total.toFixed(2)}
-          </Text>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>{t('common.items')}:</Text>
+            <Text style={styles.summaryValue}>
+              {order.items.reduce((sum, item) => sum + item.quantity, 0)}
+            </Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.summaryRow}>
+            <Text style={styles.totalLabel}>{t('common.total')}:</Text>
+            <Text style={styles.totalValue}>${order.total.toFixed(2)}</Text>
+          </View>
         </View>
 
-        <TouchableOpacity
-          style={styles.contactButton}
-          onPress={handleContactSupport}
-          activeOpacity={0.8}
-        >
-          <Feather name="phone" size={20} color={Colors.white} />
-          <Text style={styles.contactButtonText}>{t('order.contactSupport')}</Text>
-        </TouchableOpacity>
+        {/* Action Buttons */}
+        <View style={styles.actionButtons}>
+          <TouchableOpacity
+            style={[styles.button, styles.primaryButton]}
+            onPress={handleContactSupport}
+            activeOpacity={0.8}
+          >
+            <Feather name="phone" size={20} color={Colors.white} />
+            <Text style={styles.primaryButtonText}>{t('order.contactSupport')}</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.viewDetailsButton}
-          onPress={() => router.push(`/order/${order.id}` as any)}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.viewDetailsText}>{t('order.viewOrderDetails')}</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.button, styles.secondaryButton]}
+            onPress={() => router.push(`/order/${order.id}` as any)}
+            activeOpacity={0.8}
+          >
+            <Feather name="file-text" size={20} color="#8B5CF6" />
+            <Text style={styles.secondaryButtonText}>{t('order.viewOrderDetails')}</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </View>
   );
@@ -234,10 +284,10 @@ export default function OrderTrackingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: '#F9FAFB',
   },
-  headerContainer: {
-    backgroundColor: Colors.white,
+  gradientHeader: {
+    paddingBottom: Spacing.md,
   },
   header: {
     flexDirection: 'row',
@@ -245,9 +295,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray[200],
   },
   backButton: {
     width: 40,
@@ -257,59 +304,99 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: FontSizes.xl,
     fontWeight: 'bold' as const,
-    color: Colors.text.primary,
+    color: Colors.white,
   },
   scrollView: {
     flex: 1,
   },
-  topSection: {
+  
+  // Card Styles
+  card: {
     backgroundColor: Colors.white,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  trackingHeader: {
+  cardHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.xs,
     marginBottom: Spacing.sm,
   },
-  trackingLabel: {
-    fontSize: FontSizes.sm,
-    color: Colors.text.secondary,
-    marginBottom: 4,
-  },
-  trackingNumber: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold' as const,
-    color: Colors.primary,
-  },
-  orderNumber: {
+  cardTitle: {
     fontSize: FontSizes.md,
-    color: Colors.text.primary,
-    textAlign: 'center',
-    marginTop: Spacing.sm,
+    fontWeight: 'bold' as const,
+    color: '#1F2937',
   },
-  deliveryTime: {
-    fontSize: FontSizes.sm,
-    color: Colors.success,
+  
+  // Tracking Info
+  trackingNumber: {
+    fontSize: 18,
+    fontWeight: 'bold' as const,
+    color: '#8B5CF6',
     textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginVertical: Spacing.sm,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+  },
+  infoLabel: {
+    fontSize: FontSizes.xs,
+    color: '#6B7280',
+  },
+  infoValue: {
+    fontSize: FontSizes.sm,
+    fontWeight: '600' as const,
+    color: '#1F2937',
+  },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.md,
     marginTop: Spacing.xs,
   },
-  timelineContainer: {
-    backgroundColor: Colors.white,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
+  deliveryBadge: {
+    backgroundColor: '#FEF3C7',
+  },
+  deliveryText: {
+    fontSize: FontSizes.xs,
+    color: '#854D0E',
+    fontWeight: '600' as const,
+  },
+  
+  // Timeline
+  timeline: {
+    marginTop: Spacing.xs,
   },
   timelineItem: {
     flexDirection: 'row',
-    paddingBottom: Spacing.lg,
+    paddingBottom: Spacing.md,
   },
   timelineLeft: {
     alignItems: 'center',
-    marginRight: Spacing.md,
+    marginRight: Spacing.sm,
   },
   timelineIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     borderWidth: 3,
     justifyContent: 'center',
     alignItems: 'center',
@@ -321,106 +408,115 @@ const styles = StyleSheet.create({
   },
   timelineContent: {
     flex: 1,
-    paddingTop: Spacing.xs,
+    paddingTop: 6,
   },
   statusTitle: {
-    fontSize: FontSizes.md,
-    fontWeight: '600' as const,
+    fontSize: FontSizes.sm,
     marginBottom: 4,
   },
+  statusTimeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   statusDate: {
-    fontSize: FontSizes.sm,
-    color: Colors.success,
-    marginBottom: 2,
+    fontSize: FontSizes.xs,
+    color: '#10B981',
+    fontWeight: '500' as const,
+  },
+  statusDot: {
+    fontSize: FontSizes.xs,
+    color: '#9CA3AF',
   },
   statusTime: {
     fontSize: FontSizes.xs,
-    color: Colors.text.secondary,
+    color: '#6B7280',
   },
-  addressSection: {
-    backgroundColor: Colors.white,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
-  },
-  addressHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  addressTitle: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold' as const,
-    color: Colors.text.primary,
-  },
+  
+  // Address
   addressName: {
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.sm,
     fontWeight: '600' as const,
-    color: Colors.text.primary,
+    color: '#1F2937',
     marginBottom: 4,
   },
   addressText: {
-    fontSize: FontSizes.sm,
-    color: Colors.text.secondary,
-    lineHeight: 20,
+    fontSize: FontSizes.xs,
+    color: '#6B7280',
+    lineHeight: 18,
+    marginBottom: 2,
   },
-  productSection: {
-    backgroundColor: Colors.white,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
-  },
-  productHeader: {
+  phoneText: {
+    fontSize: FontSizes.xs,
+    color: '#6B7280',
+    marginTop: Spacing.xs,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
+    gap: 6,
   },
-  productHeaderText: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold' as const,
-    color: Colors.text.primary,
+  
+  // Products Summary
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
   },
-  itemCount: {
+  summaryLabel: {
+    fontSize: FontSizes.sm,
+    color: '#6B7280',
+  },
+  summaryValue: {
+    fontSize: FontSizes.sm,
+    fontWeight: '600' as const,
+    color: '#1F2937',
+  },
+  totalLabel: {
     fontSize: FontSizes.md,
-    color: Colors.text.secondary,
-    marginBottom: 4,
-  },
-  totalPrice: {
-    fontSize: FontSizes.lg,
     fontWeight: 'bold' as const,
-    color: Colors.primary,
+    color: '#1F2937',
   },
-  contactButton: {
+  totalValue: {
+    fontSize: 18,
+    fontWeight: 'bold' as const,
+    color: '#8B5CF6',
+  },
+  
+  // Action Buttons
+  actionButtons: {
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  button: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
-    backgroundColor: Colors.success,
-    marginHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.sm,
   },
-  contactButtonText: {
+  primaryButton: {
+    backgroundColor: '#10B981',
+  },
+  primaryButtonText: {
     fontSize: FontSizes.md,
     fontWeight: 'bold' as const,
     color: Colors.white,
   },
-  viewDetailsButton: {
+  secondaryButton: {
     backgroundColor: Colors.white,
-    marginHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    alignItems: 'center',
     borderWidth: 2,
-    borderColor: Colors.primary,
-    marginBottom: Spacing.xl,
+    borderColor: '#8B5CF6',
   },
-  viewDetailsText: {
+  secondaryButtonText: {
     fontSize: FontSizes.md,
     fontWeight: 'bold' as const,
-    color: Colors.primary,
+    color: '#8B5CF6',
   },
+  
+  // Empty State
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -428,6 +524,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: FontSizes.lg,
-    color: Colors.text.secondary,
+    color: '#6B7280',
   },
 });

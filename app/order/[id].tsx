@@ -45,15 +45,34 @@ export default function OrderDetailsScreen() {
     );
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+  const formatDate = (dateString: string | Date | any) => {
+    try {
+      let date: Date;
+      
+      // Handle Firestore Timestamp
+      if (dateString && typeof dateString === 'object' && 'toDate' in dateString) {
+        date = dateString.toDate();
+      } else if (dateString instanceof Date) {
+        date = dateString;
+      } else {
+        date = new Date(dateString);
+      }
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return '';
+      }
+      
+      return date.toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return '';
+    }
   };
 
   const handleCallSupport = () => {
@@ -275,7 +294,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 12,
     borderRadius: 16,
-    padding: 16,
+    padding: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -286,40 +305,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   orderLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#6B7280',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   orderNumber: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold' as const,
     color: '#111827',
   },
   statusBadge: {
     backgroundColor: '#8B5CF6',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 16,
   },
   statusText: {
     color: '#FFF',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600' as const,
   },
   orderMetaRow: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 12,
   },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
   },
   metaText: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#6B7280',
   },
   headerContainer: {
@@ -416,25 +435,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     paddingBottom: Spacing.xl,
   },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.lg,
-  },
-  callButton: {
-    backgroundColor: Colors.success,
-  },
-  trackButton: {
-    backgroundColor: Colors.primary,
-  },
-  actionButtonText: {
-    fontSize: FontSizes.md,
-    fontWeight: 'bold' as const,
-    color: Colors.white,
-  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 16,
     borderRadius: 16,
-    padding: 16,
+    padding: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -486,35 +486,35 @@ const styles = StyleSheet.create({
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
+    gap: 6,
+    marginBottom: 12,
   },
   cardTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold' as const,
     color: '#111827',
   },
   productRow: {
     flexDirection: 'row',
-    marginBottom: 16,
-    paddingBottom: 16,
+    marginBottom: 12,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
   productBadges: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 8,
+    gap: 4,
+    marginBottom: 6,
   },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#EEF2FF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+    gap: 3,
   },
   badgeText: {
     fontSize: 11,
@@ -534,45 +534,45 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 16,
+    paddingTop: 12,
     borderTopWidth: 2,
     borderTopColor: '#F3F4F6',
   },
   totalLabel: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold' as const,
     color: '#111827',
   },
   totalAmount: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold' as const,
     color: '#8B5CF6',
   },
   infoBlock: {
-    gap: 6,
+    gap: 4,
   },
   infoTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600' as const,
     color: '#111827',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   infoText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#6B7280',
-    lineHeight: 20,
+    lineHeight: 18,
   },
   deliveryEstimate: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 12,
-    padding: 12,
+    gap: 6,
+    marginTop: 10,
+    padding: 10,
     backgroundColor: '#FEF3C7',
-    borderRadius: 12,
+    borderRadius: 10,
   },
   deliveryText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#92400E',
     fontWeight: '600' as const,
   },
@@ -582,21 +582,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   paymentStatusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
   },
   paymentStatusText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600' as const,
   },
   actionButtonsContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 12,
     backgroundColor: '#FFF',
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  callButton: {
+    backgroundColor: '#10B981',
+  },
+  trackButton: {
+    backgroundColor: '#8B5CF6',
+  },
+  actionButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold' as const,
+    color: '#FFF',
   },
 });

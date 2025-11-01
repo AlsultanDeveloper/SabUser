@@ -53,16 +53,16 @@ export default function AccountScreen() {
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Compact Profile Section - No Image */}
         <View style={styles.profileSection}>
-          {/* Avatar removed, reduce space */}
-          <Text style={styles.guestText}>{user?.displayName || 'User'}</Text>
-          <Text style={styles.guestSubtext}>{user?.email}</Text>
+          <Text style={styles.userName}>{user?.displayName || 'User'}</Text>
+          <Text style={styles.userEmail}>{user?.email}</Text>
           <TouchableOpacity
             style={styles.editProfileButton}
             onPress={() => router.push('/profile/edit' as any)}
             activeOpacity={0.8}
           >
-            <Feather name="edit-2" size={16} color={Colors.primary} />
+            <Feather name="edit-2" size={14} color="#8B5CF6" />
             <Text style={styles.editProfileButtonText}>{t('profile.editProfile')}</Text>
           </TouchableOpacity>
         </View>
@@ -312,49 +312,50 @@ export default function AccountScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: '#F9FAFB',
   },
   scrollView: {
     flex: 1,
   },
   profileSection: {
-  backgroundColor: Colors.white,
-  alignItems: 'center',
-  paddingVertical: Spacing.md,
-  marginBottom: Spacing.sm,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.sm,
   },
-  avatar: {
-  // Avatar removed
-  },
-  guestText: {
-    fontSize: FontSizes.xl,
+  userName: {
+    fontSize: FontSizes.lg,
     fontWeight: 'bold' as const,
-    color: Colors.text.primary,
+    color: '#111827',
+    marginTop: Spacing.xs,
   },
-  guestSubtext: {
+  userEmail: {
     fontSize: FontSizes.sm,
-    color: Colors.text.secondary,
-    marginTop: 4,
+    color: '#6B7280',
+    marginTop: 2,
   },
   section: {
     backgroundColor: Colors.white,
-    marginBottom: Spacing.md,
-    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.sm,
+    paddingVertical: Spacing.xs,
   },
   sectionTitle: {
-    fontSize: FontSizes.sm,
+    fontSize: 11,
     fontWeight: '600' as const,
-    color: Colors.text.secondary,
+    color: '#9CA3AF',
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    paddingTop: Spacing.sm,
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
   },
   menuItemLeft: {
     flexDirection: 'row',
@@ -366,30 +367,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconContainer: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: BorderRadius.md,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: Spacing.md,
+    marginRight: Spacing.sm,
   },
   menuItemText: {
     fontSize: FontSizes.md,
-    color: Colors.text.primary,
+    color: '#111827',
     fontWeight: '500' as const,
   },
   valueText: {
-    fontSize: FontSizes.md,
-    color: Colors.text.secondary,
-    marginRight: Spacing.sm,
+    fontSize: FontSizes.sm,
+    color: '#6B7280',
+    marginRight: Spacing.xs,
   },
   versionContainer: {
     alignItems: 'center',
-    paddingVertical: Spacing.xl,
+    paddingVertical: Spacing.lg,
+    marginBottom: Spacing.xl,
   },
   versionText: {
-    fontSize: FontSizes.sm,
-    color: Colors.text.secondary,
+    fontSize: FontSizes.xs,
+    color: '#9CA3AF',
   },
   signInButton: {
     backgroundColor: Colors.primary,
@@ -406,16 +408,16 @@ const styles = StyleSheet.create({
   editProfileButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-    backgroundColor: Colors.primary + '20',
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.lg,
-    marginTop: Spacing.md,
+    gap: 6,
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: Spacing.sm,
   },
   editProfileButtonText: {
-    color: Colors.primary,
-    fontSize: FontSizes.md,
+    color: '#8B5CF6',
+    fontSize: FontSizes.sm,
     fontWeight: '600' as const,
   },
   modalOverlay: {
@@ -423,30 +425,29 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: Spacing.lg,
+    padding: Spacing.md,
   },
   modalContent: {
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
+    borderRadius: 16,
+    padding: Spacing.md,
     width: '100%',
     maxWidth: 400,
   },
   modalTitle: {
-    fontSize: FontSizes.xl,
+    fontSize: FontSizes.lg,
     fontWeight: 'bold' as const,
-    color: Colors.text.primary,
-    marginBottom: Spacing.md,
-    textAlign: 'center',
+    color: '#111827',
+    marginBottom: Spacing.sm,
   },
   modalOption: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
     borderRadius: BorderRadius.md,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
     backgroundColor: Colors.surface,
   },
   modalOptionSelected: {
@@ -455,17 +456,17 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
   },
   modalOptionText: {
-    fontSize: FontSizes.lg,
+    fontSize: FontSizes.md,
     fontWeight: '600' as const,
-    color: Colors.text.primary,
+    color: '#111827',
   },
   modalOptionTextSelected: {
     color: Colors.primary,
     fontWeight: 'bold' as const,
   },
   modalOptionSubtext: {
-    fontSize: FontSizes.sm,
-    color: Colors.text.secondary,
+    fontSize: FontSizes.xs,
+    color: '#6B7280',
     marginTop: 2,
   },
   helpSupportButton: {
@@ -473,12 +474,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
   },
   helpMenuModal: {
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
+    borderRadius: 16,
+    padding: Spacing.md,
     width: '100%',
     maxWidth: 400,
     maxHeight: '70%',
@@ -487,79 +488,79 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   helpMenuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
     borderBottomWidth: 1,
     borderBottomColor: Colors.gray[100],
   },
   helpMenuItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: Spacing.sm,
     flex: 1,
   },
   helpMenuItemText: {
     fontSize: FontSizes.md,
-    color: Colors.text.primary,
+    color: '#111827',
     fontWeight: '500' as const,
   },
   notAuthenticatedContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: Spacing.xl,
-    backgroundColor: Colors.surface,
+    padding: Spacing.lg,
+    backgroundColor: '#F9FAFB',
   },
   notAuthenticatedContent: {
     alignItems: 'center',
     maxWidth: 400,
   },
   lockIconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: Colors.primary + '20',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   notAuthenticatedTitle: {
-    fontSize: FontSizes.xxl,
+    fontSize: FontSizes.xl,
     fontWeight: 'bold' as const,
-    color: Colors.text.primary,
+    color: '#111827',
     textAlign: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   notAuthenticatedDescription: {
-    fontSize: FontSizes.md,
-    color: Colors.text.secondary,
+    fontSize: FontSizes.sm,
+    color: '#6B7280',
     textAlign: 'center',
-    marginBottom: Spacing.xl,
-    lineHeight: 24,
+    marginBottom: Spacing.lg,
+    lineHeight: 22,
   },
   loginRequiredButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
     backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.xl * 2,
-    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.lg,
     shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowRadius: 6,
+    elevation: 4,
   },
   loginRequiredButtonText: {
     color: Colors.white,
-    fontSize: FontSizes.lg,
+    fontSize: FontSizes.md,
     fontWeight: 'bold' as const,
   },
 });

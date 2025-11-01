@@ -54,7 +54,8 @@ export const [OrderProvider, useOrders] = createContextHook(() => {
     paymentMethod: PaymentMethod
   ): Promise<Order> => {
     const now = new Date().toISOString();
-    const estimatedDelivery = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    // 20 days delivery: 20 days × 24 hours × 60 minutes × 60 seconds × 1000 ms
+    const estimatedDelivery = new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString();
     const orderNumber = generateOrderNumber();
     const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
