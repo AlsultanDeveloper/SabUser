@@ -68,6 +68,7 @@
     "@expo/ngrok": "^4.1.0",
     "@types/react": "~19.1.10",
     "eslint": "9.31.0",
+    "firebase-admin": "^13.5.0",
     "typescript": "~5.9.2"
   },
   "private": true
