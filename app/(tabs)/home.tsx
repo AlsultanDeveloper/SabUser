@@ -20,11 +20,12 @@ import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import Toast from 'react-native-toast-message';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Colors, Spacing, BorderRadius, FontSizes, Shadows, FontWeights } from '@/constants/theme';
 import { useCategories, useProducts, useBrands } from '@/hooks/useFirestore';
-import { getDocuments, collections, where } from '@/constants/firestore';
+import { getDocuments, collections, where, createDocument, deleteDocument } from '@/constants/firestore';
 import SafeImage from '@/components/SafeImage';
 import { CategoryCardSkeleton, ProductCardSkeleton } from '@/components/SkeletonLoader';
 
@@ -40,6 +41,7 @@ export default function HomeScreen() {
   const { brands, loading: brandsLoading, refetch: refetchBrands } = useBrands();
 
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+  const [wishlist, setWishlist] = useState<Set<string>>(new Set());
 
   // Hardcoded banners with memoization for performance
   const hardcodedBanners = useMemo(() => [
@@ -66,6 +68,28 @@ export default function HomeScreen() {
 
   const scrollViewRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
+
+  // Fetch user's wishlist from Firestore
+  useEffect(() => {
+    const fetchWishlist = async () => {
+      if (!user?.uid) {
+        setWishlist(new Set());
+        return;
+      }
+
+      try {
+        const wishlistItems = await getDocuments(collections.wishlists, [
+          where('userId', '==', user.uid),
+        ]);
+        const productIds = wishlistItems.map((item: any) => item.productId);
+        setWishlist(new Set(productIds));
+      } catch (error) {
+        console.error('Error fetching wishlist:', error);
+      }
+    };
+
+    fetchWishlist();
+  }, [user]);
 
   // Fetch unread notifications count
   useEffect(() => {
@@ -122,6 +146,88 @@ export default function HomeScreen() {
     }
     router.push(`/product/${productId}` as any);
   }, [router]);
+
+  const handleToggleWishlist = useCallback(async (productId: string) => {
+    if (!user) {
+      Alert.alert(
+        t('auth.signInRequired'),
+        t('auth.signInToAddWishlist') || 'Please sign in to add items to your wishlist',
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('account.signIn'), onPress: () => router.push('/auth/login' as any) },
+        ]
+      );
+      return;
+    }
+
+    if (Platform.OS !== 'web') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+
+    const isRemoving = wishlist.has(productId);
+    
+    try {
+      if (isRemoving) {
+        // Remove from Firestore
+        const wishlistItems = await getDocuments(collections.wishlists, [
+          where('userId', '==', user.uid),
+          where('productId', '==', productId),
+        ]);
+        
+        if (wishlistItems.length > 0) {
+          await deleteDocument(collections.wishlists, wishlistItems[0].id);
+        }
+
+        // Update local state
+        setWishlist(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(productId);
+          return newSet;
+        });
+
+        Toast.show({
+          type: 'info',
+          text1: '💔 ' + t('wishlist.removed'),
+          text2: t('wishlist.removedDescription') || 'Item removed from your wishlist',
+          position: 'bottom',
+          visibilityTime: 2000,
+          bottomOffset: 100,
+        });
+      } else {
+        // Add to Firestore
+        await createDocument(collections.wishlists, {
+          userId: user.uid,
+          productId: productId,
+        });
+
+        // Update local state
+        setWishlist(prev => {
+          const newSet = new Set(prev);
+          newSet.add(productId);
+          return newSet;
+        });
+
+        Toast.show({
+          type: 'success',
+          text1: '💜 ' + t('wishlist.added'),
+          text2: t('wishlist.addedDescription') || 'Saved to your favorites',
+          position: 'bottom',
+          visibilityTime: 2000,
+          bottomOffset: 100,
+        });
+      }
+    } catch (error) {
+      console.error('Error toggling wishlist:', error);
+      Toast.show({
+        type: 'error',
+        text1: t('common.error') || 'Error',
+        text2: 'Failed to update wishlist. Please try again.',
+        position: 'bottom',
+        visibilityTime: 2000,
+        bottomOffset: 100,
+      });
+    }
+  }, [user, router, t, wishlist]);
 
   const handleBannerPress = useCallback((banner: typeof hardcodedBanners[0]) => {
     if (Platform.OS !== 'web') {
@@ -415,27 +521,19 @@ export default function HomeScreen() {
                 >
                   <View style={styles.dealImageContainer}>
                     <SafeImage uri={product.image} style={styles.dealImage} />
-                    <LinearGradient
-                      colors={['#FF6B6B', '#EE5A6F']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.dealBadge}
-                    >
-                      <Text style={styles.dealBadgeText}>-{String(product.discount)}%</Text>
-                    </LinearGradient>
+                    {/* Discount badge removed - no discount data */}
                   </View>
                   <View style={styles.dealInfo}>
                     <Text style={styles.dealBrand} numberOfLines={1}>
                       {String(product.brandName || product.brand || 'Brand')}
                     </Text>
                     <Text style={styles.dealName} numberOfLines={2}>
-                      {typeof product.name === 'string' ? product.name : (product.name?.[language] || product.name?.en || 'Product')}
+                      {String(typeof product.name === 'string' ? product.name : (product.name?.[language] || product.name?.en || 'Product'))}
                     </Text>
                     <View style={styles.dealPriceRow}>
                       <Text style={styles.dealPrice}>
-                        {formatPrice(product.price * (1 - (product.discount || 0) / 100))}
+                        {String(formatPrice(product.price) || '$0.00')}
                       </Text>
-                      <Text style={styles.dealOriginalPrice}>{formatPrice(product.price)}</Text>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -472,6 +570,8 @@ export default function HomeScreen() {
                   onPress={() => handleProductPress(product.id)}
                   formatPrice={formatPrice}
                   language={language}
+                  onToggleWishlist={handleToggleWishlist}
+                  isInWishlist={wishlist.has(product.id)}
                 />
               ))}
             </View>
@@ -619,9 +719,11 @@ interface ProductCardProps {
   onPress: () => void;
   formatPrice: (price: number) => string;
   language: string;
+  onToggleWishlist?: (productId: string) => void;
+  isInWishlist?: boolean;
 }
 
-function ProductCard({ product, onPress, formatPrice, language }: ProductCardProps) {
+function ProductCard({ product, onPress, formatPrice, language, onToggleWishlist, isInWishlist }: ProductCardProps) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
@@ -654,16 +756,7 @@ function ProductCard({ product, onPress, formatPrice, language }: ProductCardPro
       >
         <View style={styles.productImageContainer}>
           <SafeImage uri={product.image} style={styles.productImage} />
-          {product.discount && (
-            <LinearGradient
-              colors={[Colors.accent, Colors.accentLight]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.discountBadge}
-            >
-              <Text style={styles.discountText}>-{String(product.discount)}%</Text>
-            </LinearGradient>
-          )}
+          {/* Discount badge removed - no discount data available */}
           {(product.brandName || product.brand) && (
             <View style={styles.productBrandBadge}>
               <Text style={styles.productBrandBadgeText}>
@@ -671,8 +764,22 @@ function ProductCard({ product, onPress, formatPrice, language }: ProductCardPro
               </Text>
             </View>
           )}
-          <TouchableOpacity style={styles.favoriteButton} activeOpacity={0.7}>
-            <Feather name="heart" size={18} color={Colors.text.secondary} />
+          <TouchableOpacity 
+            style={styles.favoriteButton} 
+            activeOpacity={0.7}
+            onPress={(e) => {
+              e.stopPropagation();
+              if (onToggleWishlist) {
+                onToggleWishlist(product.id);
+              }
+            }}
+          >
+            <Feather 
+              name={isInWishlist ? "heart" : "heart"} 
+              size={18} 
+              color={isInWishlist ? Colors.error : Colors.text.secondary}
+              fill={isInWishlist ? Colors.error : 'none'}
+            />
           </TouchableOpacity>
         </View>
         <View style={styles.productInfo}>
@@ -680,24 +787,21 @@ function ProductCard({ product, onPress, formatPrice, language }: ProductCardPro
             {String(product.brandName || product.brand || 'Brand')}
           </Text>
           <Text style={styles.productName} numberOfLines={2}>
-            {typeof product.name === 'string' ? product.name : (product.name?.[language] || product.name?.en || 'Product')}
+            {String(typeof product.name === 'string' ? product.name : (product.name?.[language] || product.name?.en || 'Product'))}
           </Text>
           {product.subcategoryName && (
             <Text style={styles.productCategory} numberOfLines={1}>
-              {typeof product.subcategoryName === 'string' ? product.subcategoryName : 
-               (product.subcategoryName?.[language] || product.subcategoryName?.en || '')}
+              {String(typeof product.subcategoryName === 'string' ? product.subcategoryName : 
+               (product.subcategoryName?.[language] || product.subcategoryName?.en || ''))}
             </Text>
           )}
           <View style={styles.ratingContainer}>
             <Feather name="star" size={13} color={Colors.warning} style={{ marginRight: 2 }} />
             <Text style={styles.ratingText}>{String(product.rating || 0)}</Text>
-            <Text style={styles.reviewsText}>({String(product.reviews || 0)})</Text>
+            <Text style={styles.reviewsText}>{`(${String(product.reviews || 0)})`}</Text>
           </View>
           <View style={styles.priceContainer}>
-            <Text style={styles.price}>{formatPrice(finalPrice)}</Text>
-            {product.discount > 0 && (
-              <Text style={styles.originalPrice}>{formatPrice(product.price)}</Text>
-            )}
+            <Text style={styles.price}>{String(formatPrice(finalPrice) || '$0.00')}</Text>
           </View>
         </View>
       </TouchableOpacity>

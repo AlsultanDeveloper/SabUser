@@ -117,9 +117,11 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Wishlist collection - users can only read/write their own wishlist
-    match /wishlists/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    // Wishlist collection - users can only read/write their own wishlist items
+    match /wishlists/{wishlistItemId} {
+      allow read, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
     // Reviews collection - read for all, write for authenticated users on their own reviews

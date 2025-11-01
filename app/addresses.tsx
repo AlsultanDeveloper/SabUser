@@ -13,8 +13,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import MapPicker from '@/components/MapPicker';
 import { useApp } from '@/contexts/AppContext';
 import { Colors, Spacing, BorderRadius, FontSizes } from '@/constants/theme';
 
@@ -40,6 +42,7 @@ export default function AddressesScreen() {
   const [addresses, setAddresses] = useState<SavedAddress[]>([]);
   const [loadingAddresses, setLoadingAddresses] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
+  const [showMapPicker, setShowMapPicker] = useState(false);
   const [editingAddress, setEditingAddress] = useState<SavedAddress | null>(null);
   const [formData, setFormData] = useState<AddressFormData>({
     label: '',
@@ -69,7 +72,22 @@ export default function AddressesScreen() {
   }, [loadAddresses]);
 
   const handleAddAddress = () => {
-    router.push('/address-map-picker?mode=addresses' as any);
+    setShowMapPicker(true);
+  };
+
+  const handleLocationSelected = async (location: {
+    latitude: number;
+    longitude: number;
+    address?: string;
+  }) => {
+    setShowMapPicker(false);
+    setFormData(prev => ({
+      ...prev,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      address: location.address || prev.address,
+    }));
+    setModalVisible(true);
   };
 
   const handleEditAddress = (address: SavedAddress) => {
@@ -181,18 +199,30 @@ export default function AddressesScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-          activeOpacity={0.7}
-        >
-          <Feather name="arrow-left" size={24} color={Colors.text.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('account.addresses')}</Text>
-        <View style={styles.placeholder} />
-      </View>
+    <View style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
+      
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={['#8B5CF6', '#6366F1']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientHeader}
+      >
+        <SafeAreaView edges={['top']}>
+          <View style={styles.header}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={styles.backButton}
+              activeOpacity={0.7}
+            >
+              <Feather name="arrow-left" size={24} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>{t('account.addresses')}</Text>
+            <View style={styles.placeholder} />
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {loadingAddresses ? (
@@ -438,39 +468,59 @@ export default function AddressesScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+
+      {/* Map Picker */}
+      {showMapPicker && (
+        <MapPicker
+          visible={showMapPicker}
+          onClose={() => setShowMapPicker(false)}
+          onLocationSelected={handleLocationSelected}
+          initialLocation={
+            formData.latitude && formData.longitude
+              ? {
+                  latitude: formData.latitude,
+                  longitude: formData.longitude,
+                }
+              : undefined
+          }
+        />
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: '#F9FAFB',
+  },
+  gradientHeader: {
+    paddingBottom: 12,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray[200],
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   backButton: {
-    padding: Spacing.xs,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: FontSizes.xl,
+    fontSize: 20,
     fontWeight: 'bold' as const,
-    color: Colors.text.primary,
+    color: '#FFF',
   },
   placeholder: {
     width: 40,
   },
   scrollView: {
     flex: 1,
-    padding: Spacing.md,
+    padding: 16,
   },
   emptyContainer: {
     flex: 1,
@@ -492,12 +542,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   addressCard: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
-    borderWidth: 2,
-    borderColor: Colors.gray[200],
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
   addressCardHeader: {
     flexDirection: 'row',
@@ -606,19 +659,24 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
   },
   footer: {
-    padding: Spacing.md,
+    padding: 16,
     backgroundColor: Colors.white,
     borderTopWidth: 1,
     borderTopColor: Colors.gray[200],
   },
   addButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: '#8B5CF6',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    gap: Spacing.sm,
+    paddingVertical: 16,
+    borderRadius: 14,
+    gap: 8,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   addButtonText: {
     color: Colors.white,

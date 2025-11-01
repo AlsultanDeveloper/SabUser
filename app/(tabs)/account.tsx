@@ -10,11 +10,13 @@ import {
   Modal,
   // Image removed
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Stack, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'expo-router';
 import { Colors, Spacing, BorderRadius, FontSizes } from '@/constants/theme';
 
 export default function AccountScreen() {
@@ -52,20 +54,39 @@ export default function AccountScreen() {
 
   return (
     <View style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
+      
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={['#8B5CF6', '#6366F1']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientHeader}
+      >
+        <SafeAreaView edges={['top']}>
+          <View style={styles.header}>
+            <View style={styles.backButton} />
+            <Text style={styles.headerTitle}>{t('tabs.account')}</Text>
+            <View style={styles.backButton} />
+          </View>
+          
+          {/* Profile Section inside gradient */}
+          <View style={styles.profileSection}>
+            <Text style={styles.userName}>{user?.displayName || 'User'}</Text>
+            <Text style={styles.userEmail}>{user?.email}</Text>
+            <TouchableOpacity
+              style={styles.editProfileButton}
+              onPress={() => router.push('/profile/edit' as any)}
+              activeOpacity={0.8}
+            >
+              <Feather name="edit-2" size={14} color="#8B5CF6" />
+              <Text style={styles.editProfileButtonText}>{t('profile.editProfile')}</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Compact Profile Section - No Image */}
-        <View style={styles.profileSection}>
-          <Text style={styles.userName}>{user?.displayName || 'User'}</Text>
-          <Text style={styles.userEmail}>{user?.email}</Text>
-          <TouchableOpacity
-            style={styles.editProfileButton}
-            onPress={() => router.push('/profile/edit' as any)}
-            activeOpacity={0.8}
-          >
-            <Feather name="edit-2" size={14} color="#8B5CF6" />
-            <Text style={styles.editProfileButtonText}>{t('profile.editProfile')}</Text>
-          </TouchableOpacity>
-        </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('account.settings')}</Text>
@@ -76,9 +97,7 @@ export default function AccountScreen() {
             activeOpacity={0.7}
           >
             <View style={styles.menuItemLeft}>
-              <View style={[styles.iconContainer, { backgroundColor: Colors.orange + '20' }]}>
-                <Feather name="package" size={20} color={Colors.orange} />
-              </View>
+              <Feather name="package" size={22} color="#111827" />
               <Text style={styles.menuItemText}>{t('account.orders')}</Text>
             </View>
             <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
@@ -90,9 +109,7 @@ export default function AccountScreen() {
             onPress={() => router.push('/addresses' as any)}
           >
             <View style={styles.menuItemLeft}>
-              <View style={[styles.iconContainer, { backgroundColor: Colors.success + '20' }]}>
-                <Feather name="map-pin" size={20} color={Colors.success} />
-              </View>
+              <Feather name="map-pin" size={22} color="#111827" />
               <Text style={styles.menuItemText}>{t('account.addresses')}</Text>
             </View>
             <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
@@ -104,9 +121,7 @@ export default function AccountScreen() {
             onPress={() => router.push('/wishlist' as any)}
           >
             <View style={styles.menuItemLeft}>
-              <View style={[styles.iconContainer, { backgroundColor: Colors.accent + '20' }]}>
-                <Feather name="heart" size={20} color={Colors.accent} />
-              </View>
+              <Feather name="heart" size={22} color="#111827" />
               <Text style={styles.menuItemText}>{t('account.wishlist')}</Text>
             </View>
             <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
@@ -118,9 +133,7 @@ export default function AccountScreen() {
             onPress={() => router.push('/notifications' as any)}
           >
             <View style={styles.menuItemLeft}>
-              <View style={[styles.iconContainer, { backgroundColor: Colors.warning + '20' }]}>
-                <Feather name="bell" size={20} color={Colors.warning} />
-              </View>
+              <Feather name="bell" size={22} color="#111827" />
               <Text style={styles.menuItemText}>{t('account.notifications')}</Text>
             </View>
             <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
@@ -141,9 +154,7 @@ export default function AccountScreen() {
             }}
           >
             <View style={styles.menuItemLeft}>
-              <View style={[styles.iconContainer, { backgroundColor: Colors.primary + '20' }]}>
-                <Feather name="help-circle" size={20} color={Colors.primary} />
-              </View>
+              <Feather name="help-circle" size={22} color="#111827" />
               <Text style={styles.menuItemText}>{t('account.helpSupport')}</Text>
             </View>
             <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
@@ -196,9 +207,7 @@ export default function AccountScreen() {
             activeOpacity={0.7}
           >
             <View style={styles.menuItemLeft}>
-              <View style={[styles.iconContainer, { backgroundColor: Colors.error + '20' }]}>
-                <Feather name="log-out" size={20} color={Colors.error} />
-              </View>
+              <Feather name="log-out" size={22} color={Colors.error} />
               <Text style={[styles.menuItemText, { color: Colors.error }]}>{t('account.logout')}</Text>
             </View>
           </TouchableOpacity>
@@ -223,8 +232,11 @@ export default function AccountScreen() {
           <View style={styles.helpMenuModal}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('account.helpSupport')}</Text>
-              <TouchableOpacity onPress={() => setShowHelpMenu(false)}>
-                <Feather name="x" size={24} color={Colors.text.secondary} />
+              <TouchableOpacity 
+                onPress={() => setShowHelpMenu(false)}
+                style={{ padding: 4 }}
+              >
+                <Feather name="x" size={24} color="#6B7280" />
               </TouchableOpacity>
             </View>
             
@@ -237,7 +249,7 @@ export default function AccountScreen() {
               }}
             >
               <View style={styles.helpMenuItemLeft}>
-                <Feather name="headphones" size={20} color={Colors.primary} />
+                <Feather name="headphones" size={22} color="#111827" />
                 <Text style={styles.helpMenuItemText}>{t('profile.support')}</Text>
               </View>
               <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
@@ -252,7 +264,7 @@ export default function AccountScreen() {
               }}
             >
               <View style={styles.helpMenuItemLeft}>
-                <Feather name="help-circle" size={20} color={Colors.success} />
+                <Feather name="help-circle" size={22} color="#111827" />
                 <Text style={styles.helpMenuItemText}>{t('account.help')}</Text>
               </View>
               <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
@@ -267,7 +279,7 @@ export default function AccountScreen() {
               }}
             >
               <View style={styles.helpMenuItemLeft}>
-                <Feather name="info" size={20} color={Colors.secondary} />
+                <Feather name="info" size={22} color="#111827" />
                 <Text style={styles.helpMenuItemText}>{t('account.about')}</Text>
               </View>
               <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
@@ -282,7 +294,7 @@ export default function AccountScreen() {
               }}
             >
               <View style={styles.helpMenuItemLeft}>
-                <Feather name="file-text" size={20} color={Colors.primary} />
+                <Feather name="file-text" size={22} color="#111827" />
                 <Text style={styles.helpMenuItemText}>{t('account.termsOfUse')}</Text>
               </View>
               <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
@@ -297,7 +309,7 @@ export default function AccountScreen() {
               }}
             >
               <View style={styles.helpMenuItemLeft}>
-                <Feather name="shield" size={20} color={Colors.accent} />
+                <Feather name="shield" size={22} color="#111827" />
                 <Text style={styles.helpMenuItemText}>{t('account.privacyPolicy')}</Text>
               </View>
               <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
@@ -314,25 +326,44 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
+  gradientHeader: {
+    paddingBottom: 16,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold' as const,
+    color: '#FFF',
+  },
   scrollView: {
     flex: 1,
   },
   profileSection: {
-    backgroundColor: Colors.white,
     alignItems: 'center',
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.md,
-    marginBottom: Spacing.sm,
+    paddingBottom: Spacing.sm,
   },
   userName: {
-    fontSize: FontSizes.lg,
+    fontSize: FontSizes.md,
     fontWeight: 'bold' as const,
-    color: '#111827',
-    marginTop: Spacing.xs,
+    color: '#FFF',
+    marginTop: 4,
   },
   userEmail: {
-    fontSize: FontSizes.sm,
-    color: '#6B7280',
+    fontSize: FontSizes.xs,
+    color: '#F3F4F6',
     marginTop: 2,
   },
   section: {
@@ -355,27 +386,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.md,
   },
   menuItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    gap: Spacing.md,
   },
   menuItemRight: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.sm,
-  },
   menuItemText: {
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.lg,
     color: '#111827',
     fontWeight: '500' as const,
   },
@@ -410,35 +434,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     backgroundColor: '#EEF2FF',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginTop: Spacing.xs,
   },
   editProfileButtonText: {
     color: '#8B5CF6',
-    fontSize: FontSizes.sm,
+    fontSize: 12,
     fontWeight: '600' as const,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing.md,
   },
   modalContent: {
     backgroundColor: Colors.white,
-    borderRadius: 16,
-    padding: Spacing.md,
+    borderRadius: 20,
+    padding: Spacing.lg,
     width: '100%',
     maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
   },
   modalTitle: {
-    fontSize: FontSizes.lg,
+    fontSize: FontSizes.xl,
     fontWeight: 'bold' as const,
     color: '#111827',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
   },
   modalOption: {
     flexDirection: 'row',
@@ -474,35 +503,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.md,
   },
   helpMenuModal: {
     backgroundColor: Colors.white,
-    borderRadius: 16,
-    padding: Spacing.md,
+    borderRadius: 20,
+    padding: Spacing.lg,
     width: '100%',
     maxWidth: 400,
     maxHeight: '70%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
+    paddingBottom: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
   helpMenuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.xs,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray[100],
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: 12,
+    marginBottom: Spacing.xs,
   },
   helpMenuItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: Spacing.md,
     flex: 1,
   },
   helpMenuItemText: {

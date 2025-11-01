@@ -1,60 +1,121 @@
 // wishlist.tsx - dummy content
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import Toast from 'react-native-toast-message';
 import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Colors, Spacing, BorderRadius, FontSizes } from '@/constants/theme';
 import SafeImage from '@/components/SafeImage';
+import { getDocuments, collections, where, deleteDocument, getDocument } from '@/constants/firestore';
 
 interface WishlistItem {
   id: string;
   productId: string;
-  addedAt: Date;
+  userId: string;
+  createdAt: any;
 }
 
 export default function WishlistScreen() {
-  const { t, language, formatPrice } = useApp();
+  const { t, language, formatPrice, addToCart } = useApp();
+  const { user } = useAuth();
   const router = useRouter();
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
+  const [wishlistProducts, setWishlistProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const wishlistProducts: any[] = [];
+  // Fetch wishlist from Firestore
+  useEffect(() => {
+    const fetchWishlist = async () => {
+      if (!user?.uid) {
+        setLoading(false);
+        return;
+      }
 
-  const handleRemoveFromWishlist = (itemId: string) => {
+      try {
+        setLoading(true);
+        // Get wishlist items
+        const items = await getDocuments(collections.wishlists, [
+          where('userId', '==', user.uid),
+        ]);
+
+        setWishlistItems(items as WishlistItem[]);
+
+        // Fetch product details for each wishlist item
+        const productsPromises = items.map((item: any) => 
+          getDocument(collections.products, item.productId)
+        );
+        const products = await Promise.all(productsPromises);
+        setWishlistProducts(products.filter(p => p !== null));
+      } catch (error) {
+        console.error('Error fetching wishlist:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWishlist();
+  }, [user]);
+
+  const handleRemoveFromWishlist = async (itemId: string, productName: string) => {
     if (Platform.OS !== 'web') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     }
-    Alert.alert(
-      'Remove from Wishlist',
-      'Are you sure you want to remove this item from your wishlist?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: () => {
-            setWishlistItems((prev) => prev.filter((item) => item.id !== itemId));
-          },
-        },
-      ]
-    );
+
+    try {
+      await deleteDocument(collections.wishlists, itemId);
+      setWishlistItems(prev => prev.filter(item => item.id !== itemId));
+      setWishlistProducts(prev => prev.filter(p => {
+        const item = wishlistItems.find(i => i.id === itemId);
+        return p.id !== item?.productId;
+      }));
+
+      Toast.show({
+        type: 'info',
+        text1: '💔 ' + t('wishlist.removed'),
+        text2: productName,
+        position: 'bottom',
+        visibilityTime: 2000,
+        bottomOffset: 100,
+      });
+    } catch (error) {
+      console.error('Error removing from wishlist:', error);
+      Toast.show({
+        type: 'error',
+        text1: t('common.error') || 'Error',
+        text2: 'Failed to remove item',
+        position: 'bottom',
+        visibilityTime: 2000,
+        bottomOffset: 100,
+      });
+    }
   };
 
-  const handleAddToCart = (productId: string) => {
+  const handleAddToCart = (product: any) => {
     if (Platform.OS !== 'web') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
-    Alert.alert('Success', t('product.addedToCart'));
+    addToCart(product, 1);
+    Toast.show({
+      type: 'success',
+      text1: '🛒 ' + t('product.addedToCart'),
+      text2: language === 'ar' ? product.name.ar : product.name.en,
+      position: 'bottom',
+      visibilityTime: 2000,
+      bottomOffset: 100,
+    });
   };
 
   const handleProductPress = (productId: string) => {
@@ -65,38 +126,57 @@ export default function WishlistScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-          activeOpacity={0.7}
-        >
-          <Feather name="arrow-left" size={24} color={Colors.text.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('account.wishlist')}</Text>
-        <View style={styles.placeholder} />
-      </View>
+    <View style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
+      
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={['#8B5CF6', '#6366F1']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientHeader}
+      >
+        <SafeAreaView edges={['top']}>
+          <View style={styles.header}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={styles.backButton}
+              activeOpacity={0.7}
+            >
+              <Feather name="arrow-left" size={24} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>{t('account.wishlist')}</Text>
+            <View style={styles.placeholder} />
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
 
-      {wishlistProducts.length === 0 ? (
+      {loading ? (
+        <View style={styles.emptyContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={[styles.emptyTitle, { marginTop: 16 }]}>
+            {language === 'ar' ? 'جاري التحميل...' : 'Loading...'}
+          </Text>
+        </View>
+      ) : wishlistProducts.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Feather name="heart" size={80} color={Colors.gray[300]} />
-          <Text style={styles.emptyTitle}>Your Wishlist is Empty</Text>
+          <Text style={styles.emptyTitle}>{t('wishlist.empty')}</Text>
           <Text style={styles.emptyDescription}>
-            Add products you love to your wishlist and shop them later
+            {t('wishlist.emptyDescription')}
           </Text>
           <TouchableOpacity
             style={styles.shopButton}
             onPress={() => router.push('/(tabs)/home' as any)}
             activeOpacity={0.8}
           >
-            <Text style={styles.shopButtonText}>Start Shopping</Text>
+            <Text style={styles.shopButtonText}>{t('wishlist.startShopping')}</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           <Text style={styles.itemsCount}>
-            {wishlistProducts.length} {wishlistProducts.length === 1 ? 'item' : 'items'}
+            {`${wishlistProducts.length} ${wishlistProducts.length === 1 ? 'item' : 'items'}`}
           </Text>
           {wishlistProducts.map((product, index) => {
             if (!product) return null;
@@ -120,46 +200,57 @@ export default function WishlistScreen() {
                         : (product.name?.[language] || product.name?.en || product.name?.ar || '')}
                     </Text>
                     {product.brand && (
-                      <Text style={styles.productBrand}>{product.brand}</Text>
+                      <Text style={styles.productBrand}>
+                        {typeof product.brand === 'string'
+                          ? product.brand
+                          : (product.brand?.[language] || product.brand?.en || product.brand?.ar || '')}
+                      </Text>
                     )}
                     <View style={styles.priceRow}>
                       <Text style={styles.productPrice}>
-                        {formatPrice(finalPrice)}
+                        {formatPrice(finalPrice) || '$0.00'}
                       </Text>
-                      {product.discount && (
+                      {product.discount && product.discount > 0 && (
                         <View style={styles.discountBadge}>
-                          <Text style={styles.discountText}>-{product.discount}%</Text>
+                          <Text style={styles.discountText}>{`-${product.discount}%`}</Text>
                         </View>
                       )}
                     </View>
-                    {product.discount && (
+                    {product.discount && product.discount > 0 && (
                       <Text style={styles.originalPrice}>
-                        {formatPrice(product.price)}
+                        {formatPrice(product.price) || '$0.00'}
                       </Text>
                     )}
-                    <View style={styles.ratingRow}>
-                      <Feather name="star" size={14} color={Colors.warning} />
-                      <Text style={styles.ratingText}>{product.rating}</Text>
-                      <Text style={styles.reviewsText}>({product.reviews} reviews)</Text>
-                    </View>
+                    {(product.rating !== undefined && product.rating !== null) && (
+                      <View style={styles.ratingRow}>
+                        <Feather name="star" size={14} color={Colors.warning} />
+                        <Text style={styles.ratingText}>{String(product.rating || 0)}</Text>
+                        <Text style={styles.reviewsText}>{`(${String(product.reviews || 0)} reviews)`}</Text>
+                      </View>
+                    )}
                   </View>
                 </TouchableOpacity>
 
                 <View style={styles.productActions}>
                   <TouchableOpacity
                     style={styles.removeButton}
-                    onPress={() => handleRemoveFromWishlist(wishlistItem.id)}
+                    onPress={() => {
+                      const productName = typeof product.name === 'string'
+                        ? product.name
+                        : (product.name?.[language] || product.name?.en || product.name?.ar || '');
+                      handleRemoveFromWishlist(wishlistItem.id, productName);
+                    }}
                     activeOpacity={0.7}
                   >
                     <Feather name="trash-2" size={20} color={Colors.error} />
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.addToCartButton}
-                    onPress={() => handleAddToCart(product.id)}
+                    onPress={() => handleAddToCart(product)}
                     activeOpacity={0.8}
                   >
                     <Feather name="shopping-cart" size={18} color={Colors.white} />
-                    <Text style={styles.addToCartText}>Add to Cart</Text>
+                    <Text style={styles.addToCartText}>{t('product.addToCart')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -167,32 +258,35 @@ export default function WishlistScreen() {
           })}
         </ScrollView>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: '#F9FAFB',
+  },
+  gradientHeader: {
+    paddingBottom: 12,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray[200],
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   backButton: {
-    padding: Spacing.xs,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: FontSizes.xl,
+    fontSize: 20,
     fontWeight: 'bold' as const,
-    color: Colors.text.primary,
+    color: '#FFF',
   },
   placeholder: {
     width: 40,
@@ -216,11 +310,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   shopButton: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    marginTop: Spacing.xl,
+    backgroundColor: '#8B5CF6',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 14,
+    marginTop: 24,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   shopButtonText: {
     color: Colors.white,
@@ -318,32 +417,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderTopWidth: 1,
     borderTopColor: Colors.gray[200],
-    padding: Spacing.md,
-    gap: Spacing.md,
+    padding: Spacing.sm,
+    gap: Spacing.sm,
   },
   removeButton: {
-    flex: 0,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    width: 44,
+    height: 44,
     borderRadius: BorderRadius.md,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: Colors.error,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#FEE',
   },
   addToCartButton: {
     flex: 1,
-    backgroundColor: Colors.primary,
+    backgroundColor: '#8B5CF6',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.sm,
+    paddingVertical: 12,
     borderRadius: BorderRadius.md,
-    gap: Spacing.sm,
+    gap: Spacing.xs,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
   },
   addToCartText: {
     color: Colors.white,
-    fontSize: FontSizes.md,
+    fontSize: 15,
     fontWeight: '600' as const,
   },
 });

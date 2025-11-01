@@ -7,8 +7,9 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrders } from '@/contexts/OrderContext';
@@ -28,13 +29,37 @@ export default function OrdersScreen() {
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [orders, user?.uid]);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+  const formatDate = (dateString: string | Date | any) => {
+    try {
+      let date: Date;
+      
+      // Handle Firestore Timestamp
+      if (dateString && typeof dateString === 'object' && 'toDate' in dateString) {
+        date = dateString.toDate();
+      } 
+      // Handle Date object
+      else if (dateString instanceof Date) {
+        date = dateString;
+      } 
+      // Handle string
+      else {
+        date = new Date(dateString);
+      }
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return 'Invalid Date';
+      }
+      
+      return date.toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return 'Invalid Date';
+    }
   };
 
   const renderOrderCard = ({ item }: { item: Order }) => {
@@ -48,11 +73,11 @@ export default function OrdersScreen() {
       >
         <View style={styles.orderHeader}>
           <View style={styles.orderHeaderLeft}>
-            <Feather name="package" size={24} color={Colors.primary} />
-            <Text style={styles.orderNumber}>{item.orderNumber}</Text>
+            <Feather name="package" size={22} color="#8B5CF6" />
+            <Text style={styles.orderNumber} numberOfLines={1}>{item.orderNumber}</Text>
           </View>
           <View style={styles.statusBadge}>
-            <Feather name="package" size={14} color={Colors.primary} />
+            <Feather name="package" size={12} color="#8B5CF6" />
             <Text style={styles.statusText}>{t('order.new')}</Text>
           </View>
         </View>
@@ -85,8 +110,26 @@ export default function OrdersScreen() {
 
   if (!isAuthenticated) {
     return (
-      <View style={styles.wrapper}>
-        <SafeAreaView style={styles.container} edges={['bottom']}>
+      <View style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        
+        {/* Gradient Header */}
+        <LinearGradient
+          colors={['#8B5CF6', '#6366F1']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradientHeader}
+        >
+          <SafeAreaView edges={['top']}>
+            <View style={styles.header}>
+              <View style={styles.headerPlaceholder} />
+              <Text style={styles.headerTitle}>{t('tabs.orders')}</Text>
+              <View style={styles.headerPlaceholder} />
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+
+        <SafeAreaView style={styles.content} edges={['bottom']}>
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconContainer}>
               <Feather name="package" size={64} color={Colors.gray[300]} />
@@ -108,8 +151,26 @@ export default function OrdersScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.wrapper}>
-        <SafeAreaView style={styles.container} edges={['bottom']}>
+      <View style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        
+        {/* Gradient Header */}
+        <LinearGradient
+          colors={['#8B5CF6', '#6366F1']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradientHeader}
+        >
+          <SafeAreaView edges={['top']}>
+            <View style={styles.header}>
+              <View style={styles.headerPlaceholder} />
+              <Text style={styles.headerTitle}>{t('tabs.orders')}</Text>
+              <View style={styles.headerPlaceholder} />
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+
+        <SafeAreaView style={styles.content} edges={['bottom']}>
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>{t('pages.loading')}</Text>
           </View>
@@ -120,8 +181,26 @@ export default function OrdersScreen() {
 
   if (userOrders.length === 0) {
     return (
-      <View style={styles.wrapper}>
-        <SafeAreaView style={styles.container} edges={['bottom']}>
+      <View style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        
+        {/* Gradient Header */}
+        <LinearGradient
+          colors={['#8B5CF6', '#6366F1']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradientHeader}
+        >
+          <SafeAreaView edges={['top']}>
+            <View style={styles.header}>
+              <View style={styles.headerPlaceholder} />
+              <Text style={styles.headerTitle}>{t('tabs.orders')}</Text>
+              <View style={styles.headerPlaceholder} />
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+
+        <SafeAreaView style={styles.content} edges={['bottom']}>
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconContainer}>
               <Feather name="package" size={64} color={Colors.gray[300]} />
@@ -145,8 +224,26 @@ export default function OrdersScreen() {
   }
 
   return (
-    <View style={styles.wrapper}>
-      <SafeAreaView style={styles.container} edges={['bottom']}>
+    <View style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
+      
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={['#8B5CF6', '#6366F1']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientHeader}
+      >
+        <SafeAreaView edges={['top']}>
+          <View style={styles.header}>
+            <View style={styles.headerPlaceholder} />
+            <Text style={styles.headerTitle}>{t('tabs.orders')}</Text>
+            <View style={styles.headerPlaceholder} />
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+
+      <SafeAreaView style={styles.content} edges={['bottom']}>
         <FlatList
           data={userOrders}
           renderItem={renderOrderCard}
@@ -160,42 +257,63 @@ export default function OrdersScreen() {
 }
 
 const styles = StyleSheet.create({
-  wrapper: {
-    flex: 1,
-    backgroundColor: Colors.white,
-  },
   container: {
     flex: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: '#F9FAFB',
+  },
+  gradientHeader: {
+    paddingBottom: 12,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  headerPlaceholder: {
+    width: 40,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold' as const,
+    color: '#FFF',
+  },
+  content: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
   },
   listContent: {
-    padding: Spacing.md,
+    padding: 16,
   },
   orderCard: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.gray[200],
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
   orderHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.md,
-    paddingBottom: Spacing.md,
+    marginBottom: 12,
+    paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.gray[100],
+    borderBottomColor: '#F3F4F6',
   },
   orderHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: 10,
     flex: 1,
   },
   orderNumber: {
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.sm,
     fontWeight: 'bold' as const,
     color: Colors.text.primary,
     flex: 1,
@@ -204,24 +322,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: Colors.primary + '15',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.sm,
+    backgroundColor: '#8B5CF6' + '15',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
   },
   statusText: {
-    fontSize: FontSizes.xs,
+    fontSize: 11,
     fontWeight: '600' as const,
-    color: Colors.primary,
+    color: '#8B5CF6',
   },
   orderInfo: {
-    marginBottom: Spacing.md,
+    marginBottom: 12,
   },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.xs,
+    marginBottom: 8,
   },
   infoLabel: {
     fontSize: FontSizes.sm,
@@ -235,18 +353,23 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: FontSizes.lg,
     fontWeight: 'bold' as const,
-    color: Colors.primary,
+    color: '#8B5CF6',
   },
   viewDetailsButton: {
-    backgroundColor: Colors.primary,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.md,
+    backgroundColor: '#8B5CF6',
+    paddingVertical: 14,
+    borderRadius: 12,
     alignItems: 'center',
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
   },
   viewDetailsText: {
     fontSize: FontSizes.md,
     fontWeight: '600' as const,
-    color: Colors.white,
+    color: '#FFF',
   },
   emptyContainer: {
     flex: 1,

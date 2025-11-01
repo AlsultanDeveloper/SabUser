@@ -11,12 +11,13 @@ import {
   Platform,
   KeyboardAvoidingView,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { Colors, Spacing, BorderRadius, FontSizes } from '@/constants/theme';
+import { Colors, Spacing, FontSizes } from '@/constants/theme';
 import { createDocument } from '@/constants/firestore';
 
 export default function ContactSupportScreen() {
@@ -89,20 +90,26 @@ export default function ContactSupportScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <Stack.Screen
-        options={{
-          headerShown: false,
-        }}
-      />
+    <View style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
       
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color={Colors.text.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('profile.support')}</Text>
-        <View style={styles.headerPlaceholder} />
-      </View>
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={['#8B5CF6', '#6366F1']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientHeader}
+      >
+        <SafeAreaView edges={['top']}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <Feather name="arrow-left" size={24} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>{t('profile.support')}</Text>
+            <View style={styles.backButton} />
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
 
       <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
@@ -126,14 +133,12 @@ export default function ContactSupportScreen() {
             onPress={handleCallSupport}
             activeOpacity={0.7}
           >
-            <View style={[styles.contactIconContainer, { backgroundColor: Colors.primary + '20' }]}>
-              <Feather name="phone" size={24} color={Colors.primary} />
-            </View>
+            <Feather name="phone" size={22} color="#111827" />
             <View style={styles.contactInfo}>
               <Text style={styles.contactLabel}>{t('contactSupport.callUs')}</Text>
               <Text style={styles.contactValue}>+961 81 33 5929</Text>
             </View>
-            <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
+            <Feather name="chevron-right" size={20} color="#9CA3AF" />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -141,14 +146,12 @@ export default function ContactSupportScreen() {
             onPress={handleEmailSupport}
             activeOpacity={0.7}
           >
-            <View style={[styles.contactIconContainer, { backgroundColor: Colors.secondary + '20' }]}>
-              <Feather name="mail" size={24} color={Colors.secondary} />
-            </View>
+            <Feather name="mail" size={22} color="#111827" />
             <View style={styles.contactInfo}>
               <Text style={styles.contactLabel}>{t('contactSupport.emailUs')}</Text>
               <Text style={styles.contactValue}>Support@sab-store.com</Text>
             </View>
-            <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
+            <Feather name="chevron-right" size={20} color="#9CA3AF" />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -156,14 +159,12 @@ export default function ContactSupportScreen() {
             onPress={handleWhatsAppSupport}
             activeOpacity={0.7}
           >
-            <View style={[styles.contactIconContainer, { backgroundColor: '#25D366' + '20' }]}>
-              <Feather name="message-circle" size={24} color="#25D366" />
-            </View>
+            <Feather name="message-circle" size={22} color="#111827" />
             <View style={styles.contactInfo}>
               <Text style={styles.contactLabel}>{t('contactSupport.whatsapp')}</Text>
               <Text style={styles.contactValue}>+961 81 33 5929</Text>
             </View>
-            <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
+            <Feather name="chevron-right" size={20} color="#9CA3AF" />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -171,14 +172,12 @@ export default function ContactSupportScreen() {
             onPress={handleVisitWebsite}
             activeOpacity={0.7}
           >
-            <View style={[styles.contactIconContainer, { backgroundColor: Colors.primary + '20' }]}>
-              <Feather name="globe" size={24} color={Colors.primary} />
-            </View>
+            <Feather name="globe" size={22} color="#111827" />
             <View style={styles.contactInfo}>
               <Text style={styles.contactLabel}>{t('contactSupport.website')}</Text>
               <Text style={styles.contactValue}>www.sab-store.com</Text>
             </View>
-            <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
+            <Feather name="chevron-right" size={20} color="#9CA3AF" />
           </TouchableOpacity>
         </View>
 
@@ -235,42 +234,41 @@ export default function ContactSupportScreen() {
         </View>
       </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
-    backgroundColor: Colors.white,
+    backgroundColor: '#F9FAFB',
+  },
+  gradientHeader: {
+    paddingBottom: 12,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border.light,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   backButton: {
-    padding: Spacing.xs,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: FontSizes.xl,
+    fontSize: 20,
     fontWeight: 'bold' as const,
-    color: Colors.text.primary,
-  },
-  headerPlaceholder: {
-    width: 40,
+    color: '#FFF',
   },
   keyboardAvoidingView: {
     flex: 1,
   },
   content: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   scrollContentContainer: {
     flexGrow: 1,
@@ -278,15 +276,20 @@ const styles = StyleSheet.create({
   },
   introSection: {
     backgroundColor: Colors.white,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.xl,
-    marginBottom: Spacing.md,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   mainTitle: {
-    fontSize: FontSizes.xxxl,
+    fontSize: 24,
     fontWeight: 'bold' as const,
     color: Colors.text.primary,
-    marginBottom: Spacing.md,
+    marginBottom: 8,
   },
   subtitle: {
     fontSize: FontSizes.md,
@@ -295,27 +298,28 @@ const styles = StyleSheet.create({
   },
   contactMethods: {
     backgroundColor: Colors.white,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    marginBottom: Spacing.md,
-    gap: Spacing.md,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginBottom: 12,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   contactCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.gray[50],
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border.light,
-  },
-  contactIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: BorderRadius.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.md,
+    backgroundColor: '#FAFAFA',
+    padding: 16,
+    borderRadius: 16,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   contactInfo: {
     flex: 1,
@@ -332,52 +336,61 @@ const styles = StyleSheet.create({
   },
   formSection: {
     backgroundColor: Colors.white,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.xl,
-    paddingBottom: Spacing.xxl,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   formTitle: {
-    fontSize: FontSizes.xl,
+    fontSize: 20,
     fontWeight: 'bold' as const,
     color: Colors.text.primary,
-    marginBottom: Spacing.lg,
+    marginBottom: 16,
   },
   inputGroup: {
-    marginBottom: Spacing.lg,
+    marginBottom: 16,
   },
   inputLabel: {
     fontSize: FontSizes.md,
     fontWeight: '600' as const,
     color: Colors.text.primary,
-    marginBottom: Spacing.sm,
+    marginBottom: 8,
   },
   input: {
-    backgroundColor: Colors.gray[50],
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
+    backgroundColor: '#FAFAFA',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     fontSize: FontSizes.md,
     color: Colors.text.primary,
     borderWidth: 1,
-    borderColor: Colors.border.light,
+    borderColor: '#E5E7EB',
   },
   textArea: {
     height: 120,
-    paddingTop: Spacing.md,
+    paddingTop: 14,
   },
   sendButton: {
-    backgroundColor: Colors.primary,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.lg,
+    backgroundColor: '#8B5CF6',
+    paddingVertical: 16,
+    borderRadius: 14,
     alignItems: 'center',
-    marginTop: Spacing.md,
+    marginTop: 20,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   sendButtonDisabled: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
   sendButtonText: {
-    fontSize: FontSizes.md,
+    fontSize: 16,
     fontWeight: '600' as const,
-    color: Colors.white,
+    color: '#FFF',
   },
 });

@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, Stack, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
 import { WebView } from 'react-native-webview';
@@ -562,16 +563,26 @@ export default function AddressMapPickerScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
       
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color={Colors.text.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>حدد الموقع</Text>
-        <View style={styles.backButton} />
-      </View>
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={['#8B5CF6', '#6366F1']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientHeader}
+      >
+        <SafeAreaView edges={['top']}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <Feather name="arrow-left" size={24} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>حدد الموقع</Text>
+            <View style={styles.backButton} />
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
 
       {permissionGranted && (
         <View style={styles.searchContainer}>
@@ -705,14 +716,35 @@ export default function AddressMapPickerScreen() {
           </View>
         </>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#F9FAFB',
+  },
+  gradientHeader: {
+    paddingBottom: 12,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold' as const,
+    color: '#FFF',
   },
   formContainer: {
     flex: 1,
@@ -869,26 +901,6 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     fontWeight: 'bold' as const,
     color: Colors.white,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray[200],
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: FontSizes.xl,
-    fontWeight: 'bold' as const,
-    color: Colors.text.primary,
   },
   loadingContainer: {
     flex: 1,
@@ -1051,11 +1063,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md + 2,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.xl,
-    ...Shadows.md,
+    gap: 8,
+    paddingVertical: 16,
+    backgroundColor: '#8B5CF6',
+    borderRadius: 14,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   confirmButtonText: {
     color: Colors.white,
