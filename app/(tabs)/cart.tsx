@@ -19,18 +19,22 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import SafeImage from '@/components/SafeImage';
+import { useProducts } from '@/hooks/useFirestore';
 
 const FREE_SHIPPING_THRESHOLD = 100; // SAR
 const SHIPPING_COST = 15; // SAR - يمكن تغييره حسب نظام الشحن
 
 export default function ModernCartScreen() {
   const router = useRouter();
-  const { cart, cartTotal, formatPrice, removeFromCart, updateCartItemQuantity, language } = useApp();
+  const { cart, cartTotal, formatPrice, removeFromCart, updateCartItemQuantity, language, addToCart } = useApp();
   const { isAuthenticated } = useAuth();
   
   const [couponCode, setCouponCode] = useState('');
   const [discount, setDiscount] = useState(0);
   const [showCoupon, setShowCoupon] = useState(false);
+
+  // Fetch featured products for recommendations
+  const { products: featuredProducts } = useProducts({ featured: true, limit: 10 });
 
   // Calculate shipping progress
   const shippingProgress = Math.min((cartTotal / FREE_SHIPPING_THRESHOLD) * 100, 100);
@@ -311,6 +315,78 @@ export default function ModernCartScreen() {
             </Text>
           </View>
         </View>
+
+        {/* You May Also Like - Recommended Products */}
+        {featuredProducts && featuredProducts.length > 0 && (
+          <View style={styles.recommendedSection}>
+            <View style={styles.recommendedHeader}>
+              <MaterialCommunityIcons name="star-circle-outline" size={24} color="#8B5CF6" />
+              <Text style={styles.recommendedTitle}>You May Also Like</Text>
+            </View>
+            
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.recommendedScroll}
+            >
+              {featuredProducts.slice(0, 8).map((product) => {
+                const productName = typeof product.name === 'object' 
+                  ? product.name[language] || product.name.en || product.name.ar
+                  : product.name;
+                
+                const finalPrice = product.discount 
+                  ? product.price * (1 - product.discount / 100)
+                  : product.price;
+
+                return (
+                  <TouchableOpacity
+                    key={product.id}
+                    style={styles.recommendedCard}
+                    onPress={() => router.push(`/product/${product.id}` as any)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.recommendedImageContainer}>
+                      <SafeImage
+                        uri={product.images?.[0] || product.image || ''}
+                        style={styles.recommendedImage}
+                      />
+                      {product.discount && product.discount > 0 && (
+                        <View style={styles.recommendedBadge}>
+                          <Text style={styles.recommendedBadgeText}>-{product.discount}%</Text>
+                        </View>
+                      )}
+                    </View>
+                    
+                    <View style={styles.recommendedInfo}>
+                      <Text style={styles.recommendedName} numberOfLines={2}>
+                        {productName}
+                      </Text>
+                      
+                      <View style={styles.recommendedPriceRow}>
+                        <Text style={styles.recommendedPrice}>{formatPrice(finalPrice)}</Text>
+                        {product.discount && product.discount > 0 && (
+                          <Text style={styles.recommendedOldPrice}>{formatPrice(product.price)}</Text>
+                        )}
+                      </View>
+
+                      <TouchableOpacity
+                        style={styles.quickAddButton}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          addToCart(product, 1);
+                          Alert.alert('Added to Cart', `${productName} has been added to your cart!`);
+                        }}
+                      >
+                        <Feather name="shopping-cart" size={14} color="#8B5CF6" />
+                        <Text style={styles.quickAddText}>Quick Add</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
 
         <View style={{ height: 120 }} />
       </ScrollView>
@@ -671,6 +747,99 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: '#8B5CF6',
+  },
+  // Recommended Products Styles
+  recommendedSection: {
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  recommendedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  recommendedTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginLeft: 8,
+  },
+  recommendedScroll: {
+    paddingHorizontal: 16,
+  },
+  recommendedCard: {
+    width: 160,
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    marginHorizontal: 6,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  recommendedImageContainer: {
+    width: '100%',
+    height: 160,
+    backgroundColor: '#F9FAFB',
+    position: 'relative',
+  },
+  recommendedImage: {
+    width: '100%',
+    height: '100%',
+  },
+  recommendedBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  recommendedBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFF',
+  },
+  recommendedInfo: {
+    padding: 12,
+  },
+  recommendedName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 8,
+    lineHeight: 18,
+  },
+  recommendedPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  recommendedPrice: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#8B5CF6',
+    marginRight: 6,
+  },
+  recommendedOldPrice: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    textDecorationLine: 'line-through',
+  },
+  quickAddButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F3E8FF',
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  quickAddText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#8B5CF6',
+    marginLeft: 4,
   },
   bottomContainer: {
     position: 'absolute',
