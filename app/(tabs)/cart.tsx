@@ -113,6 +113,14 @@ export default function ModernCartScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Cart Header */}
+        <View style={styles.cartHeader}>
+          <Text style={styles.cartTitle}>Cart</Text>
+          <Text style={styles.itemCount}>
+            {cart.length} {cart.length === 1 ? 'item' : 'items'}
+          </Text>
+        </View>
+
         {/* Free Shipping Progress */}
         {remainingForFreeShipping > 0 ? (
           <View style={styles.shippingCard}>
@@ -342,6 +350,25 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
+  },
+  cartHeader: {
+    backgroundColor: '#FFF',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  cartTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  itemCount: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   header: {
     flexDirection: 'row',
