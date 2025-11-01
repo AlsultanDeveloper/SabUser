@@ -113,15 +113,6 @@ interface SubcategoryCardProps {
 function SubcategoryCard({ subcategory, language, index }: SubcategoryCardProps) {
   const { t } = useApp();
   const displayName = (() => {
-    console.log('🔍 SubcategoryCard Debug:', {
-      id: subcategory.id,
-      rawNameObject: subcategory.name,
-      nameType: typeof subcategory.name,
-      nameEn: subcategory.name?.en,
-      nameAr: subcategory.name?.ar,
-      language: language,
-    });
-
     if (typeof subcategory.name === 'string') {
       return subcategory.name;
     }
@@ -139,7 +130,20 @@ function SubcategoryCard({ subcategory, language, index }: SubcategoryCardProps)
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    console.log('Selected subcategory:', { id: subcategory.id, name: displayName });
+    
+    console.log('📱 Navigating to subcategory:', { 
+      id: subcategory.id, 
+      name: displayName 
+    });
+    
+    // Navigate to category-products with subcategory name
+    router.push({
+      pathname: '/category-products',
+      params: {
+        subcategoryId: subcategory.id,
+        subcategoryName: displayName,
+      },
+    });
   };
 
   const hasImage = subcategory.image && subcategory.image.trim().length > 0;

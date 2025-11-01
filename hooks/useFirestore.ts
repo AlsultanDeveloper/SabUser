@@ -205,163 +205,96 @@ interface UseProductsOptions {
   limit?: number;
 }
 
+async function fetchProducts(options: UseProductsOptions = {}): Promise<Product[]> {
+  if (!isConfigured || !db) {
+    console.error('❌ Firebase not configured');
+    throw new Error('Firebase not configured');
+  }
+
+  const productsRef = collection(db, 'products');
+  
+  const constraints: QueryConstraint[] = [];
+  
+  if (options.categoryId) {
+    constraints.push(where('categoryId', '==', options.categoryId));
+    constraints.push(orderBy('createdAt', 'desc'));
+  } else if (options.featured) {
+    constraints.push(where('featured', '==', true));
+  } else {
+    constraints.push(orderBy('createdAt', 'desc'));
+  }
+  
+  if (options.limit) {
+    constraints.push(limit(options.limit));
+  }
+  
+  const q = query(productsRef, ...constraints);
+  const querySnapshot = await getDocs(q);
+  let loadedProducts: Product[] = [];
+  
+  querySnapshot.forEach((docSnap) => {
+    const data = docSnap.data();
+    
+    // Filter by subcategory if specified
+    if (options.subcategoryName && data.subcategoryName !== options.subcategoryName) {
+      return; // Skip products that don't match the subcategory
+    }
+    
+    const imageUrl = data.image && typeof data.image === 'string' && data.image.trim() ? data.image.trim() : undefined;
+    const images = Array.isArray(data.images) 
+      ? data.images.filter((img: any) => img && typeof img === 'string' && img.trim())
+      : imageUrl ? [imageUrl] : [];
+    
+    loadedProducts.push({
+      id: docSnap.id,
+      name: data.name || { en: '', ar: '' },
+      description: data.description || { en: '', ar: '' },
+      price: data.price || 0,
+      image: imageUrl || '',
+      images: images,
+      category: data.categoryId || '',
+      brand: data.brand,
+      brandId: data.brandId,
+      brandName: data.brandName || data.brand,
+      categoryName: data.categoryName,
+      subcategoryName: data.subcategoryName,
+      rating: data.rating || 0,
+      reviews: data.reviews || 0,
+      inStock: data.inStock !== false,
+      discount: data.discount || 0,
+      colors: data.colors,
+      sizes: data.sizes,
+      shoeSizes: data.shoeSizes,
+      ageRange: data.ageRange,
+      gender: data.gender,
+      season: data.season,
+      deliveryTime: data.deliveryTime,
+      stock: data.stock,
+      available: data.available,
+    });
+  });
+
+  if (options.featured && !options.categoryId) {
+    loadedProducts = loadedProducts.filter(p => p.discount && p.discount > 0 || p.inStock);
+  }
+  
+  return loadedProducts;
+}
+
 export function useProducts(options: UseProductsOptions = {}) {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: products = [], isLoading: loading, error, refetch } = useQuery({
+    queryKey: ['products', options.categoryId, options.subcategoryName, options.featured, options.limit],
+    queryFn: () => fetchProducts(options),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
 
-  const loadProducts = useCallback(async () => {
-    if (!isConfigured || !db) {
-      console.error('❌ Firebase not configured');
-      setError('Firebase not configured');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      
-      console.log('🔍 === Loading products with options ===');
-      console.log('  categoryId:', options.categoryId);
-      console.log('  subcategoryName:', options.subcategoryName);
-      console.log('  featured:', options.featured);
-      console.log('  limit:', options.limit);
-      
-      const productsRef = collection(db, 'products');
-      
-      // 🔍 First, check total products in Firebase (for debugging)
-      if (!options.categoryId && !options.subcategoryName) {
-        const allProductsQuery = query(productsRef);
-        const allProductsSnapshot = await getDocs(allProductsQuery);
-        console.log('📊 TOTAL products in Firebase:', allProductsSnapshot.size);
-        
-        if (options.featured) {
-          let featuredCount = 0;
-          allProductsSnapshot.forEach((doc) => {
-            if (doc.data().featured === true) featuredCount++;
-          });
-          console.log('📊 Products with featured=true:', featuredCount);
-        }
-      }
-      
-      const constraints: QueryConstraint[] = [];
-      
-      if (options.categoryId) {
-        constraints.push(where('categoryId', '==', options.categoryId));
-        constraints.push(orderBy('createdAt', 'desc'));
-      } else if (options.featured) {
-        constraints.push(where('featured', '==', true));
-        // لا تستخدم orderBy مع featured لتجنب الحاجة لـ index
-      } else {
-        constraints.push(orderBy('createdAt', 'desc'));
-      }
-      
-      if (options.limit) {
-        constraints.push(limit(options.limit));
-      }
-      
-      console.log('📊 Query constraints:', constraints.length);
-      
-      const q = query(productsRef, ...constraints);
-      const querySnapshot = await getDocs(q);
-      
-      console.log('📦 Total documents fetched:', querySnapshot.size);
-      
-      let loadedProducts: Product[] = [];
-      querySnapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        
-        // 🔍 Filter by subcategory if specified
-        if (options.subcategoryName && data.subcategoryName !== options.subcategoryName) {
-          return; // Skip products that don't match the subcategory
-        }
-        
-        // 🔍 طباعة البيانات الفعلية من Firestore
-        if (loadedProducts.length === 0) {
-          console.log('🔍 === فحص بيانات المنتج من Firestore ===');
-          console.log('📦 Product ID:', docSnap.id);
-          console.log('📝 Raw data from Firestore:');
-          console.log('  name:', JSON.stringify(data.name));
-          console.log('  brand:', data.brand);
-          console.log('  brandName:', data.brandName);
-          console.log('  categoryName:', data.categoryName);
-          console.log('  subcategoryName:', data.subcategoryName);
-          console.log('  colors:', data.colors);
-          console.log('  sizes:', data.sizes);
-          console.log('  shoeSizes:', data.shoeSizes);
-          console.log('  ageRange:', data.ageRange);
-          console.log('  gender:', data.gender);
-          console.log('  season:', data.season);
-          console.log('  deliveryTime:', data.deliveryTime);
-          console.log('🔍 === نهاية الفحص ===');
-        }
-        
-        const imageUrl = data.image && typeof data.image === 'string' && data.image.trim() ? data.image.trim() : undefined;
-        const images = Array.isArray(data.images) 
-          ? data.images.filter((img: any) => img && typeof img === 'string' && img.trim())
-          : imageUrl ? [imageUrl] : [];
-        
-        if (!imageUrl) {
-          console.warn('⚠️ Product missing image:', docSnap.id, data.name);
-        }
-        
-        loadedProducts.push({
-          id: docSnap.id,
-          name: data.name || { en: '', ar: '' },
-          description: data.description || { en: '', ar: '' },
-          price: data.price || 0,
-          image: imageUrl || '',
-          images: images,
-          category: data.categoryId || '',
-          brand: data.brand,
-          brandId: data.brandId,
-          brandName: data.brandName || data.brand,
-          categoryName: data.categoryName,
-          subcategoryName: data.subcategoryName,
-          rating: data.rating || 0,
-          reviews: data.reviews || 0,
-          inStock: data.inStock !== false,
-          discount: data.discount || 0,
-          colors: data.colors,
-          sizes: data.sizes,
-          shoeSizes: data.shoeSizes,
-          ageRange: data.ageRange,
-          gender: data.gender,
-          season: data.season,
-          deliveryTime: data.deliveryTime,
-          stock: data.stock,
-          available: data.available,
-        });
-      });
-
-      if (options.featured && !options.categoryId) {
-        const beforeFilter = loadedProducts.length;
-        loadedProducts = loadedProducts.filter(p => p.discount && p.discount > 0 || p.inStock);
-        console.log(`🔍 Featured filter: ${beforeFilter} → ${loadedProducts.length} products`);
-      }
-      
-      setProducts(loadedProducts);
-      console.log('✅ Products loaded from Firestore:', loadedProducts.length);
-      if (options.subcategoryName) {
-        console.log(`🔍 Filtered by subcategory "${options.subcategoryName}": ${loadedProducts.length} products`);
-      }
-      console.log('🔍 === End loading products ===\n');
-    } catch (err) {
-      console.error('❌ Error loading products:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load products');
-    } finally {
-      setLoading(false);
-    }
-  }, [options.categoryId, options.subcategoryName, options.featured, options.limit]);
-
-  useEffect(() => {
-    loadProducts();
-  }, [loadProducts]);
-
-  const refetch = loadProducts;
-
-  return { products, loading, error, refetch };
+  return { 
+    products, 
+    loading, 
+    error: error instanceof Error ? error.message : null, 
+    refetch 
+  };
 }
 
 export function useProduct(productId: string) {

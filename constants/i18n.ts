@@ -26,6 +26,7 @@ const translations = {
       success: 'Success',
       error: 'Error',
       ok: 'OK',
+      tryAgain: 'Try Again',
     },
     tabs: {
       home: 'Home',
@@ -127,6 +128,8 @@ const translations = {
       noAccount: "Don't have an account?",
       selectCountry: 'Select Country',
       forgotPassword: 'Forgot Password?',
+      signInRequired: 'Sign In Required',
+      signInToAddWishlist: 'Please sign in to add items to your wishlist',
       errors: {
         enterPhone: 'Please enter your phone number',
         verificationSent: 'Verification code sent to your phone',
@@ -178,6 +181,17 @@ const translations = {
         city: 'your city',
         postalCode: 'xxxxx',
       },
+    },
+    products: {
+      newest: 'Newest',
+      popular: 'Popular',
+      priceLowToHigh: 'Price: Low to High',
+      priceHighToLow: 'Price: High to Low',
+      topRated: 'Top Rated',
+      allProducts: 'All Products',
+      noProducts: 'No Products Found',
+      noProductsDescription: 'Try adjusting your filters or search criteria',
+      outOfStock: 'Out of Stock',
     },
     product: {
       description: 'Description',
@@ -399,6 +413,7 @@ const translations = {
       success: 'نجح',
       error: 'خطأ',
       ok: 'حسناً',
+      tryAgain: 'حاول مرة أخرى',
     },
     tabs: {
       home: 'الرئيسية',
@@ -500,6 +515,8 @@ const translations = {
       noAccount: 'ليس لديك حساب؟',
       selectCountry: 'اختر الدولة',
       forgotPassword: 'نسيت كلمة المرور؟',
+      signInRequired: 'تسجيل الدخول مطلوب',
+      signInToAddWishlist: 'يرجى تسجيل الدخول لإضافة المنتجات إلى قائمة الأمنيات',
       errors: {
         enterPhone: 'يرجى إدخال رقم الهاتف',
         verificationSent: 'تم إرسال رمز التحقق إلى هاتفك',
@@ -551,6 +568,17 @@ const translations = {
         city: 'مدينتك',
         postalCode: 'xxxxx',
       },
+    },
+    products: {
+      newest: 'الأحدث',
+      popular: 'الأكثر شعبية',
+      priceLowToHigh: 'السعر: من الأقل إلى الأعلى',
+      priceHighToLow: 'السعر: من الأعلى إلى الأقل',
+      topRated: 'الأعلى تقييماً',
+      allProducts: 'جميع المنتجات',
+      noProducts: 'لا توجد منتجات',
+      noProductsDescription: 'حاول تعديل الفلاتر أو معايير البحث',
+      outOfStock: 'غير متوفر',
     },
     product: {
       description: 'الوصف',

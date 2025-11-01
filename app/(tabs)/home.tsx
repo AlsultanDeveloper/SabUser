@@ -37,7 +37,9 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const { categories, loading: categoriesLoading, refetch: refetchCategories } = useCategories();
-  const { products, loading: productsLoading, refetch: refetchProducts } = useProducts({});  // Get all products
+  const { products, loading: productsLoading, refetch: refetchProducts } = useProducts({ 
+    limit: 20 // تحميل 20 منتج فقط في الصفحة الرئيسية
+  });
 
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
@@ -376,6 +378,10 @@ export default function HomeScreen() {
             tintColor={Colors.primary}
           />
         }
+        // Performance optimizations
+        removeClippedSubviews={true}
+        scrollEventThrottle={16}
+        decelerationRate="normal"
       >
         {activeBanners.length > 0 && (
           <View style={styles.bannerSection}>
@@ -442,6 +448,8 @@ export default function HomeScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.categoriesScroll}
+              removeClippedSubviews={true}
+              scrollEventThrottle={16}
             >
               {[1, 2, 3, 4, 5].map((i) => (
                 <CategoryCardSkeleton key={i} />
@@ -452,6 +460,9 @@ export default function HomeScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.categoriesScroll}
+              removeClippedSubviews={true}
+              scrollEventThrottle={16}
+              decelerationRate="fast"
             >
               {categories.map((category) => (
               <TouchableOpacity
@@ -570,28 +581,38 @@ interface ProductCardProps {
   isInWishlist?: boolean;
 }
 
-function ProductCard({ product, onPress, formatPrice, language, onToggleWishlist, isInWishlist }: ProductCardProps) {
+const ProductCard = React.memo(function ProductCard({ product, onPress, formatPrice, language, onToggleWishlist, isInWishlist }: ProductCardProps) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
-  const handlePressIn = () => {
+  const handlePressIn = useCallback(() => {
     Animated.spring(scaleAnim, {
       toValue: 0.96,
       useNativeDriver: true,
       friction: 8,
     }).start();
-  };
+  }, [scaleAnim]);
 
-  const handlePressOut = () => {
+  const handlePressOut = useCallback(() => {
     Animated.spring(scaleAnim, {
       toValue: 1,
       useNativeDriver: true,
       friction: 8,
     }).start();
-  };
+  }, [scaleAnim]);
 
-  const finalPrice = product.discount
-    ? product.price * (1 - product.discount / 100)
-    : product.price;
+  const finalPrice = useMemo(() => 
+    product.discount
+      ? product.price * (1 - product.discount / 100)
+      : product.price,
+    [product.discount, product.price]
+  );
+
+  const handleWishlistPress = useCallback((e: any) => {
+    e.stopPropagation();
+    if (onToggleWishlist) {
+      onToggleWishlist(product.id);
+    }
+  }, [onToggleWishlist, product.id]);
 
   return (
     <Animated.View style={[styles.productCard, { transform: [{ scale: scaleAnim }] }]}>
@@ -614,12 +635,7 @@ function ProductCard({ product, onPress, formatPrice, language, onToggleWishlist
           <TouchableOpacity 
             style={styles.favoriteButton} 
             activeOpacity={0.7}
-            onPress={(e) => {
-              e.stopPropagation();
-              if (onToggleWishlist) {
-                onToggleWishlist(product.id);
-              }
-            }}
+            onPress={handleWishlistPress}
           >
             <Feather 
               name={isInWishlist ? "heart" : "heart"} 
@@ -654,7 +670,7 @@ function ProductCard({ product, onPress, formatPrice, language, onToggleWishlist
       </TouchableOpacity>
     </Animated.View>
   );
-}
+});
 
 
 const styles = StyleSheet.create({

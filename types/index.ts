@@ -102,7 +102,7 @@ export interface Banner {
 
 export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'out_for_delivery' | 'delivered' | 'cancelled';
 export type PaymentStatus = 'pending' | 'paid' | 'failed';
-export type PaymentMethod = 'cash' | 'omt' | 'whish';
+export type PaymentMethod = 'cash' | 'card' | 'omt' | 'whish';
 
 export interface OrderAddress {
   fullName: string;

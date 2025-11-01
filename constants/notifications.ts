@@ -17,6 +17,18 @@ Notifications.setNotificationHandler({
 export async function registerForPushNotificationsAsync(): Promise<string | undefined> {
   let token;
 
+  // Skip on web
+  if (Platform.OS === 'web') {
+    console.log('⚠️ Push notifications not supported on web');
+    return;
+  }
+
+  // Skip on Expo Go (development)
+  if (!Device.isDevice) {
+    console.log('⚠️ Push notifications require a physical device or standalone build');
+    return;
+  }
+
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
       name: 'default',
@@ -26,40 +38,43 @@ export async function registerForPushNotificationsAsync(): Promise<string | unde
     });
   }
 
-  if (Device.isDevice) {
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
 
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
 
-    if (finalStatus !== 'granted') {
-      console.log('Failed to get push token for push notification!');
+  if (finalStatus !== 'granted') {
+    console.log('⚠️ Push notification permissions not granted');
+    return;
+  }
+
+  try {
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+    
+    if (!projectId) {
+      console.log('⚠️ Project ID not found. Push notifications will not work.');
       return;
     }
 
-    try {
-      const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
-      
-      if (!projectId) {
-        console.log('Project ID not found');
-        return;
-      }
+    token = (
+      await Notifications.getExpoPushTokenAsync({
+        projectId,
+      })
+    ).data;
 
-      token = (
-        await Notifications.getExpoPushTokenAsync({
-          projectId,
-        })
-      ).data;
-
-      console.log('Push notification token:', token);
-    } catch (error) {
-      console.log('Error getting push token:', error);
+    console.log('✅ Push notification token:', token);
+  } catch (error: any) {
+    // Silently handle errors in development
+    if (__DEV__) {
+      console.log('⚠️ Push notifications not available in Expo Go');
+      console.log('💡 Use: eas build --profile development --platform android');
+    } else {
+      console.error('❌ Error getting push token:', error);
     }
-  } else {
-    console.log('Must use physical device for Push Notifications');
+    return undefined;
   }
 
   return token;

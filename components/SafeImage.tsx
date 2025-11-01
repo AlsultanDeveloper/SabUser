@@ -73,6 +73,10 @@ const SafeImage = memo(function SafeImage({
         onError={handleError}
         onLoad={handleLoad}
         onLoadStart={handleLoadStart}
+        // Performance optimizations
+        fadeDuration={100}
+        progressiveRenderingEnabled={true}
+        resizeMethod="resize"
       />
       {isLoading && showLoader && (
         <View style={[styles.loader, style]}>

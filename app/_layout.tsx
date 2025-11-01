@@ -98,18 +98,26 @@ export default function RootLayout() {
       return;
     }
 
-    registerForPushNotificationsAsync().then(token => {
-      if (token) {
-        console.log('Push token:', token);
-      }
-    });
+    // Register for push notifications with error handling
+    registerForPushNotificationsAsync()
+      .then(token => {
+        if (token) {
+          console.log('✅ Push token registered:', token);
+        } else {
+          console.log('⚠️ Push token not available - notifications disabled');
+        }
+      })
+      .catch(error => {
+        console.error('❌ Failed to register push notifications:', error);
+        // Don't crash the app, just log the error
+      });
 
     notificationListener.current = addNotificationReceivedListener(notification => {
-      console.log('Notification received:', notification);
+      console.log('📬 Notification received:', notification);
     });
 
     responseListener.current = addNotificationResponseReceivedListener(response => {
-      console.log('Notification response:', response);
+      console.log('👆 Notification tapped:', response);
     });
 
     return () => {

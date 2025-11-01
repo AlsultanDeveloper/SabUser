@@ -24,17 +24,22 @@ export const [NotificationProvider, useNotifications] = createContextHook(() => 
 
   useEffect(() => {
     if (Platform.OS === 'web') {
-      console.log('Push notifications not supported on web');
+      console.log('⚠️ Push notifications not supported on web');
       return;
     }
 
     registerForPushNotificationsAsync()
       .then(token => {
-        console.log('Push token obtained:', token);
-        setExpoPushToken(token);
+        if (token) {
+          console.log('✅ Push token obtained:', token);
+          setExpoPushToken(token);
+        } else {
+          console.log('⚠️ Push token not available');
+        }
       })
       .catch(error => {
-        console.error('Failed to get push token:', error);
+        console.error('❌ Failed to get push token:', error);
+        // Don't crash, just log the error
       });
 
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {

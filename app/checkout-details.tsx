@@ -25,7 +25,7 @@ import type { OrderItem } from '@/types';
 
 export default function CheckoutDetailsScreen() {
   const router = useRouter();
-  const { cart, cartTotal, formatPrice, clearCart } = useApp();
+  const { cart, cartTotal, formatPrice, clearCart, language } = useApp();
   const { user } = useAuth();
   const { shippingCost, freeShippingThreshold } = useSettings();
   const { createOrder } = useOrders();
@@ -40,7 +40,7 @@ export default function CheckoutDetailsScreen() {
   const [longitude, setLongitude] = useState<number | null>(null);
 
   // Payment Method State
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'omt' | 'whish'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'omt' | 'whish'>('cash');
   
   // Map Picker State
   const [showMapPicker, setShowMapPicker] = useState(false);
@@ -361,17 +361,53 @@ export default function CheckoutDetailsScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.paymentOption, paymentMethod === 'omt' && styles.paymentOptionActive]}
-            onPress={() => setPaymentMethod('omt')}
+            style={[styles.paymentOption, paymentMethod === 'card' && styles.paymentOptionActive]}
+            onPress={() => setPaymentMethod('card')}
           >
             <View style={styles.paymentLeft}>
               <MaterialCommunityIcons 
                 name="credit-card-outline" 
                 size={24} 
-                color={paymentMethod === 'omt' ? '#8B5CF6' : '#6B7280'} 
+                color={paymentMethod === 'card' ? '#8B5CF6' : '#6B7280'} 
               />
-              <Text style={[styles.paymentText, paymentMethod === 'omt' && styles.paymentTextActive]}>
+              <Text style={[styles.paymentText, paymentMethod === 'card' && styles.paymentTextActive]}>
                 Credit/Debit Card
+              </Text>
+            </View>
+            <View style={[styles.radio, paymentMethod === 'card' && styles.radioActive]}>
+              {paymentMethod === 'card' && <View style={styles.radioDot} />}
+            </View>
+          </TouchableOpacity>
+
+          {paymentMethod === 'card' && (
+            <TouchableOpacity
+              style={styles.cardDetailsButton}
+              onPress={() => router.push('/payment/card' as any)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.cardDetailsContent}>
+                <Feather name="credit-card" size={20} color="#8B5CF6" />
+                <Text style={styles.cardDetailsText}>
+                  {language === 'ar' ? 'إدخال بيانات البطاقة' : 'Enter Card Details'}
+                </Text>
+              </View>
+              <Feather name="arrow-right" size={20} color="#8B5CF6" />
+            </TouchableOpacity>
+          )}
+
+          {/* OMT Payment */}
+          <TouchableOpacity
+            style={[styles.paymentOption, paymentMethod === 'omt' && styles.paymentOptionActive]}
+            onPress={() => setPaymentMethod('omt')}
+          >
+            <View style={styles.paymentLeft}>
+              <View style={[styles.paymentIconCircle, paymentMethod === 'omt' && styles.paymentIconCircleActive]}>
+                <Text style={[styles.paymentIconText, paymentMethod === 'omt' && styles.paymentIconTextActive]}>
+                  OMT
+                </Text>
+              </View>
+              <Text style={[styles.paymentText, paymentMethod === 'omt' && styles.paymentTextActive]}>
+                {language === 'ar' ? 'OMT للتحويلات المالية' : 'OMT Money Transfer'}
               </Text>
             </View>
             <View style={[styles.radio, paymentMethod === 'omt' && styles.radioActive]}>
@@ -380,10 +416,55 @@ export default function CheckoutDetailsScreen() {
           </TouchableOpacity>
 
           {paymentMethod === 'omt' && (
-            <View style={styles.comingSoon}>
-              <Feather name="info" size={16} color="#F59E0B" />
-              <Text style={styles.comingSoonText}>Card payment coming soon!</Text>
+            <TouchableOpacity
+              style={[styles.cardDetailsButton, styles.omtButton]}
+              onPress={() => router.push('/payment/omt' as any)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.cardDetailsContent}>
+                <Feather name="smartphone" size={20} color="#FF6B00" />
+                <Text style={[styles.cardDetailsText, { color: '#FF6B00' }]}>
+                  {language === 'ar' ? 'الدفع عبر OMT' : 'Pay with OMT'}
+                </Text>
+              </View>
+              <Feather name="arrow-right" size={20} color="#FF6B00" />
+            </TouchableOpacity>
+          )}
+
+          {/* Whish Money Payment */}
+          <TouchableOpacity
+            style={[styles.paymentOption, paymentMethod === 'whish' && styles.paymentOptionActive]}
+            onPress={() => setPaymentMethod('whish')}
+          >
+            <View style={styles.paymentLeft}>
+              <View style={[styles.paymentIconCircle, paymentMethod === 'whish' && styles.paymentIconCircleActive, { backgroundColor: paymentMethod === 'whish' ? '#6366F1' : '#EEF2FF' }]}>
+                <Text style={[styles.paymentIconText, paymentMethod === 'whish' && styles.paymentIconTextActive]}>
+                  W$
+                </Text>
+              </View>
+              <Text style={[styles.paymentText, paymentMethod === 'whish' && styles.paymentTextActive]}>
+                {language === 'ar' ? 'Whish Money' : 'Whish Money'}
+              </Text>
             </View>
+            <View style={[styles.radio, paymentMethod === 'whish' && styles.radioActive]}>
+              {paymentMethod === 'whish' && <View style={styles.radioDot} />}
+            </View>
+          </TouchableOpacity>
+
+          {paymentMethod === 'whish' && (
+            <TouchableOpacity
+              style={[styles.cardDetailsButton, styles.whishButton]}
+              onPress={() => router.push('/payment/whish' as any)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.cardDetailsContent}>
+                <Feather name="zap" size={20} color="#6366F1" />
+                <Text style={[styles.cardDetailsText, { color: '#6366F1' }]}>
+                  {language === 'ar' ? 'الدفع عبر Whish Money' : 'Pay with Whish Money'}
+                </Text>
+              </View>
+              <Feather name="arrow-right" size={20} color="#6366F1" />
+            </TouchableOpacity>
           )}
         </View>
 
@@ -573,6 +654,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  paymentIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFF7ED',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paymentIconCircleActive: {
+    backgroundColor: '#FF6B00',
+  },
+  paymentIconText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FF6B00',
+  },
+  paymentIconTextActive: {
+    color: '#FFF',
+  },
   paymentText: {
     fontSize: 15,
     fontWeight: '600',
@@ -612,6 +712,35 @@ const styles = StyleSheet.create({
     color: '#92400E',
     marginLeft: 8,
     fontWeight: '500',
+  },
+  cardDetailsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginTop: 12,
+  },
+  cardDetailsContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  cardDetailsText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#8B5CF6',
+  },
+  omtButton: {
+    borderColor: '#FFD7B5',
+    backgroundColor: '#FFF7ED',
+  },
+  whishButton: {
+    borderColor: '#C7D2FE',
+    backgroundColor: '#EEF2FF',
   },
   bottomContainer: {
     position: 'absolute',

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -30,6 +30,7 @@ export default function CategoryProductsScreen() {
   const { products, loading, error, refetch } = useProducts({
     categoryId: params.categoryId,
     subcategoryName: params.subcategoryName,
+    limit: 20, // تحميل 20 منتج فقط في البداية
   });
 
   const [selectedSort, setSelectedSort] = useState<'newest' | 'price-low' | 'price-high' | 'popular'>('newest');
@@ -50,7 +51,7 @@ export default function CategoryProductsScreen() {
     }
   }, [products, selectedSort]);
 
-  const renderProduct = ({ item }: { item: Product }) => {
+  const renderProduct = useCallback(({ item }: { item: Product }) => {
     const name = typeof item.name === 'string' ? item.name : (item.name?.[language] || item.name?.en || '');
     const finalPrice = item.discount ? item.price * (1 - item.discount / 100) : item.price;
 
@@ -87,13 +88,15 @@ export default function CategoryProductsScreen() {
             <View style={styles.ratingRow}>
               <Feather name="star" size={14} color="#FFA500" style={{ marginRight: 4 }} />
               <Text style={styles.rating}>{item.rating.toFixed(1)}</Text>
-              <Text style={styles.reviews}>({item.reviews})</Text>
+              {item.reviews != null && (
+                <Text style={styles.reviews}>({item.reviews})</Text>
+              )}
             </View>
           )}
         </View>
       </TouchableOpacity>
     );
-  };
+  }, [language, t]);
 
   return (
     <View style={styles.container}>
@@ -174,7 +177,7 @@ export default function CategoryProductsScreen() {
           <Feather name="alert-circle" size={64} color={Colors.error} />
           <Text style={styles.errorTitle}>{t('common.error')}</Text>
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={refetch}>
+          <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
             <Feather name="refresh-cw" size={20} color={Colors.white} />
             <Text style={styles.retryButtonText}>{t('common.tryAgain')}</Text>
           </TouchableOpacity>
@@ -193,6 +196,23 @@ export default function CategoryProductsScreen() {
           numColumns={2}
           contentContainerStyle={styles.productList}
           showsVerticalScrollIndicator={false}
+          // Performance optimizations
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          updateCellsBatchingPeriod={50}
+          initialNumToRender={10}
+          windowSize={10}
+          getItemLayout={(data, index) => ({
+            length: 280,
+            offset: 280 * Math.floor(index / 2),
+            index,
+          })}
+          // Additional optimizations
+          scrollEventThrottle={16}
+          decelerationRate="fast"
+          maintainVisibleContentPosition={{
+            minIndexForVisible: 0,
+          }}
         />
       )}
     </View>
