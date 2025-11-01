@@ -338,6 +338,12 @@ export default function ModernCartScreen() {
                   ? product.price * (1 - product.discount / 100)
                   : product.price;
 
+                // Ensure we have valid numbers
+                if (!finalPrice || isNaN(finalPrice) || !product.price || isNaN(product.price)) {
+                  console.warn('Invalid price data for product:', product.id);
+                  return null;
+                }
+
                 return (
                   <TouchableOpacity
                     key={product.id}
@@ -352,7 +358,9 @@ export default function ModernCartScreen() {
                       />
                       {product.discount && product.discount > 0 && (
                         <View style={styles.recommendedBadge}>
-                          <Text style={styles.recommendedBadgeText}>-{product.discount}%</Text>
+                          <Text style={styles.recommendedBadgeText}>
+                            -{product.discount}%
+                          </Text>
                         </View>
                       )}
                     </View>
@@ -363,9 +371,13 @@ export default function ModernCartScreen() {
                       </Text>
                       
                       <View style={styles.recommendedPriceRow}>
-                        <Text style={styles.recommendedPrice}>{formatPrice(finalPrice)}</Text>
+                        <Text style={styles.recommendedPrice}>
+                          {formatPrice(finalPrice)}
+                        </Text>
                         {product.discount && product.discount > 0 && (
-                          <Text style={styles.recommendedOldPrice}>{formatPrice(product.price)}</Text>
+                          <Text style={styles.recommendedOldPrice}>
+                            {formatPrice(product.price)}
+                          </Text>
                         )}
                       </View>
 
