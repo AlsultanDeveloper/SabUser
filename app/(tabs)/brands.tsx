@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useApp } from '@/contexts/AppContext';
@@ -35,10 +36,25 @@ export default function BrandsScreen() {
 
   if (brands.length === 0) {
     return (
-      <View style={[styles.container, styles.centered]}>
-        <Feather name="gift" size={64} color={Colors.primary} />
-        <Text style={styles.emptyTitle}>🎉 Coming Soon! 🎉</Text>
-  <Text style={styles.emptyText}>We&apos;re preparing something special. Stay tuned for new brands!</Text>
+      <View style={styles.container}>
+        <View style={styles.comingSoonContainer}>
+          <View style={styles.comingSoonContent}>
+            {/* Gift Icon with Gradient */}
+            <LinearGradient
+              colors={['#8B5CF6', '#6366F1']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.iconContainer}
+            >
+              <Feather name="gift" size={48} color={Colors.white} />
+            </LinearGradient>
+
+            <Text style={styles.comingSoonTitle}>🎉 Coming Soon! 🎉</Text>
+            <Text style={styles.comingSoonText}>
+              We&apos;re preparing something special. Stay tuned for new brands!
+            </Text>
+          </View>
+        </View>
       </View>
     );
   }
@@ -135,6 +151,44 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     marginTop: Spacing.sm,
     textAlign: 'center',
+    fontWeight: FontWeights.medium,
+  },
+  comingSoonContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.xl,
+    backgroundColor: '#F9FAFB',
+  },
+  comingSoonContent: {
+    alignItems: 'center',
+    maxWidth: 400,
+  },
+  iconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.xl,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  comingSoonTitle: {
+    fontSize: FontSizes.xxl,
+    fontWeight: FontWeights.bold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.md,
+    textAlign: 'center',
+  },
+  comingSoonText: {
+    fontSize: FontSizes.md,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: 22,
     fontWeight: FontWeights.medium,
   },
   grid: {

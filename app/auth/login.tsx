@@ -435,50 +435,50 @@ export default function LoginScreen() {
                 </Text>
               </TouchableOpacity>
             )}
-
-            {/* Footer Links */}
-            <View style={styles.footer}>
-              <View style={styles.footerLinks}>
-                <TouchableOpacity
-                  onPress={() => router.push('/privacy-policy')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.footerLink}>{t('account.privacyPolicy')}</Text>
-                </TouchableOpacity>
-                <Text style={styles.footerDivider}>•</Text>
-                <TouchableOpacity
-                  onPress={() => router.push('/about-us')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.footerLink}>{t('account.about')}</Text>
-                </TouchableOpacity>
-                <Text style={styles.footerDivider}>•</Text>
-                <TouchableOpacity
-                  onPress={() => router.push('/terms-of-use')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.footerLink}>{t('account.termsOfUse')}</Text>
-                </TouchableOpacity>
-              </View>
-              
-              <TouchableOpacity
-                onPress={() => {
-                  // Open website in browser
-                  console.log('🌐 Opening website: https://www.sab-store.com');
-                }}
-                activeOpacity={0.7}
-                style={styles.websiteLink}
-              >
-                <Feather name="globe" size={14} color={Colors.primary} />
-                <Text style={styles.websiteText}>www.sab-store.com</Text>
-              </TouchableOpacity>
-
-              <Text style={styles.footerCopyright}>
-                © 2025 SAB Store. {t('aboutUs.footer')}
-              </Text>
-            </View>
           </View>
         </ScrollView>
+
+        {/* Footer Links - خارج الـ ScrollView */}
+        <View style={styles.footer}>
+          <View style={styles.footerLinks}>
+            <TouchableOpacity
+              onPress={() => router.push('/privacy-policy')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.footerLink}>{t('account.privacyPolicy')}</Text>
+            </TouchableOpacity>
+            <Text style={styles.footerDivider}>•</Text>
+            <TouchableOpacity
+              onPress={() => router.push('/about-us')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.footerLink}>{t('account.about')}</Text>
+            </TouchableOpacity>
+            <Text style={styles.footerDivider}>•</Text>
+            <TouchableOpacity
+              onPress={() => router.push('/terms-of-use')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.footerLink}>{t('account.termsOfUse')}</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <TouchableOpacity
+            onPress={() => {
+              // Open website in browser
+              console.log('🌐 Opening website: https://www.sab-store.com');
+            }}
+            activeOpacity={0.7}
+            style={styles.websiteLink}
+          >
+            <Feather name="globe" size={14} color={'#8B5CF6'} />
+            <Text style={styles.websiteText}>www.sab-store.com</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.footerCopyright}>
+            © 2025 SAB Store. {t('aboutUs.footer')}
+          </Text>
+        </View>
       </KeyboardAvoidingView>
 
       <Modal
@@ -843,27 +843,30 @@ const styles = StyleSheet.create({
         color: Colors.primary,
       },
       footer: {
-        marginTop: Spacing.lg,
-        paddingTop: Spacing.md,
+        paddingTop: Spacing.sm,
+        paddingBottom: Spacing.sm,
+        paddingHorizontal: Spacing.lg,
         borderTopWidth: 1,
         borderTopColor: Colors.gray[200],
         alignItems: 'center',
+        gap: Spacing.xs,
+        backgroundColor: Colors.background,
       },
       footerLinks: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         flexWrap: 'wrap',
-        marginBottom: Spacing.sm,
+        marginBottom: 2,
       },
       footerLink: {
-        fontSize: FontSizes.xs,
+        fontSize: 10,
         color: Colors.text.secondary,
         fontWeight: '500' as const,
       },
       footerDivider: {
-        fontSize: FontSizes.xs,
-        color: Colors.gray[400],
+        fontSize: 10,
+        color: Colors.gray[300],
         marginHorizontal: Spacing.xs,
       },
       websiteLink: {
@@ -871,18 +874,19 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 4,
-        marginBottom: Spacing.xs,
-        paddingVertical: Spacing.xs,
+        marginBottom: 2,
+        paddingVertical: 2,
       },
       websiteText: {
-        fontSize: FontSizes.xs,
-        color: Colors.primary,
+        fontSize: 10,
+        color: '#8B5CF6',
         fontWeight: '600' as const,
       },
       footerCopyright: {
-        fontSize: 10,
+        fontSize: 9,
         color: Colors.gray[400],
         textAlign: 'center',
+        marginTop: 2,
       },
       modalHeader: {
         flexDirection: 'row',

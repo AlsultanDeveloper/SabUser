@@ -398,7 +398,7 @@ export default function AddressesScreen() {
                   onChangeText={(text) =>
                     setFormData((prev) => ({ ...prev, phoneNumber: text }))
                   }
-                  placeholder="+961 XX XXX XXX"
+                  placeholder="your phone number"
                   placeholderTextColor={Colors.gray[400]}
                   keyboardType="phone-pad"
                 />

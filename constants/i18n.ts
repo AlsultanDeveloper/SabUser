@@ -141,9 +141,9 @@ const translations = {
       },
       placeholders: {
         phone: 'XX XXX XXX',
-        firstName: 'Your first name',
-        lastName: 'Your last name',
-        phoneNumber: '+961 70 XXX XXX (optional)',
+        firstName: 'First name',
+        lastName: 'Last name',
+        phoneNumber: 'Your number',
       },
     },
     checkout: {

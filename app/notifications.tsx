@@ -6,10 +6,10 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Switch,
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -37,12 +37,6 @@ export default function NotificationsScreen() {
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const [settings, setSettings] = useState({
-    orders: true,
-    promotions: true,
-    system: true,
-  });
 
   // جلب الإشعارات من Firestore
   useEffect(() => {
@@ -156,13 +150,6 @@ export default function NotificationsScreen() {
     setNotifications([]);
   };
 
-  const handleToggleSetting = (key: keyof typeof settings) => {
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-    setSettings((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const formatTimestamp = (date: Date) => {
@@ -209,24 +196,31 @@ export default function NotificationsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-          activeOpacity={0.7}
-        >
-          <Feather name="arrow-left" size={24} color={Colors.text.primary} />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>{t('account.notifications')}</Text>
-          {unreadCount > 0 && (
-            <View style={styles.unreadBadge}>
-              <Text style={styles.unreadBadgeText}>{unreadCount}</Text>
-            </View>
-          )}
+      <LinearGradient
+        colors={['#8B5CF6', '#6366F1']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientHeader}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+            activeOpacity={0.7}
+          >
+            <Feather name="arrow-left" size={24} color={Colors.white} />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>{t('account.notifications')}</Text>
+            {unreadCount > 0 && (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadBadgeText}>{unreadCount}</Text>
+              </View>
+            )}
+          </View>
+          <View style={styles.placeholder} />
         </View>
-        <View style={styles.placeholder} />
-      </View>
+      </LinearGradient>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {loading ? (
@@ -309,52 +303,6 @@ export default function NotificationsScreen() {
         )}
           </>
         )}
-
-        <View style={styles.settingsSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{t('notifications.settingsTitle')}</Text>
-          </View>
-          <View style={styles.settingsCard}>
-            <View style={styles.settingItem}>
-              <View style={styles.settingLeft}>
-                <Feather name="package" size={20} color={Colors.primary} />
-                <Text style={styles.settingLabel}>{t('notifications.orderUpdates')}</Text>
-              </View>
-              <Switch
-                value={settings.orders}
-                onValueChange={() => handleToggleSetting('orders')}
-                trackColor={{ false: Colors.gray[300], true: Colors.primary + '80' }}
-                thumbColor={settings.orders ? Colors.primary : Colors.gray[100]}
-              />
-            </View>
-
-            <View style={styles.settingItem}>
-              <View style={styles.settingLeft}>
-                <Feather name="tag" size={20} color={Colors.accent} />
-                <Text style={styles.settingLabel}>{t('notifications.promotions')}</Text>
-              </View>
-              <Switch
-                value={settings.promotions}
-                onValueChange={() => handleToggleSetting('promotions')}
-                trackColor={{ false: Colors.gray[300], true: Colors.primary + '80' }}
-                thumbColor={settings.promotions ? Colors.primary : Colors.gray[100]}
-              />
-            </View>
-
-            <View style={styles.settingItem}>
-              <View style={styles.settingLeft}>
-                <Feather name="info" size={20} color={Colors.secondary} />
-                <Text style={styles.settingLabel}>{t('notifications.systemUpdates')}</Text>
-              </View>
-              <Switch
-                value={settings.system}
-                onValueChange={() => handleToggleSetting('system')}
-                trackColor={{ false: Colors.gray[300], true: Colors.primary + '80' }}
-                thumbColor={settings.system ? Colors.primary : Colors.gray[100]}
-              />
-            </View>
-          </View>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -365,15 +313,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.surface,
   },
+  gradientHeader: {
+    paddingBottom: 16,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray[200],
   },
   backButton: {
     padding: Spacing.xs,
@@ -386,13 +334,13 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: FontSizes.xl,
     fontWeight: 'bold' as const,
-    color: Colors.text.primary,
+    color: Colors.white,
   },
   placeholder: {
     width: 40,
   },
   unreadBadge: {
-    backgroundColor: Colors.accent,
+    backgroundColor: Colors.white,
     borderRadius: 12,
     minWidth: 24,
     height: 24,
@@ -401,7 +349,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   unreadBadgeText: {
-    color: Colors.white,
+    color: '#8B5CF6',
     fontSize: FontSizes.xs,
     fontWeight: 'bold' as const,
   },
@@ -505,73 +453,5 @@ const styles = StyleSheet.create({
   notificationTime: {
     fontSize: FontSizes.xs,
     color: Colors.text.secondary,
-  },
-  settingsSection: {
-    padding: Spacing.md,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  sectionTitle: {
-    fontSize: FontSizes.md,
-    fontWeight: '600' as const,
-    color: Colors.text.primary,
-  },
-  debugButtons: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-  },
-  debugButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.primary + '10',
-    borderWidth: 1,
-    borderColor: Colors.primary + '30',
-  },
-  retryButton: {
-    backgroundColor: Colors.secondary + '10',
-    borderColor: Colors.secondary + '30',
-  },
-  settingsButton: {
-    backgroundColor: Colors.accent + '10',
-    borderColor: Colors.accent + '30',
-  },
-  debugButtonText: {
-    fontSize: 11,
-    fontWeight: '600' as const,
-    color: Colors.primary,
-  },
-  settingsCard: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.gray[200],
-  },
-  settingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray[100],
-  },
-  settingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    flex: 1,
-  },
-  settingLabel: {
-    fontSize: FontSizes.md,
-    color: Colors.text.primary,
-    fontWeight: '500' as const,
   },
 });

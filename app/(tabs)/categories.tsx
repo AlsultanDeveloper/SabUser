@@ -16,7 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useApp } from '@/contexts/AppContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import { Colors, Spacing, BorderRadius, FontSizes, Shadows, FontWeights } from '@/constants/theme';
 import SafeImage from '@/components/SafeImage';
 import { useCategories } from '@/hooks/useFirestore';
@@ -339,7 +339,20 @@ function SubcategoryModal({ visible, category, language, onClose }: SubcategoryM
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     }
                     const subName = typeof subcategory.name === 'string' ? subcategory.name : (subcategory.name?.[language] || subcategory.name?.en || '');
-                    console.log('Selected subcategory:', subName);
+                    const catName = typeof category.name === 'string' ? category.name : (category.name?.[language] || category.name?.en || '');
+                    
+                    // Navigate to products page with category and subcategory filters
+                    router.push({
+                      pathname: '/category-products',
+                      params: {
+                        categoryId: category.id,
+                        categoryName: catName,
+                        subcategoryId: subcategory.id,
+                        subcategoryName: subName,
+                      },
+                    });
+                    
+                    onClose();
                   }}
                 >
                   <View style={styles.subcategoryIconContainer}>

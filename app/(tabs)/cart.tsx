@@ -33,7 +33,7 @@ export default function ModernCartScreen() {
   const [showCoupon, setShowCoupon] = useState(false);
 
   // Fetch featured products for recommendations
-  const { products: featuredProducts } = useProducts({ featured: true, limit: 10 });
+  const { products: featuredProducts } = useProducts({});
 
   // Calculate shipping progress
   const shippingProgress = Math.min((cartTotal / freeShippingThreshold) * 100, 100);
@@ -87,7 +87,7 @@ export default function ModernCartScreen() {
 
   if (cart.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={[]}>
         {/* Empty Cart */}
         <View style={styles.emptyContainer}>
           <MaterialCommunityIcons name="cart-outline" size={120} color="#E0E0E0" />
@@ -99,9 +99,9 @@ export default function ModernCartScreen() {
             onPress={() => router.push('/(tabs)/home' as any)}
           >
             <LinearGradient
-              colors={['#8B5CF6', '#EC4899']}
+              colors={['#8B5CF6', '#6366F1']}
               start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
+              end={{ x: 1, y: 1 }}
               style={styles.gradientButton}
             >
               <Text style={styles.shopButtonText}>Start Shopping</Text>
@@ -114,7 +114,7 @@ export default function ModernCartScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={[]}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Free Shipping Progress */}
         {remainingForFreeShipping > 0 ? (
@@ -363,7 +363,7 @@ export default function ModernCartScreen() {
                       {product.discount && product.discount > 0 && (
                         <View style={styles.recommendedBadge}>
                           <Text style={styles.recommendedBadgeText}>
-                            -{product.discount}%
+                            {`-${String(product.discount)}%`}
                           </Text>
                         </View>
                       )}
@@ -443,6 +443,26 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
+  gradientHeader: {
+    paddingBottom: 16,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold' as const,
+    color: '#FFF',
+  },
   cartHeader: {
     backgroundColor: '#FFF',
     paddingHorizontal: 20,
@@ -461,27 +481,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     fontWeight: '500',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1F2937',
   },
   headerSubtitle: {
     fontSize: 13,

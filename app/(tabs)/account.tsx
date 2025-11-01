@@ -29,22 +29,55 @@ export default function AccountScreen() {
   if (!isAuthenticated) {
     return (
       <View style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        
+        {/* Gradient Header */}
+        <LinearGradient
+          colors={['#8B5CF6', '#6366F1']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.loginRequiredHeader}
+        >
+          <SafeAreaView edges={['top']}>
+            <View style={styles.header}>
+              <View style={styles.backButton} />
+              <Text style={styles.headerTitle}>{t('tabs.account')}</Text>
+              <View style={styles.backButton} />
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+
         <View style={styles.notAuthenticatedContainer}>
           <View style={styles.notAuthenticatedContent}>
-            <View style={styles.lockIconContainer}>
-              <Feather name="lock" size={60} color={Colors.primary} />
-            </View>
+            {/* SAB STORE Logo with Gradient */}
+            <LinearGradient
+              colors={['#8B5CF6', '#6366F1']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.logoContainer}
+            >
+              <Text style={styles.logoText}>SAB STORE</Text>
+            </LinearGradient>
+
             <Text style={styles.notAuthenticatedTitle}>{t('account.loginRequired')}</Text>
             <Text style={styles.notAuthenticatedDescription}>
               {t('account.loginRequiredDescription')}
             </Text>
+            
             <TouchableOpacity
-              style={styles.loginRequiredButton}
+              style={styles.loginRequiredButtonWrapper}
               onPress={() => router.push('/auth/login' as any)}
               activeOpacity={0.8}
             >
-              <Feather name="log-in" size={20} color={Colors.white} />
-              <Text style={styles.loginRequiredButtonText}>{t('account.signIn')}</Text>
+              <LinearGradient
+                colors={['#8B5CF6', '#6366F1']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.loginRequiredButton}
+              >
+                <Feather name="log-in" size={20} color={Colors.white} />
+                <Text style={styles.loginRequiredButtonText}>{t('account.signIn')}</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </View>
@@ -329,6 +362,9 @@ const styles = StyleSheet.create({
   gradientHeader: {
     paddingBottom: 16,
   },
+  loginRequiredHeader: {
+    paddingBottom: 0,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -558,6 +594,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     maxWidth: 400,
   },
+  logoContainer: {
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    marginBottom: Spacing.xl,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  logoText: {
+    fontSize: FontSizes.xxl,
+    fontWeight: 'bold' as const,
+    color: Colors.white,
+    letterSpacing: 1,
+  },
   lockIconContainer: {
     width: 100,
     height: 100,
@@ -578,22 +631,24 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: '#6B7280',
     textAlign: 'center',
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xl,
     lineHeight: 22,
+  },
+  loginRequiredButtonWrapper: {
+    borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
   },
   loginRequiredButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.lg,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
+    paddingVertical: Spacing.md,
   },
   loginRequiredButtonText: {
     color: Colors.white,

@@ -200,6 +200,7 @@ export function useCategory(categoryId: string) {
 
 interface UseProductsOptions {
   categoryId?: string;
+  subcategoryName?: string;
   featured?: boolean;
   limit?: number;
 }
@@ -221,7 +222,29 @@ export function useProducts(options: UseProductsOptions = {}) {
       setLoading(true);
       setError(null);
       
+      console.log('🔍 === Loading products with options ===');
+      console.log('  categoryId:', options.categoryId);
+      console.log('  subcategoryName:', options.subcategoryName);
+      console.log('  featured:', options.featured);
+      console.log('  limit:', options.limit);
+      
       const productsRef = collection(db, 'products');
+      
+      // 🔍 First, check total products in Firebase (for debugging)
+      if (!options.categoryId && !options.subcategoryName) {
+        const allProductsQuery = query(productsRef);
+        const allProductsSnapshot = await getDocs(allProductsQuery);
+        console.log('📊 TOTAL products in Firebase:', allProductsSnapshot.size);
+        
+        if (options.featured) {
+          let featuredCount = 0;
+          allProductsSnapshot.forEach((doc) => {
+            if (doc.data().featured === true) featuredCount++;
+          });
+          console.log('📊 Products with featured=true:', featuredCount);
+        }
+      }
+      
       const constraints: QueryConstraint[] = [];
       
       if (options.categoryId) {
@@ -229,6 +252,7 @@ export function useProducts(options: UseProductsOptions = {}) {
         constraints.push(orderBy('createdAt', 'desc'));
       } else if (options.featured) {
         constraints.push(where('featured', '==', true));
+        // لا تستخدم orderBy مع featured لتجنب الحاجة لـ index
       } else {
         constraints.push(orderBy('createdAt', 'desc'));
       }
@@ -237,12 +261,21 @@ export function useProducts(options: UseProductsOptions = {}) {
         constraints.push(limit(options.limit));
       }
       
+      console.log('📊 Query constraints:', constraints.length);
+      
       const q = query(productsRef, ...constraints);
       const querySnapshot = await getDocs(q);
+      
+      console.log('📦 Total documents fetched:', querySnapshot.size);
       
       let loadedProducts: Product[] = [];
       querySnapshot.forEach((docSnap) => {
         const data = docSnap.data();
+        
+        // 🔍 Filter by subcategory if specified
+        if (options.subcategoryName && data.subcategoryName !== options.subcategoryName) {
+          return; // Skip products that don't match the subcategory
+        }
         
         // 🔍 طباعة البيانات الفعلية من Firestore
         if (loadedProducts.length === 0) {
@@ -303,18 +336,24 @@ export function useProducts(options: UseProductsOptions = {}) {
       });
 
       if (options.featured && !options.categoryId) {
+        const beforeFilter = loadedProducts.length;
         loadedProducts = loadedProducts.filter(p => p.discount && p.discount > 0 || p.inStock);
+        console.log(`🔍 Featured filter: ${beforeFilter} → ${loadedProducts.length} products`);
       }
       
       setProducts(loadedProducts);
       console.log('✅ Products loaded from Firestore:', loadedProducts.length);
+      if (options.subcategoryName) {
+        console.log(`🔍 Filtered by subcategory "${options.subcategoryName}": ${loadedProducts.length} products`);
+      }
+      console.log('🔍 === End loading products ===\n');
     } catch (err) {
       console.error('❌ Error loading products:', err);
       setError(err instanceof Error ? err.message : 'Failed to load products');
     } finally {
       setLoading(false);
     }
-  }, [options.categoryId, options.featured, options.limit]);
+  }, [options.categoryId, options.subcategoryName, options.featured, options.limit]);
 
   useEffect(() => {
     loadProducts();

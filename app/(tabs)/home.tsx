@@ -24,7 +24,7 @@ import Toast from 'react-native-toast-message';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Colors, Spacing, BorderRadius, FontSizes, Shadows, FontWeights } from '@/constants/theme';
-import { useCategories, useProducts, useBrands } from '@/hooks/useFirestore';
+import { useCategories, useProducts } from '@/hooks/useFirestore';
 import { getDocuments, collections, where, createDocument, deleteDocument } from '@/constants/firestore';
 import SafeImage from '@/components/SafeImage';
 import { CategoryCardSkeleton, ProductCardSkeleton } from '@/components/SkeletonLoader';
@@ -37,8 +37,7 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const { categories, loading: categoriesLoading, refetch: refetchCategories } = useCategories();
-  const { products, loading: productsLoading, refetch: refetchProducts } = useProducts({ featured: true, limit: 6 });
-  const { brands, loading: brandsLoading, refetch: refetchBrands } = useBrands();
+  const { products, loading: productsLoading, refetch: refetchProducts } = useProducts({});  // Get all products
 
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
@@ -125,14 +124,13 @@ export default function HomeScreen() {
       await Promise.all([
         refetchCategories(),
         refetchProducts(),
-        refetchBrands(),
       ]);
     } catch (error) {
       console.error('Error refreshing data:', error);
     } finally {
       setRefreshing(false);
     }
-  }, [refetchCategories, refetchProducts, refetchBrands]);
+  }, [refetchCategories, refetchProducts]);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
@@ -482,80 +480,17 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Special Deals Section */}
-        <View style={styles.dealsSection}>
-          <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionTitle}>{language === 'ar' ? 'عروض حصرية' : 'Special Deals'}</Text>
-              <Text style={styles.sectionSubtitle}>{language === 'ar' ? 'وفّر حتى 70%' : 'Save up to 70%'}</Text>
-            </View>
-            <TouchableOpacity style={styles.viewAllButton}>
-              <Text style={styles.viewAllText}>{t('common.viewAll')}</Text>
-              <Feather name="chevron-right" size={16} color={Colors.primary} />
-            </TouchableOpacity>
-          </View>
-          {productsLoading ? (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.dealsScroll}
-            >
-              {[1, 2].map((i) => (
-                <View key={i} style={styles.dealCardSkeleton}>
-                  <ProductCardSkeleton />
-                </View>
-              ))}
-            </ScrollView>
-          ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.dealsScroll}
-            >
-              {products.filter(p => p.discount && p.discount > 20).slice(0, 3).map((product) => (
-                <TouchableOpacity
-                  key={product.id}
-                  style={styles.dealCard}
-                  activeOpacity={0.9}
-                  onPress={() => handleProductPress(product.id)}
-                >
-                  <View style={styles.dealImageContainer}>
-                    <SafeImage uri={product.image} style={styles.dealImage} />
-                    {/* Discount badge removed - no discount data */}
-                  </View>
-                  <View style={styles.dealInfo}>
-                    <Text style={styles.dealBrand} numberOfLines={1}>
-                      {String(product.brandName || product.brand || 'Brand')}
-                    </Text>
-                    <Text style={styles.dealName} numberOfLines={2}>
-                      {String(typeof product.name === 'string' ? product.name : (product.name?.[language] || product.name?.en || 'Product'))}
-                    </Text>
-                    <View style={styles.dealPriceRow}>
-                      <Text style={styles.dealPrice}>
-                        {String(formatPrice(product.price) || '$0.00')}
-                      </Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          )}
-        </View>
-
+        {/* All Products Section */}
         <View style={styles.productsSection}>
           <View style={styles.sectionHeader}>
             <View>
-              <Text style={styles.sectionTitle}>{t('home.featuredProducts')}</Text>
-              <Text style={styles.sectionSubtitle}>{t('home.specialForYou')}</Text>
+              <Text style={styles.sectionTitle}>{language === 'ar' ? 'جميع المنتجات' : 'All Products'}</Text>
+              <Text style={styles.sectionSubtitle}>{language === 'ar' ? 'اكتشف مجموعتنا الكاملة' : 'Discover our full collection'}</Text>
             </View>
-            <TouchableOpacity style={styles.viewAllButton}>
-              <Text style={styles.viewAllText}>{t('common.viewAll')}</Text>
-              <Feather name="chevron-right" size={16} color={Colors.primary} />
-            </TouchableOpacity>
           </View>
           {productsLoading ? (
             <View style={styles.productsGrid}>
-              {[1, 2, 3, 4, 5, 6].map((i) => (
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                 <View key={i} style={{ width: (width - Spacing.md * 3) / 2 }}>
                   <ProductCardSkeleton />
                 </View>
@@ -575,94 +510,6 @@ export default function HomeScreen() {
                 />
               ))}
             </View>
-          )}
-        </View>
-
-        {/* Best Sellers Section */}
-        <View style={styles.bestSellersSection}>
-          <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionTitle}>{language === 'ar' ? 'الأكثر مبيعاً' : 'Best Sellers'}</Text>
-              <Text style={styles.sectionSubtitle}>{language === 'ar' ? 'منتجات الأكثر طلباً' : 'Most Popular Products'}</Text>
-            </View>
-            <TouchableOpacity style={styles.viewAllButton}>
-              <Text style={styles.viewAllText}>{t('common.viewAll')}</Text>
-              <Feather name="chevron-right" size={16} color={Colors.primary} />
-            </TouchableOpacity>
-          </View>
-          {productsLoading ? (
-            <View style={styles.bestSellersGrid}>
-              {[1, 2, 3, 4].map((i) => (
-                <View key={i} style={{ width: (width - Spacing.md * 3) / 2 }}>
-                  <ProductCardSkeleton />
-                </View>
-              ))}
-            </View>
-          ) : (
-            <View style={styles.bestSellersGrid}>
-              {products.slice(0, 4).map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onPress={() => handleProductPress(product.id)}
-                  formatPrice={formatPrice}
-                  language={language}
-                />
-              ))}
-            </View>
-          )}
-        </View>
-
-        {/* Featured Brands Section */}
-        <View style={styles.brandsSection}>
-          <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionTitle}>{language === 'ar' ? 'ماركات مميزة' : 'Featured Brands'}</Text>
-              <Text style={styles.sectionSubtitle}>{language === 'ar' ? 'تسوق من علاماتك المفضلة' : 'Shop from your favorite brands'}</Text>
-            </View>
-          </View>
-          {brandsLoading ? (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.brandsScroll}
-            >
-              {[1, 2, 3, 4, 5].map((i) => (
-                <View key={i} style={styles.brandCardSkeleton}>
-                  <CategoryCardSkeleton />
-                </View>
-              ))}
-            </ScrollView>
-          ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.brandsScroll}
-            >
-              {brands.slice(0, 10).map((brand) => (
-                <TouchableOpacity
-                  key={brand.id}
-                  style={styles.brandCard}
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    if (Platform.OS !== 'web') {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }
-                    router.push(`/brand/${brand.id}` as any);
-                  }}
-                >
-                  <View style={styles.brandLogoContainer}>
-                    <SafeImage 
-                      uri={brand.logo || brand.image || 'https://via.placeholder.com/150'} 
-                      style={styles.brandLogo} 
-                    />
-                  </View>
-                  <Text style={styles.brandName} numberOfLines={1}>
-                    {typeof brand.name === 'string' ? brand.name : (brand.name?.[language] || brand.name?.en || 'Brand')}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
           )}
         </View>
       </ScrollView>
