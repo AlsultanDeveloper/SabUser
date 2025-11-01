@@ -43,11 +43,9 @@ export default function ForgotPasswordScreen() {
 
     setLoading(true);
     try {
-      // ✅ Updated: يوجه المستخدم لصفحة مخصصة بعد إعادة التعيين
-      await sendPasswordResetEmail(auth, email.trim(), {
-        url: 'https://admin.sab-store.com/user/password-reset-success',
-        handleCodeInApp: false,
-      });
+      // ✅ Firebase يتولى كل شيء - يعرض صفحته الافتراضية النظيفة
+      await sendPasswordResetEmail(auth, email.trim());
+      
       setEmailSent(true);
       Alert.alert(
         t('common.success'),
