@@ -10,6 +10,8 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Linking,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -17,6 +19,7 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from '@/contexts/AppContext';
 import { useSettings } from '@/hooks/useSettings';
+import * as Location from 'expo-location';
 
 export default function CheckoutDetailsScreen() {
   const router = useRouter();
@@ -29,6 +32,8 @@ export default function CheckoutDetailsScreen() {
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [postalCode, setPostalCode] = useState('');
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
 
   // Payment Method State
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card'>('cash');
@@ -37,6 +42,66 @@ export default function CheckoutDetailsScreen() {
   const remainingForFreeShipping = Math.max(freeShippingThreshold - cartTotal, 0);
   const finalShippingCost = remainingForFreeShipping > 0 ? shippingCost : 0;
   const finalTotal = cartTotal + finalShippingCost;
+
+  // Get Current Location
+  const handleGetCurrentLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Please enable location permissions to use this feature');
+        return;
+      }
+
+      Alert.alert('Getting Location', 'Please wait...');
+      
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
+      setLatitude(location.coords.latitude);
+      setLongitude(location.coords.longitude);
+
+      // Reverse geocode to get address
+      const addresses = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+
+      if (addresses.length > 0) {
+        const addr = addresses[0];
+        setAddress(`${addr.street || ''} ${addr.name || ''}`);
+        setCity(addr.city || addr.region || '');
+        setPostalCode(addr.postalCode || '');
+        
+        Alert.alert('Success', 'Location detected successfully!');
+      }
+    } catch (error) {
+      console.error('Error getting location:', error);
+      Alert.alert('Error', 'Could not get your current location');
+    }
+  };
+
+  // Open Maps to Pick Location
+  const handleOpenMaps = () => {
+    const lat = latitude || 24.7136; // Default: Riyadh
+    const lng = longitude || 46.6753;
+    
+    const scheme = Platform.select({
+      ios: 'maps:',
+      android: 'geo:',
+    });
+    
+    const url = Platform.select({
+      ios: `${scheme}?q=${lat},${lng}`,
+      android: `${scheme}${lat},${lng}?q=${lat},${lng}`,
+    });
+
+    if (url) {
+      Linking.openURL(url).catch(() => {
+        Alert.alert('Error', 'Could not open maps application');
+      });
+    }
+  };
 
   // Validate and Place Order
   const handlePlaceOrder = () => {
@@ -133,6 +198,36 @@ export default function CheckoutDetailsScreen() {
               numberOfLines={3}
             />
           </View>
+
+          {/* Location Picker Buttons */}
+          <View style={styles.locationButtons}>
+            <TouchableOpacity
+              style={styles.locationButton}
+              onPress={handleGetCurrentLocation}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons name="crosshairs-gps" size={20} color="#8B5CF6" />
+              <Text style={styles.locationButtonText}>Use Current Location</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.locationButton}
+              onPress={handleOpenMaps}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons name="map-marker" size={20} color="#8B5CF6" />
+              <Text style={styles.locationButtonText}>Pick on Map</Text>
+            </TouchableOpacity>
+          </View>
+
+          {latitude && longitude && (
+            <View style={styles.locationInfo}>
+              <Feather name="map-pin" size={16} color="#10B981" />
+              <Text style={styles.locationInfoText}>
+                Location: {latitude.toFixed(4)}, {longitude.toFixed(4)}
+              </Text>
+            </View>
+          )}
 
           <View style={styles.row}>
             <View style={[styles.inputContainer, { flex: 1, marginRight: 8 }]}>
@@ -353,6 +448,43 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
+  },
+  locationButtons: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    gap: 12,
+  },
+  locationButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#F3E8FF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#8B5CF6',
+  },
+  locationButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#8B5CF6',
+    marginLeft: 8,
+  },
+  locationInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#D1FAE5',
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  locationInfoText: {
+    fontSize: 12,
+    color: '#059669',
+    marginLeft: 8,
+    fontWeight: '500',
   },
   paymentOption: {
     flexDirection: 'row',
