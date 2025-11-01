@@ -21,6 +21,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import SafeImage from '@/components/SafeImage';
 
 const FREE_SHIPPING_THRESHOLD = 100; // SAR
+const SHIPPING_COST = 15; // SAR - يمكن تغييره حسب نظام الشحن
 
 export default function ModernCartScreen() {
   const router = useRouter();
@@ -289,7 +290,7 @@ export default function ModernCartScreen() {
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Shipping</Text>
             <Text style={[styles.summaryValue, { color: remainingForFreeShipping > 0 ? '#6B7280' : '#10B981' }]}>
-              {remainingForFreeShipping > 0 ? formatPrice(15) : 'FREE'}
+              {remainingForFreeShipping > 0 ? formatPrice(SHIPPING_COST) : 'FREE'}
             </Text>
           </View>
 
@@ -298,7 +299,7 @@ export default function ModernCartScreen() {
           <View style={styles.summaryRow}>
             <Text style={styles.totalLabel}>Total</Text>
             <Text style={styles.totalValue}>
-              {formatPrice(finalTotal + (remainingForFreeShipping > 0 ? 15 : 0))}
+              {formatPrice(finalTotal + (remainingForFreeShipping > 0 ? SHIPPING_COST : 0))}
             </Text>
           </View>
         </View>
@@ -312,7 +313,7 @@ export default function ModernCartScreen() {
           <View>
             <Text style={styles.bottomLabel}>Total</Text>
             <Text style={styles.bottomTotal}>
-              {formatPrice(finalTotal + (remainingForFreeShipping > 0 ? 15 : 0))}
+              {formatPrice(finalTotal + (remainingForFreeShipping > 0 ? SHIPPING_COST : 0))}
             </Text>
           </View>
           
