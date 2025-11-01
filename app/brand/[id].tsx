@@ -94,10 +94,12 @@ export default function BrandDetailsScreen() {
           </View>
 
           <View style={styles.contentSection}>
-            <Text style={styles.brandName}>{brand.name[language]}</Text>
+            <Text style={styles.brandName}>{
+              typeof brand.name === 'string' ? brand.name : (brand.name?.[language] || brand.name?.en || brand.name?.ar || '')
+            }</Text>
             {brand.description && (
               <Text style={styles.brandDescription}>
-                {brand.description[language]}
+                {typeof brand.description === 'string' ? brand.description : (brand.description?.[language] || brand.description?.en || brand.description?.ar || '')}
               </Text>
             )}
 
@@ -154,7 +156,7 @@ export default function BrandDetailsScreen() {
 
                       <View style={styles.productInfo}>
                         <Text style={styles.productName} numberOfLines={2}>
-                          {product.name[language]}
+                          {typeof product.name === 'string' ? product.name : (product.name?.[language] || product.name?.en || product.name?.ar || '')}
                         </Text>
 
                         <View style={styles.priceContainer}>
@@ -290,7 +292,7 @@ const styles = StyleSheet.create({
   brandName: {
     fontSize: 28,
     fontWeight: 'bold' as const,
-    color: Colors.text,
+    color: Colors.text.primary,
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -326,7 +328,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold' as const,
-    color: Colors.text,
+    color: Colors.text.primary,
     marginBottom: 16,
   },
   emptyContainer: {
@@ -385,7 +387,7 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 14,
     fontWeight: '600' as const,
-    color: Colors.text,
+    color: Colors.text.primary,
     marginBottom: 8,
     minHeight: 40,
   },

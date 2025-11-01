@@ -26,6 +26,13 @@ export default function ProductDetailsScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { t, language, formatPrice, addToCart } = useApp();
+  // helper to safely render localized or string fields
+  const getText = (val: any) => {
+    if (!val && val !== 0) return '';
+    return typeof val === 'string'
+      ? val
+      : (val?.[language] || val?.en || val?.ar || '');
+  };
   const insets = useSafeAreaInsets();
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
@@ -212,7 +219,7 @@ export default function ProductDetailsScreen() {
             </View>
           </View>
 
-          <Text style={styles.productName}>{product.name[language]}</Text>
+          <Text style={styles.productName}>{getText(product.name)}</Text>
           
           {/* Rating and Reviews Section */}
           <View style={styles.ratingContainer}>
@@ -226,7 +233,7 @@ export default function ProductDetailsScreen() {
           
           {/* Brand Name - Simple Display */}
           {(product.brandName || product.brand) && (
-            <Text style={styles.brandText}>{product.brandName || product.brand}</Text>
+            <Text style={styles.brandText}>{getText(product.brandName || product.brand)}</Text>
           )}
           
           {/* Category Badges */}
@@ -234,12 +241,12 @@ export default function ProductDetailsScreen() {
             <View style={styles.categorySection}>
               {product.categoryName && (
                 <View style={styles.categoryBadge}>
-                  <Text style={styles.categoryBadgeText}>{product.categoryName}</Text>
+                  <Text style={styles.categoryBadgeText}>{getText(product.categoryName)}</Text>
                 </View>
               )}
               {product.subcategoryName && (
                 <View style={styles.subcategoryBadge}>
-                  <Text style={styles.subcategoryBadgeText}>{product.subcategoryName}</Text>
+                  <Text style={styles.subcategoryBadgeText}>{getText(product.subcategoryName)}</Text>
                 </View>
               )}
             </View>
@@ -355,7 +362,7 @@ export default function ProductDetailsScreen() {
           {/* Description */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('product.description') || (language === 'ar' ? 'الوصف' : 'Description')}</Text>
-            <Text style={styles.descriptionText}>{product.description[language]}</Text>
+            <Text style={styles.descriptionText}>{getText(product.description)}</Text>
           </View>
 
           {/* Colors Section */}

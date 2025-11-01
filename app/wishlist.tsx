@@ -24,7 +24,7 @@ interface WishlistItem {
 }
 
 export default function WishlistScreen() {
-  const { t, language, addToCart, formatPrice } = useApp();
+  const { t, language, formatPrice } = useApp();
   const router = useRouter();
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
 
@@ -115,7 +115,9 @@ export default function WishlistScreen() {
                   <SafeImage uri={product.image} style={styles.productImage} />
                   <View style={styles.productInfo}>
                     <Text style={styles.productName} numberOfLines={2}>
-                      {product.name[language]}
+                      {typeof product.name === 'string'
+                        ? product.name
+                        : (product.name?.[language] || product.name?.en || product.name?.ar || '')}
                     </Text>
                     {product.brand && (
                       <Text style={styles.productBrand}>{product.brand}</Text>

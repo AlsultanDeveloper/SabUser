@@ -103,7 +103,9 @@ export default function OrderDetailsScreen() {
               />
               <View style={styles.productInfo}>
                 <Text style={styles.productName} numberOfLines={2}>
-                  {item.product.name[language]}
+                  {typeof item.product.name === 'string'
+                    ? item.product.name
+                    : (item.product.name?.[language] || item.product.name?.en || item.product.name?.ar || 'Product')}
                 </Text>
                 <Text style={styles.productQuantity}>
                   {t('pages.qty')}: {item.quantity}
