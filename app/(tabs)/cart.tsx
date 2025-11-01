@@ -122,7 +122,7 @@ export default function ModernCartScreen() {
             <View style={styles.shippingHeader}>
               <MaterialCommunityIcons name="truck-delivery-outline" size={24} color="#8B5CF6" />
               <Text style={styles.shippingText}>
-                Add <Text style={styles.shippingAmount}>{formatPrice(remainingForFreeShipping)}</Text> for FREE shipping
+                Add <Text style={styles.shippingAmount}>{formatPrice(remainingForFreeShipping) || '$0.00'}</Text> for FREE shipping
               </Text>
             </View>
             <View style={styles.progressBarContainer}>
@@ -189,13 +189,12 @@ export default function ModernCartScreen() {
                   <Text style={styles.currentPrice}>
                     {formatPrice(item.product.discount 
                       ? item.product.price * (1 - item.product.discount / 100)
-                      : item.product.price
-                    )}
+                      : item.product.price) || '$0.00'}
                   </Text>
                   {item.product.discount && item.product.discount > 0 && (
                     <>
                       <Text style={styles.originalPrice}>
-                        {formatPrice(item.product.price)}
+                        {formatPrice(item.product.price) || '$0.00'}
                       </Text>
                       <View style={styles.discountBadge}>
                         <Text style={styles.discountText}>-{item.product.discount}%</Text>
@@ -271,7 +270,7 @@ export default function ModernCartScreen() {
               <View style={styles.discountApplied}>
                 <Feather name="check-circle" size={16} color="#10B981" />
                 <Text style={styles.discountAppliedText}>
-                  Coupon applied! Saved {formatPrice(discount)}
+                  Coupon applied! Saved {formatPrice(discount) || '$0.00'}
                 </Text>
               </View>
             )}
@@ -289,14 +288,14 @@ export default function ModernCartScreen() {
           
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Subtotal</Text>
-            <Text style={styles.summaryValue}>{formatPrice(cartTotal)}</Text>
+            <Text style={styles.summaryValue}>{formatPrice(cartTotal) || '$0.00'}</Text>
           </View>
 
           {discount > 0 && (
             <View style={styles.summaryRow}>
               <Text style={[styles.summaryLabel, { color: '#10B981' }]}>Discount</Text>
               <Text style={[styles.summaryValue, { color: '#10B981' }]}>
-                -{formatPrice(discount)}
+                -{formatPrice(discount) || '$0.00'}
               </Text>
             </View>
           )}
@@ -304,7 +303,7 @@ export default function ModernCartScreen() {
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Shipping</Text>
             <Text style={[styles.summaryValue, { color: remainingForFreeShipping > 0 ? '#6B7280' : '#10B981' }]}>
-              {remainingForFreeShipping > 0 ? formatPrice(shippingCost) : 'FREE'}
+              {remainingForFreeShipping > 0 ? (formatPrice(shippingCost) || '$0.00') : 'FREE'}
             </Text>
           </View>
 
@@ -313,7 +312,7 @@ export default function ModernCartScreen() {
           <View style={styles.summaryRow}>
             <Text style={styles.totalLabel}>Total</Text>
             <Text style={styles.totalValue}>
-              {formatPrice(finalTotal + (remainingForFreeShipping > 0 ? shippingCost : 0))}
+              {formatPrice(finalTotal + (remainingForFreeShipping > 0 ? shippingCost : 0)) || '$0.00'}
             </Text>
           </View>
         </View>
@@ -331,75 +330,94 @@ export default function ModernCartScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.recommendedScroll}
             >
-              {featuredProducts && featuredProducts.slice(0, 8).map((product) => {
-                if (!product || !product.name) return null;
-                
-                const productName = typeof product.name === 'object' 
-                  ? (product.name[language] || product.name.en || product.name.ar || '')
-                  : (product.name || '');
-                
-                const finalPrice = product.discount 
-                  ? product.price * (1 - product.discount / 100)
-                  : product.price;
+              {featuredProducts && featuredProducts
+                .slice(0, 8)
+                .filter((product) => product && product.name) // فلترة المنتجات الصالحة فقط
+                .map((product) => {
+                  // تأكد من وجود المنتج وبياناته الأساسية
+                  if (!product || !product.id) {
+                    return <React.Fragment key={`invalid-${Math.random()}`} />;
+                  }
 
-                // Ensure we have valid numbers
-                if (!finalPrice || isNaN(finalPrice) || !product.price || isNaN(product.price)) {
-                  console.warn('Invalid price data for product:', product.id);
-                  return null;
-                }
+                  // الحصول على اسم المنتج بشكل آمن
+                  let productName = '';
+                  try {
+                    if (typeof product.name === 'object' && product.name) {
+                      productName = product.name[language] || product.name.en || product.name.ar || 'Product';
+                    } else if (typeof product.name === 'string') {
+                      productName = product.name;
+                    } else {
+                      productName = 'Product';
+                    }
+                    // تأكد من أن productName هو string
+                    productName = String(productName || 'Product');
+                  } catch (e) {
+                    console.warn('Error parsing product name:', e);
+                    productName = 'Product';
+                  }
+                  
+                  const finalPrice = product.discount 
+                    ? product.price * (1 - product.discount / 100)
+                    : product.price;
 
-                return (
-                  <TouchableOpacity
-                    key={product.id}
-                    style={styles.recommendedCard}
-                    onPress={() => router.push(`/product/${product.id}` as any)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.recommendedImageContainer}>
-                      <SafeImage
-                        uri={product.images?.[0] || product.image || ''}
-                        style={styles.recommendedImage}
-                      />
-                      {product.discount && product.discount > 0 && (
-                        <View style={styles.recommendedBadge}>
-                          <Text style={styles.recommendedBadgeText}>
-                            {`-${String(product.discount)}%`}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                    
-                    <View style={styles.recommendedInfo}>
-                      <Text style={styles.recommendedName} numberOfLines={2}>
-                        {productName}
-                      </Text>
-                      
-                      <View style={styles.recommendedPriceRow}>
-                        <Text style={styles.recommendedPrice}>
-                          {formatPrice(finalPrice)}
-                        </Text>
+                  // Ensure we have valid numbers
+                  if (!finalPrice || isNaN(finalPrice) || !product.price || isNaN(product.price)) {
+                    console.warn('Invalid price data for product:', product.id);
+                    return <React.Fragment key={product.id} />; // عرض fragment فارغ بدلاً من null
+                  }
+
+                  return (
+                    <TouchableOpacity
+                      key={product.id}
+                      style={styles.recommendedCard}
+                      onPress={() => router.push(`/product/${product.id}` as any)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.recommendedImageContainer}>
+                        <SafeImage
+                          uri={product.images?.[0] || product.image || ''}
+                          style={styles.recommendedImage}
+                        />
                         {product.discount && product.discount > 0 && (
-                          <Text style={styles.recommendedOldPrice}>
-                            {formatPrice(product.price)}
-                          </Text>
+                          <View style={styles.recommendedBadge}>
+                            <Text style={styles.recommendedBadgeText}>
+                              {`-${String(Number(product.discount) || 0)}%`}
+                            </Text>
+                          </View>
                         )}
                       </View>
+                      
+                      <View style={styles.recommendedInfo}>
+                        <Text style={styles.recommendedName} numberOfLines={2}>
+                          {productName || 'Product'}
+                        </Text>
+                        
+                        <View style={styles.recommendedPriceRow}>
+                          <Text style={styles.recommendedPrice}>
+                            {formatPrice(finalPrice) || '$0.00'}
+                          </Text>
+                          {product.discount && product.discount > 0 && (
+                            <Text style={styles.recommendedOldPrice}>
+                              {formatPrice(product.price) || '$0.00'}
+                            </Text>
+                          )}
+                        </View>
 
-                      <TouchableOpacity
-                        style={styles.quickAddButton}
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          addToCart(product, 1);
-                          Alert.alert('Added to Cart', `${productName} has been added to your cart!`);
-                        }}
-                      >
-                        <Feather name="shopping-cart" size={14} color="#8B5CF6" />
-                        <Text style={styles.quickAddText}>Quick Add</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
+                        <TouchableOpacity
+                          style={styles.quickAddButton}
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            addToCart(product, 1);
+                            Alert.alert('Added to Cart', `${productName || 'Product'} has been added to your cart!`);
+                          }}
+                        >
+                          <Feather name="shopping-cart" size={14} color="#8B5CF6" />
+                          <Text style={styles.quickAddText}>Quick Add</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
             </ScrollView>
           </View>
         )}
@@ -413,7 +431,7 @@ export default function ModernCartScreen() {
           <View>
             <Text style={styles.bottomLabel}>Total</Text>
             <Text style={styles.bottomTotal}>
-              {formatPrice(finalTotal + (remainingForFreeShipping > 0 ? shippingCost : 0))}
+              {formatPrice(finalTotal + (remainingForFreeShipping > 0 ? shippingCost : 0)) || '$0.00'}
             </Text>
           </View>
           
