@@ -43,25 +43,16 @@ export default function ForgotPasswordScreen() {
 
     setLoading(true);
     try {
-      // ✅ Firebase يتولى كل شيء - يعرض صفحته الافتراضية النظيفة
+      // ✅ Firebase بدون settings = يعرض صفحته ويخلص (بدون redirect)
       await sendPasswordResetEmail(auth, email.trim());
       
       setEmailSent(true);
+      // ✅ إزالة التحويل التلقائي - الصفحة تقف هنا
       Alert.alert(
         t('common.success'),
-        'Password reset email has been sent! Please check your inbox.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace('/auth/login');
-              }
-            },
-          },
-        ]
+        language === 'ar' 
+          ? 'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني!\n\nبعد تغيير كلمة المرور في الرابط، يمكنك العودة للتطبيق وتسجيل الدخول.'
+          : 'Password reset link has been sent to your email!\n\nAfter changing your password via the link, you can return to the app and sign in.'
       );
     } catch (error: any) {
       console.error('Password reset error:', error);
@@ -175,11 +166,18 @@ export default function ForgotPasswordScreen() {
             {emailSent && (
               <View style={styles.successMessage}>
                 <Feather name="check-circle" size={24} color={Colors.success} />
-                <Text style={styles.successText}>
-                  {language === 'ar'
-                    ? 'تم إرسال رابط إعادة التعيين إلى بريدك الإلكتروني!'
-                    : 'Reset link sent to your email!'}
-                </Text>
+                <View style={styles.successTextContainer}>
+                  <Text style={styles.successText}>
+                    {language === 'ar'
+                      ? 'تم إرسال رابط إعادة التعيين إلى بريدك الإلكتروني!'
+                      : 'Reset link sent to your email!'}
+                  </Text>
+                  <Text style={styles.instructionText}>
+                    {language === 'ar'
+                      ? '• اضغط على الرابط في الإيميل\n• غيّر كلمة المرور\n• ارجع للتطبيق وسجل دخولك'
+                      : '• Click the link in your email\n• Change your password\n• Return to app and sign in'}
+                  </Text>
+                </View>
               </View>
             )}
 
@@ -206,8 +204,8 @@ export default function ForgotPasswordScreen() {
               <Feather name="info" size={20} color={Colors.primary} />
               <Text style={styles.infoText}>
                 {language === 'ar'
-                  ? 'تحقق من مجلد البريد غير المرغوب فيه إذا لم تجد الرسالة'
-                  : "Check your spam folder if you don't see the email"}
+                  ? 'تحقق من مجلد البريد غير المرغوب فيه إذا لم تجد الرسالة.\n\nملاحظة: بعد تغيير كلمة المرور، لن يتم تحويلك تلقائياً - ارجع للتطبيق بنفسك.'
+                  : "Check your spam folder if you don't see the email.\n\nNote: After changing your password, you won't be redirected automatically - return to the app manually."}
               </Text>
             </View>
           </View>
@@ -336,18 +334,26 @@ const styles = StyleSheet.create({
   },
   successMessage: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     backgroundColor: Colors.success + '15',
     padding: Spacing.md,
     borderRadius: BorderRadius.lg,
     marginBottom: Spacing.md,
     gap: Spacing.sm,
   },
-  successText: {
+  successTextContainer: {
     flex: 1,
+  },
+  successText: {
     fontSize: FontSizes.sm,
     color: Colors.success,
     fontWeight: '600' as const,
+    marginBottom: Spacing.xs,
+  },
+  instructionText: {
+    fontSize: FontSizes.xs,
+    color: Colors.text.secondary,
+    lineHeight: 18,
   },
   backButton: {
     flexDirection: 'row',
