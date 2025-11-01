@@ -140,19 +140,11 @@ export default function OMTPaymentScreen() {
         {/* OMT Logo & Info */}
         <View style={styles.logoCard}>
           <View style={styles.logoContainer}>
-            {/* Try to load real logo, fallback to text */}
             <Image
               source={require('@/assets/images/payment/omt-logo.png')}
               style={styles.logoImage}
               resizeMode="contain"
-              onError={() => {
-                // Fallback handled by catch
-              }}
             />
-            {/* Fallback text logo (hidden if image loads) */}
-            <View style={styles.omtLogo}>
-              <Text style={styles.omtLogoText}>OMT</Text>
-            </View>
           </View>
           <Text style={styles.logoTitle}>
             {language === 'ar' ? 'أوامت للتحويلات المالية' : 'OMT Money Transfer'}
@@ -396,13 +388,10 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     marginBottom: Spacing.md,
-    position: 'relative',
   },
   logoImage: {
-    width: 80,
-    height: 80,
-    position: 'absolute',
-    zIndex: 2,
+    width: 100,
+    height: 100,
   },
   omtLogo: {
     width: 80,

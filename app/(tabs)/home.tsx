@@ -134,6 +134,27 @@ export default function HomeScreen() {
     }
   }, [refetchCategories, refetchProducts]);
 
+  // Filter products based on search query
+  const filteredProducts = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return products;
+    }
+    
+    const query = searchQuery.toLowerCase().trim();
+    return products.filter((product) => {
+      const name = typeof product.name === 'string' 
+        ? product.name 
+        : (product.name?.[language] || product.name?.en || '');
+      
+      const description = typeof product.description === 'string'
+        ? product.description
+        : (product.description?.[language] || product.description?.en || '');
+      
+      return name.toLowerCase().includes(query) || 
+             description.toLowerCase().includes(query);
+    });
+  }, [products, searchQuery, language]);
+
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
     const index = Math.round(scrollPosition / BANNER_WIDTH);
@@ -507,9 +528,21 @@ export default function HomeScreen() {
                 </View>
               ))}
             </View>
+          ) : filteredProducts.length === 0 ? (
+            <View style={styles.emptySearchContainer}>
+              <Feather name="search" size={64} color={Colors.gray[300]} />
+              <Text style={styles.emptySearchTitle}>
+                {language === 'ar' ? 'لا توجد نتائج' : 'No results found'}
+              </Text>
+              <Text style={styles.emptySearchDescription}>
+                {language === 'ar' 
+                  ? 'حاول البحث بكلمات مختلفة' 
+                  : 'Try searching with different keywords'}
+              </Text>
+            </View>
           ) : (
             <View style={styles.productsGrid}>
-              {products.map((product) => (
+              {filteredProducts.map((product) => (
                 <ProductCard
                   key={product.id}
                   product={product}
@@ -1219,5 +1252,23 @@ const styles = StyleSheet.create({
   modalOptionTextSelected: {
     color: Colors.primary,
     fontWeight: FontWeights.bold,
+  },
+  emptySearchContainer: {
+    paddingVertical: Spacing.xxl * 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptySearchTitle: {
+    fontSize: FontSizes.xl,
+    fontWeight: FontWeights.bold,
+    color: Colors.text.primary,
+    marginTop: Spacing.lg,
+  },
+  emptySearchDescription: {
+    fontSize: FontSizes.md,
+    color: Colors.text.secondary,
+    marginTop: Spacing.sm,
+    textAlign: 'center',
+    fontWeight: FontWeights.medium,
   },
 });

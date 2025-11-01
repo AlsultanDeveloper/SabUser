@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -365,10 +366,10 @@ export default function CheckoutDetailsScreen() {
             onPress={() => setPaymentMethod('card')}
           >
             <View style={styles.paymentLeft}>
-              <MaterialCommunityIcons 
-                name="credit-card-outline" 
-                size={24} 
-                color={paymentMethod === 'card' ? '#8B5CF6' : '#6B7280'} 
+              <Image
+                source={require('@/assets/images/payment/card-logo.png')}
+                style={styles.paymentLogoImage}
+                resizeMode="contain"
               />
               <Text style={[styles.paymentText, paymentMethod === 'card' && styles.paymentTextActive]}>
                 Credit/Debit Card
@@ -401,11 +402,11 @@ export default function CheckoutDetailsScreen() {
             onPress={() => setPaymentMethod('omt')}
           >
             <View style={styles.paymentLeft}>
-              <View style={[styles.paymentIconCircle, paymentMethod === 'omt' && styles.paymentIconCircleActive]}>
-                <Text style={[styles.paymentIconText, paymentMethod === 'omt' && styles.paymentIconTextActive]}>
-                  OMT
-                </Text>
-              </View>
+              <Image
+                source={require('@/assets/images/payment/omt-logo.png')}
+                style={styles.paymentLogoImage}
+                resizeMode="contain"
+              />
               <Text style={[styles.paymentText, paymentMethod === 'omt' && styles.paymentTextActive]}>
                 {language === 'ar' ? 'OMT للتحويلات المالية' : 'OMT Money Transfer'}
               </Text>
@@ -437,11 +438,11 @@ export default function CheckoutDetailsScreen() {
             onPress={() => setPaymentMethod('whish')}
           >
             <View style={styles.paymentLeft}>
-              <View style={[styles.paymentIconCircle, paymentMethod === 'whish' && styles.paymentIconCircleActive, { backgroundColor: paymentMethod === 'whish' ? '#6366F1' : '#EEF2FF' }]}>
-                <Text style={[styles.paymentIconText, paymentMethod === 'whish' && styles.paymentIconTextActive]}>
-                  W$
-                </Text>
-              </View>
+              <Image
+                source={require('@/assets/images/payment/whish-logo.png')}
+                style={styles.paymentLogoImage}
+                resizeMode="contain"
+              />
               <Text style={[styles.paymentText, paymentMethod === 'whish' && styles.paymentTextActive]}>
                 {language === 'ar' ? 'Whish Money' : 'Whish Money'}
               </Text>
@@ -468,7 +469,7 @@ export default function CheckoutDetailsScreen() {
           )}
         </View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 80 }} />
       </ScrollView>
 
       {/* Fixed Bottom Place Order Button */}
@@ -516,28 +517,28 @@ const styles = StyleSheet.create({
   summaryCard: {
     backgroundColor: '#FFF',
     marginHorizontal: 16,
-    marginTop: 16,
-    padding: 16,
-    borderRadius: 16,
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
   section: {
     backgroundColor: '#FFF',
     marginHorizontal: 16,
-    marginTop: 16,
-    padding: 16,
-    borderRadius: 16,
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: '#1F2937',
     marginLeft: 8,
@@ -546,53 +547,53 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   summaryLabel: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#6B7280',
   },
   summaryValue: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#1F2937',
   },
   divider: {
     height: 1,
     backgroundColor: '#E5E7EB',
-    marginVertical: 12,
+    marginVertical: 8,
   },
   totalLabel: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: '#1F2937',
   },
   totalValue: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: '#8B5CF6',
   },
   inputContainer: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   label: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#374151',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   input: {
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     fontSize: 14,
     color: '#1F2937',
     backgroundColor: '#FFF',
   },
   textArea: {
-    minHeight: 80,
+    minHeight: 70,
     textAlignVertical: 'top',
   },
   row: {
@@ -600,37 +601,37 @@ const styles = StyleSheet.create({
   },
   locationButtons: {
     flexDirection: 'row',
-    marginBottom: 16,
-    gap: 12,
+    marginBottom: 12,
+    gap: 10,
   },
   locationButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     backgroundColor: '#F3E8FF',
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#8B5CF6',
   },
   locationButtonText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: '#8B5CF6',
-    marginLeft: 8,
+    marginLeft: 6,
   },
   locationInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    padding: 10,
     backgroundColor: '#D1FAE5',
     borderRadius: 8,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   locationInfoText: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#059669',
     marginLeft: 8,
     fontWeight: '500',
@@ -639,11 +640,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    padding: 10,
     borderWidth: 2,
     borderColor: '#E5E7EB',
-    borderRadius: 12,
-    marginBottom: 12,
+    borderRadius: 10,
+    marginBottom: 8,
     backgroundColor: '#FFF',
   },
   paymentOptionActive: {
@@ -654,10 +655,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  paymentLogoImage: {
+    width: 45,
+    height: 45,
+    marginRight: 12,
+  },
   paymentIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#FFF7ED',
     alignItems: 'center',
     justifyContent: 'center',
@@ -674,18 +680,18 @@ const styles = StyleSheet.create({
     color: '#FFF',
   },
   paymentText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: '#6B7280',
-    marginLeft: 12,
+    marginLeft: 10,
   },
   paymentTextActive: {
     color: '#8B5CF6',
   },
   radio: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     borderWidth: 2,
     borderColor: '#E5E7EB',
     alignItems: 'center',
@@ -695,9 +701,9 @@ const styles = StyleSheet.create({
     borderColor: '#8B5CF6',
   },
   radioDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: '#8B5CF6',
   },
   comingSoon: {
@@ -717,20 +723,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
+    padding: 12,
     backgroundColor: '#F9FAFB',
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    marginTop: 12,
+    marginTop: 8,
   },
   cardDetailsContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   cardDetailsText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: '#8B5CF6',
   },
@@ -756,31 +762,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
+    padding: 12,
   },
   bottomLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#6B7280',
     marginBottom: 2,
   },
   bottomTotal: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: '#1F2937',
   },
   placeOrderButton: {
     flex: 1,
-    marginLeft: 16,
+    marginLeft: 12,
   },
   placeOrderGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: 14,
+    borderRadius: 10,
   },
   placeOrderText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: '#FFF',
     marginRight: 8,

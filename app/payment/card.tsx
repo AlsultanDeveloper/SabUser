@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack } from 'expo-router';
@@ -152,7 +153,11 @@ export default function CardPaymentScreen() {
               </View>
             </View>
             <View style={styles.cardBrand}>
-              <Feather name="credit-card" size={40} color={Colors.white} opacity={0.8} />
+              <Image
+                source={require('@/assets/images/payment/card-logo.png')}
+                style={styles.cardBrandImage}
+                resizeMode="contain"
+              />
             </View>
           </LinearGradient>
         </View>
@@ -354,6 +359,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: Spacing.md,
     right: Spacing.md,
+  },
+  cardBrandImage: {
+    width: 60,
+    height: 40,
   },
   form: {
     gap: Spacing.lg,

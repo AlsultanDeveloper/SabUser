@@ -7,16 +7,14 @@ import {
   Animated,
   TextInput,
   Platform,
-  Modal,
   ScrollView,
-  Pressable,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useApp } from '@/contexts/AppContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useLocalSearchParams, router } from 'expo-router';
+import { router } from 'expo-router';
 import { Colors, Spacing, BorderRadius, FontSizes, Shadows, FontWeights } from '@/constants/theme';
 import SafeImage from '@/components/SafeImage';
 import { useCategories } from '@/hooks/useFirestore';
@@ -24,10 +22,8 @@ import type { Category, Language } from '@/types';
 
 export default function CategoriesScreen() {
   const { t, language } = useApp();
-  const { openCategory } = useLocalSearchParams<{ openCategory?: string }>();
   const [searchQuery, setSearchQuery] = useState('');
   const { categories, loading, error, refetch } = useCategories();
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [cachedCategories, setCachedCategories] = useState<Category[]>([]);
 
   useEffect(() => {
@@ -63,15 +59,6 @@ export default function CategoriesScreen() {
   const displayCategories = useMemo(() => {
     return categories.length > 0 ? categories : cachedCategories;
   }, [categories, cachedCategories]);
-
-  useEffect(() => {
-    if (openCategory && displayCategories.length > 0) {
-      const category = displayCategories.find(c => c.id === openCategory);
-      if (category) {
-        setSelectedCategory(category);
-      }
-    }
-  }, [openCategory, displayCategories]);
 
   const filteredCategories = searchQuery
     ? displayCategories.filter((cat) => {
@@ -131,7 +118,6 @@ export default function CategoriesScreen() {
                 category={category}
                 language={language}
                 index={index}
-                onPress={() => setSelectedCategory(category)}
               />
             ))}
           </View>
@@ -145,13 +131,6 @@ export default function CategoriesScreen() {
           )}
         </ScrollView>
       )}
-
-      <SubcategoryModal
-        visible={!!selectedCategory}
-        category={selectedCategory}
-        language={language}
-        onClose={() => setSelectedCategory(null)}
-      />
     </View>
   );
 }
@@ -160,7 +139,6 @@ interface CategoryCardProps {
   category: Category;
   language: Language;
   index: number;
-  onPress: () => void;
 }
 
 function SkeletonCard() {
@@ -199,7 +177,7 @@ function SkeletonCard() {
   );
 }
 
-function CategoryCard({ category, language, index, onPress }: CategoryCardProps) {
+function CategoryCard({ category, language, index }: CategoryCardProps) {
   const { t } = useApp();
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -241,8 +219,9 @@ function CategoryCard({ category, language, index, onPress }: CategoryCardProps)
   }, [scaleAnim]);
 
   const handlePress = useCallback(() => {
-    onPress();
-  }, [onPress]);
+    // Navigate to category details page instead of opening modal
+    router.push(`/category/${category.id}` as any);
+  }, [category.id]);
 
   return (
     <Animated.View
@@ -288,92 +267,6 @@ function CategoryCard({ category, language, index, onPress }: CategoryCardProps)
         </View>
       </TouchableOpacity>
     </Animated.View>
-  );
-}
-
-interface SubcategoryModalProps {
-  visible: boolean;
-  category: Category | null;
-  language: Language;
-  onClose: () => void;
-}
-
-function SubcategoryModal({ visible, category, language, onClose }: SubcategoryModalProps) {
-  const { t } = useApp();
-  if (!category) return null;
-
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalOverlay}>
-        <Pressable style={styles.modalBackdrop} onPress={onClose} />
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <View style={styles.modalDragIndicator} />
-            <View style={styles.modalTitleContainer}>
-              <Text style={styles.modalTitle}>
-                {typeof category.name === 'string' ? category.name : (category.name?.[language] || category.name?.en || 'Category')}
-              </Text>
-              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Feather name="x" size={24} color={Colors.text.primary} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <ScrollView 
-            style={styles.subcategoryList}
-            showsVerticalScrollIndicator={false}
-          >
-            {category.subcategories && category.subcategories.length > 0 ? (
-              category.subcategories.map((subcategory) => (
-                <TouchableOpacity
-                  key={subcategory.id}
-                  style={styles.subcategoryItem}
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    if (Platform.OS !== 'web') {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }
-                    const subName = typeof subcategory.name === 'string' ? subcategory.name : (subcategory.name?.[language] || subcategory.name?.en || '');
-                    const catName = typeof category.name === 'string' ? category.name : (category.name?.[language] || category.name?.en || '');
-                    
-                    // Navigate to products page with category and subcategory filters
-                    router.push({
-                      pathname: '/category-products',
-                      params: {
-                        categoryId: category.id,
-                        categoryName: catName,
-                        subcategoryId: subcategory.id,
-                        subcategoryName: subName,
-                      },
-                    });
-                    
-                    onClose();
-                  }}
-                >
-                  <View style={styles.subcategoryIconContainer}>
-                    <Feather name="tag" size={20} color={Colors.primary} />
-                  </View>
-                  <Text style={styles.subcategoryName}>
-                    {typeof subcategory.name === 'string' ? subcategory.name : (subcategory.name?.[language] || subcategory.name?.en || '')}
-                  </Text>
-                  <Feather name="chevron-right" size={20} color={Colors.text.secondary} />
-                </TouchableOpacity>
-              ))
-            ) : (
-              <View style={styles.emptySubcategories}>
-                <Feather name="layers" size={48} color={Colors.gray[300]} />
-                <Text style={styles.emptySubcategoriesText}>{t('categories.noSubcategoriesAvailable')}</Text>
-              </View>
-            )}
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
   );
 }
 
@@ -567,89 +460,5 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: FontSizes.md,
     fontWeight: FontWeights.bold,
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    backgroundColor: Colors.white,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '80%',
-    ...Shadows.xl,
-  },
-  modalHeader: {
-    paddingTop: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray[200],
-  },
-  modalDragIndicator: {
-    width: 40,
-    height: 4,
-    backgroundColor: Colors.gray[300],
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: Spacing.md,
-  },
-  modalTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  modalTitle: {
-    fontSize: FontSizes.xxl,
-    fontWeight: FontWeights.bold,
-    color: Colors.text.primary,
-    flex: 1,
-  },
-  closeButton: {
-    padding: Spacing.xs,
-    marginLeft: Spacing.sm,
-  },
-  subcategoryList: {
-    padding: Spacing.lg,
-  },
-  subcategoryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
-    backgroundColor: Colors.gray[50],
-    borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.sm,
-    ...Shadows.sm,
-  },
-  subcategoryIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(124, 58, 237, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.md,
-  },
-  subcategoryName: {
-    flex: 1,
-    fontSize: FontSizes.md,
-    fontWeight: FontWeights.semibold,
-    color: Colors.text.primary,
-  },
-  emptySubcategories: {
-    paddingVertical: 96,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptySubcategoriesText: {
-    marginTop: Spacing.lg,
-    fontSize: FontSizes.md,
-    color: Colors.text.secondary,
-    fontWeight: FontWeights.medium,
   },
 });

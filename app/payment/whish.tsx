@@ -141,19 +141,11 @@ export default function WhishPaymentScreen() {
         {/* Whish Logo & Info */}
         <View style={styles.logoCard}>
           <View style={styles.logoContainer}>
-            {/* Try to load real logo, fallback to text */}
             <Image
               source={require('@/assets/images/payment/whish-logo.png')}
               style={styles.logoImage}
               resizeMode="contain"
-              onError={() => {
-                // Fallback handled by catch
-              }}
             />
-            {/* Fallback text logo */}
-            <View style={styles.whishLogo}>
-              <Text style={styles.whishLogoText}>W$</Text>
-            </View>
           </View>
           <Text style={styles.logoTitle}>Whish Money</Text>
           <Text style={styles.logoSubtitle}>
@@ -435,13 +427,10 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     marginBottom: Spacing.md,
-    position: 'relative',
   },
   logoImage: {
-    width: 80,
-    height: 80,
-    position: 'absolute',
-    zIndex: 2,
+    width: 100,
+    height: 100,
   },
   whishLogo: {
     width: 80,

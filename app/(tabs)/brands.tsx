@@ -90,6 +90,14 @@ export default function BrandsScreen() {
             ))}
           </View>
 
+          {/* Coming Soon Section - Always Visible */}
+          <View style={styles.comingSoonSection}>
+            <Text style={styles.comingSoonSectionTitle}>🎉 Coming Soon! 🎉</Text>
+            <Text style={styles.comingSoonSectionText}>
+              We&apos;re preparing something special. Stay tuned for new brands!
+            </Text>
+          </View>
+
           <View style={{ height: 20 }} />
         </ScrollView>
       </View>
@@ -246,5 +254,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.gray[500],
     lineHeight: 16,
+  },
+  comingSoonSection: {
+    marginHorizontal: 16,
+    marginTop: 24,
+    marginBottom: 8,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  comingSoonSectionTitle: {
+    fontSize: FontSizes.lg,
+    fontWeight: FontWeights.bold,
+    color: Colors.text.primary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  comingSoonSectionText: {
+    fontSize: FontSizes.sm,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: 20,
+    fontWeight: FontWeights.medium,
   },
 });
