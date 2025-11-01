@@ -106,10 +106,35 @@ export default function LoginScreen() {
         console.log('✅ Auth successful');
         router.back();
       } else {
-        Alert.alert(t('common.error'), result.error ?? t('auth.errors.authFailed'));
+        // رسالة خطأ أوضح بناءً على نوع الخطأ
+        let errorMessage = result.error ?? t('auth.errors.authFailed');
+        
+        if (errorMessage.includes('invalid-credential') || errorMessage.includes('wrong-password')) {
+          errorMessage = language === 'ar' 
+            ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة'
+            : 'Incorrect email or password';
+        } else if (errorMessage.includes('user-not-found')) {
+          errorMessage = language === 'ar'
+            ? 'لا يوجد حساب بهذا البريد الإلكتروني'
+            : 'No account found with this email';
+        } else if (errorMessage.includes('too-many-requests')) {
+          errorMessage = language === 'ar'
+            ? 'محاولات كثيرة. يرجى المحاولة لاحقاً'
+            : 'Too many attempts. Please try again later';
+        }
+        
+        Alert.alert(t('common.error'), errorMessage);
       }
     } catch (error: any) {
-      Alert.alert(t('common.error'), error.message);
+      let errorMessage = error.message;
+      
+      if (errorMessage.includes('invalid-credential')) {
+        errorMessage = language === 'ar'
+          ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة'
+          : 'Incorrect email or password';
+      }
+      
+      Alert.alert(t('common.error'), errorMessage);
     } finally {
       setLoading(false);
     }
