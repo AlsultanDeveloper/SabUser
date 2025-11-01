@@ -114,14 +114,6 @@ export default function ModernCartScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Cart</Text>
-          <Text style={styles.headerSubtitle}>{cart.length} items</Text>
-        </View>
-      </View>
-
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Free Shipping Progress */}
         {remainingForFreeShipping > 0 ? (
@@ -163,6 +155,22 @@ export default function ModernCartScreen() {
                     : item.product.name
                   }
                 </Text>
+                
+                {/* Size and Color */}
+                <View style={styles.variantsRow}>
+                  {item.selectedSize && (
+                    <View style={styles.variantBadge}>
+                      <Text style={styles.variantLabel}>Size:</Text>
+                      <Text style={styles.variantValue}>{item.selectedSize}</Text>
+                    </View>
+                  )}
+                  {item.selectedColor && (
+                    <View style={styles.variantBadge}>
+                      <Text style={styles.variantLabel}>Color:</Text>
+                      <Text style={styles.variantValue}>{item.selectedColor}</Text>
+                    </View>
+                  )}
+                </View>
                 
                 {/* Price with discount */}
                 <View style={styles.priceRow}>
@@ -440,6 +448,29 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1F2937',
     marginBottom: 6,
+  },
+  variantsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  variantBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  variantLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginRight: 4,
+  },
+  variantValue: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1F2937',
   },
   priceRow: {
     flexDirection: 'row',
