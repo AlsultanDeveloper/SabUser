@@ -104,7 +104,11 @@ export default function LoginScreen() {
         : await signInWithEmail(email, password);
       if (result.success) {
         console.log('✅ Auth successful');
-        router.back();
+        if (router.canGoBack()) {
+          router.back();
+        } else {
+          router.replace('/(tabs)/home');
+        }
       } else {
         // رسالة خطأ أوضح بناءً على نوع الخطأ
         let errorMessage = result.error ?? t('auth.errors.authFailed');
@@ -146,7 +150,11 @@ export default function LoginScreen() {
       const result = await signInWithGoogle();
       if (result.success) {
         console.log('✅ Google auth successful');
-        router.back();
+        if (router.canGoBack()) {
+          router.back();
+        } else {
+          router.replace('/(tabs)/home');
+        }
       } else if ((result as any).cancelled) {
         console.log('ℹ️ User cancelled sign-in');
       } else {
@@ -169,7 +177,11 @@ export default function LoginScreen() {
       const result = await signInWithApple();
       if (result.success) {
         console.log('Apple auth successful');
-        router.back();
+        if (router.canGoBack()) {
+          router.back();
+        } else {
+          router.replace('/(tabs)/home');
+        }
       } else {
         Alert.alert('Error', result.error ?? 'Apple sign-in failed');
       }
@@ -194,7 +206,15 @@ export default function LoginScreen() {
         >
           <TouchableOpacity
             style={styles.closeButton}
-            onPress={() => router.back()}
+            onPress={() => {
+              // إذا في صفحة سابقة، ارجع لها
+              // إذا لا، روح للـ home
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/(tabs)/home');
+              }
+            }}
             activeOpacity={0.7}
           >
             <Feather name="x" size={24} color={Colors.text.primary} />

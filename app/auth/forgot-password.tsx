@@ -43,9 +43,9 @@ export default function ForgotPasswordScreen() {
 
     setLoading(true);
     try {
-      // إرسال reset email مع continue URL للتطبيق
+      // ✅ الحل النهائي: deep link يفتح التطبيق مباشرة بعد تغيير كلمة المرور
       await sendPasswordResetEmail(auth, email.trim(), {
-        url: 'https://sab-store.com/reset-complete', // صفحة للـ users
+        url: 'sabstore://auth/login',
         handleCodeInApp: false,
       });
       setEmailSent(true);
@@ -55,7 +55,13 @@ export default function ForgotPasswordScreen() {
         [
           {
             text: 'OK',
-            onPress: () => router.back(),
+            onPress: () => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/auth/login');
+              }
+            },
           },
         ]
       );
@@ -91,7 +97,13 @@ export default function ForgotPasswordScreen() {
         >
           <TouchableOpacity
             style={styles.closeButton}
-            onPress={() => router.back()}
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/auth/login');
+              }
+            }}
             activeOpacity={0.7}
           >
             <Feather name="arrow-left" size={24} color={Colors.text.primary} />
@@ -175,7 +187,13 @@ export default function ForgotPasswordScreen() {
 
             <TouchableOpacity
               style={styles.backButton}
-              onPress={() => router.back()}
+              onPress={() => {
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace('/auth/login');
+                }
+              }}
               activeOpacity={0.7}
             >
               <Feather name="arrow-left" size={18} color={Colors.primary} />

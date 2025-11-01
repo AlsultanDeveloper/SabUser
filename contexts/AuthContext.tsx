@@ -231,16 +231,16 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         fullName: fullName,
         firstName: additionalData?.firstName || '',
         lastName: additionalData?.lastName || '',
-        displayName: fullName || undefined,
+        ...(fullName && { displayName: fullName }),
         
-        // الصورة
-        photoURL: result.user.photoURL || undefined,
+        // الصورة (فقط إذا كانت موجودة)
+        ...(result.user.photoURL && { photoURL: result.user.photoURL }),
         
         // المصادقة
         signInMethod: 'email',
         
-        // الاتصال
-        phoneNumber: additionalData?.phoneNumber,
+        // الاتصال (فقط إذا كان موجود)
+        ...(additionalData?.phoneNumber && { phoneNumber: additionalData.phoneNumber }),
         phoneVerified: false,
         
         // التفضيلات
