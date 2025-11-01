@@ -43,9 +43,9 @@ export default function ForgotPasswordScreen() {
 
     setLoading(true);
     try {
-      // ✅ Updated: يوجه المستخدم لصفحة /user/login بعد إعادة التعيين
+      // ✅ Updated: يوجه المستخدم لصفحة مخصصة بعد إعادة التعيين
       await sendPasswordResetEmail(auth, email.trim(), {
-        url: 'https://admin.sab-store.com/user/login',
+        url: 'https://admin.sab-store.com/user/password-reset-success',
         handleCodeInApp: false,
       });
       setEmailSent(true);
