@@ -43,9 +43,9 @@ export default function ForgotPasswordScreen() {
 
     setLoading(true);
     try {
-      // ✅ الحل النهائي: deep link يفتح التطبيق مباشرة بعد تغيير كلمة المرور
+      // ✅ Updated: يوجه المستخدم لصفحة /user/login بعد إعادة التعيين
       await sendPasswordResetEmail(auth, email.trim(), {
-        url: 'sabstore://auth/login',
+        url: 'https://admin.sab-store.com/user/login',
         handleCodeInApp: false,
       });
       setEmailSent(true);
