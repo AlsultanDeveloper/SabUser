@@ -2,7 +2,7 @@
 // ✨ Clean, Modern, and Feature-Rich Design
 // 📱 Total: ~350 lines (vs 1052 in old version)
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -11,8 +11,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  Animated,
-  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -22,12 +20,11 @@ import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import SafeImage from '@/components/SafeImage';
 
-const { width } = Dimensions.get('window');
 const FREE_SHIPPING_THRESHOLD = 100; // SAR
 
 export default function ModernCartScreen() {
   const router = useRouter();
-  const { t, cart, cartTotal, formatPrice, removeFromCart, updateCartItemQuantity, language } = useApp();
+  const { cart, cartTotal, formatPrice, removeFromCart, updateCartItemQuantity, language } = useApp();
   const { isAuthenticated } = useAuth();
   
   const [couponCode, setCouponCode] = useState('');
@@ -158,16 +155,21 @@ export default function ModernCartScreen() {
                 
                 {/* Size and Color */}
                 <View style={styles.variantsRow}>
-                  {item.selectedSize && (
+                  {(item as any).selectedSize && (
                     <View style={styles.variantBadge}>
                       <Text style={styles.variantLabel}>Size:</Text>
-                      <Text style={styles.variantValue}>{item.selectedSize}</Text>
+                      <Text style={styles.variantValue}>{(item as any).selectedSize}</Text>
                     </View>
                   )}
-                  {item.selectedColor && (
+                  {(item as any).selectedColor && (
                     <View style={styles.variantBadge}>
                       <Text style={styles.variantLabel}>Color:</Text>
-                      <Text style={styles.variantValue}>{item.selectedColor}</Text>
+                      <Text style={styles.variantValue}>
+                        {typeof (item as any).selectedColor === 'object' 
+                          ? ((item as any).selectedColor[language] || (item as any).selectedColor.en)
+                          : (item as any).selectedColor
+                        }
+                      </Text>
                     </View>
                   )}
                 </View>
