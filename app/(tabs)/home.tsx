@@ -9,7 +9,6 @@ import {
   Dimensions,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  Animated,
   Platform,
   Modal,
   Alert,
@@ -20,29 +19,24 @@ import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import Toast from 'react-native-toast-message';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Colors, Spacing, BorderRadius, FontSizes, Shadows, FontWeights } from '@/constants/theme';
-import { useCategories, useProducts } from '@/hooks/useFirestore';
-import { getDocuments, collections, where, createDocument, deleteDocument } from '@/constants/firestore';
+import { useCategories } from '@/hooks/useFirestore';
+import { getDocuments, collections, where } from '@/constants/firestore';
 import SafeImage from '@/components/SafeImage';
-import { CategoryCardSkeleton, ProductCardSkeleton } from '@/components/SkeletonLoader';
+import { CategoryCardSkeleton } from '@/components/SkeletonLoader';
 
 const { width } = Dimensions.get('window');
 const BANNER_WIDTH = width - Spacing.md * 2;
 
 export default function HomeScreen() {
-  const { t, language, formatPrice, changeLanguage } = useApp();
+  const { language, changeLanguage } = useApp();
   const { user } = useAuth();
   const router = useRouter();
   const { categories, loading: categoriesLoading, refetch: refetchCategories } = useCategories();
-  const { products, loading: productsLoading, refetch: refetchProducts } = useProducts({ 
-    limit: 20 // تحميل 20 منتج فقط في الصفحة الرئيسية
-  });
 
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
-  const [wishlist, setWishlist] = useState<Set<string>>(new Set());
 
   // Hardcoded banners with memoization for performance
   const hardcodedBanners = useMemo(() => [
@@ -69,28 +63,6 @@ export default function HomeScreen() {
 
   const scrollViewRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
-
-  // Fetch user's wishlist from Firestore
-  useEffect(() => {
-    const fetchWishlist = async () => {
-      if (!user?.uid) {
-        setWishlist(new Set());
-        return;
-      }
-
-      try {
-        const wishlistItems = await getDocuments(collections.wishlists, [
-          where('userId', '==', user.uid),
-        ]);
-        const productIds = wishlistItems.map((item: any) => item.productId);
-        setWishlist(new Set(productIds));
-      } catch (error) {
-        console.error('Error fetching wishlist:', error);
-      }
-    };
-
-    fetchWishlist();
-  }, [user]);
 
   // Fetch unread notifications count
   useEffect(() => {
@@ -123,132 +95,19 @@ export default function HomeScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await Promise.all([
-        refetchCategories(),
-        refetchProducts(),
-      ]);
+      await refetchCategories();
     } catch (error) {
       console.error('Error refreshing data:', error);
     } finally {
       setRefreshing(false);
     }
-  }, [refetchCategories, refetchProducts]);
-
-  // Filter products based on search query
-  const filteredProducts = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return products;
-    }
-    
-    const query = searchQuery.toLowerCase().trim();
-    return products.filter((product) => {
-      const name = typeof product.name === 'string' 
-        ? product.name 
-        : (product.name?.[language] || product.name?.en || '');
-      
-      const description = typeof product.description === 'string'
-        ? product.description
-        : (product.description?.[language] || product.description?.en || '');
-      
-      return name.toLowerCase().includes(query) || 
-             description.toLowerCase().includes(query);
-    });
-  }, [products, searchQuery, language]);
+  }, [refetchCategories]);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
     const index = Math.round(scrollPosition / BANNER_WIDTH);
     setActiveSlide(index);
   };
-
-  const handleProductPress = useCallback((productId: string) => {
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-    router.push(`/product/${productId}` as any);
-  }, [router]);
-
-  const handleToggleWishlist = useCallback(async (productId: string) => {
-    if (!user) {
-      Alert.alert(
-        t('auth.signInRequired'),
-        t('auth.signInToAddWishlist') || 'Please sign in to add items to your wishlist',
-        [
-          { text: t('common.cancel'), style: 'cancel' },
-          { text: t('account.signIn'), onPress: () => router.push('/auth/login' as any) },
-        ]
-      );
-      return;
-    }
-
-    if (Platform.OS !== 'web') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }
-
-    const isRemoving = wishlist.has(productId);
-    
-    try {
-      if (isRemoving) {
-        // Remove from Firestore
-        const wishlistItems = await getDocuments(collections.wishlists, [
-          where('userId', '==', user.uid),
-          where('productId', '==', productId),
-        ]);
-        
-        if (wishlistItems.length > 0) {
-          await deleteDocument(collections.wishlists, wishlistItems[0].id);
-        }
-
-        // Update local state
-        setWishlist(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(productId);
-          return newSet;
-        });
-
-        Toast.show({
-          type: 'info',
-          text1: '💔 ' + t('wishlist.removed'),
-          text2: t('wishlist.removedDescription') || 'Item removed from your wishlist',
-          position: 'bottom',
-          visibilityTime: 2000,
-          bottomOffset: 100,
-        });
-      } else {
-        // Add to Firestore
-        await createDocument(collections.wishlists, {
-          userId: user.uid,
-          productId: productId,
-        });
-
-        // Update local state
-        setWishlist(prev => {
-          const newSet = new Set(prev);
-          newSet.add(productId);
-          return newSet;
-        });
-
-        Toast.show({
-          type: 'success',
-          text1: '💜 ' + t('wishlist.added'),
-          text2: t('wishlist.addedDescription') || 'Saved to your favorites',
-          position: 'bottom',
-          visibilityTime: 2000,
-          bottomOffset: 100,
-        });
-      }
-    } catch (error) {
-      console.error('Error toggling wishlist:', error);
-      Toast.show({
-        type: 'error',
-        text1: t('common.error') || 'Error',
-        text2: 'Failed to update wishlist. Please try again.',
-        position: 'bottom',
-        visibilityTime: 2000,
-        bottomOffset: 100,
-      });
-    }
-  }, [user, router, t, wishlist]);
 
   const handleBannerPress = useCallback((banner: typeof hardcodedBanners[0]) => {
     if (Platform.OS !== 'web') {
@@ -323,9 +182,9 @@ export default function HomeScreen() {
       >
         <View style={styles.headerContent}>
           <View style={styles.welcomeSection}>
-            <Text style={styles.welcomeText}>{t('home.welcome')}</Text>
-            <Text style={styles.storeTitle}>{t('home.storeTitle')}</Text>
-            <Text style={styles.storeSubtitle}>{t('home.storeSubtitle')}</Text>
+            <Text style={styles.welcomeText}>{language === 'ar' ? 'مرحباً بك' : 'Welcome'}</Text>
+            <Text style={styles.storeTitle}>{language === 'ar' ? 'متجر سب' : 'Sab Store'}</Text>
+            <Text style={styles.storeSubtitle}>{language === 'ar' ? 'تسوق منتجات عالية الجودة' : 'Shop premium quality products'}</Text>
           </View>
           <View style={styles.headerButtons}>
             <TouchableOpacity 
@@ -369,7 +228,7 @@ export default function HomeScreen() {
             <Feather name="search" size={20} color={Colors.gray[400]} style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
-              placeholder={t('common.search')}
+              placeholder={language === 'ar' ? 'البحث عن المنتجات...' : 'Search products...'}
               placeholderTextColor={Colors.gray[400]}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -434,7 +293,7 @@ export default function HomeScreen() {
                     <Text style={styles.bannerSubtitle}>{banner.subtitle[language]}</Text>
                   )}
                   <View style={styles.bannerButton}>
-                    <Text style={styles.bannerButtonText}>{t('common.shopNow')}</Text>
+                    <Text style={styles.bannerButtonText}>{language === 'ar' ? 'تسوق الآن' : 'Shop Now'}</Text>
                     <Feather name="arrow-right" size={16} color={Colors.white} />
                   </View>
                 </LinearGradient>
@@ -460,8 +319,8 @@ export default function HomeScreen() {
         <View style={styles.categoriesSection}>
           <View style={styles.sectionHeader}>
             <View>
-              <Text style={styles.sectionTitle}>{t('home.popularCategories')}</Text>
-              <Text style={styles.sectionSubtitle}>{t('home.shopByCategory')}</Text>
+              <Text style={styles.sectionTitle}>{language === 'ar' ? 'الفئات الشائعة' : 'Popular Categories'}</Text>
+              <Text style={styles.sectionSubtitle}>{language === 'ar' ? 'تسوق حسب الفئة' : 'Shop by category'}</Text>
             </View>
           </View>
           {categoriesLoading ? (
@@ -512,50 +371,7 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* All Products Section */}
-        <View style={styles.productsSection}>
-          <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionTitle}>{language === 'ar' ? 'جميع المنتجات' : 'All Products'}</Text>
-              <Text style={styles.sectionSubtitle}>{language === 'ar' ? 'اكتشف مجموعتنا الكاملة' : 'Discover our full collection'}</Text>
-            </View>
-          </View>
-          {productsLoading ? (
-            <View style={styles.productsGrid}>
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                <View key={i} style={{ width: (width - Spacing.md * 3) / 2 }}>
-                  <ProductCardSkeleton />
-                </View>
-              ))}
-            </View>
-          ) : filteredProducts.length === 0 ? (
-            <View style={styles.emptySearchContainer}>
-              <Feather name="search" size={64} color={Colors.gray[300]} />
-              <Text style={styles.emptySearchTitle}>
-                {language === 'ar' ? 'لا توجد نتائج' : 'No results found'}
-              </Text>
-              <Text style={styles.emptySearchDescription}>
-                {language === 'ar' 
-                  ? 'حاول البحث بكلمات مختلفة' 
-                  : 'Try searching with different keywords'}
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.productsGrid}>
-              {filteredProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onPress={() => handleProductPress(product.id)}
-                  formatPrice={formatPrice}
-                  language={language}
-                  onToggleWishlist={handleToggleWishlist}
-                  isInWishlist={wishlist.has(product.id)}
-                />
-              ))}
-            </View>
-          )}
-        </View>
+        {/* Products section removed - بطاقات المنتجات محذوفة */}
       </ScrollView>
 
       <Modal
@@ -570,7 +386,7 @@ export default function HomeScreen() {
           onPress={() => setShowLanguageModal(false)}
         >
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{t('account.selectLanguage')}</Text>
+            <Text style={styles.modalTitle}>{language === 'ar' ? 'اختر اللغة' : 'Select Language'}</Text>
             
             <TouchableOpacity
               style={[styles.modalOption, language === 'en' && styles.modalOptionSelected]}
@@ -604,107 +420,6 @@ export default function HomeScreen() {
     </View>
   );
 }
-
-interface ProductCardProps {
-  product: any;
-  onPress: () => void;
-  formatPrice: (price: number) => string;
-  language: string;
-  onToggleWishlist?: (productId: string) => void;
-  isInWishlist?: boolean;
-}
-
-const ProductCard = React.memo(function ProductCard({ product, onPress, formatPrice, language, onToggleWishlist, isInWishlist }: ProductCardProps) {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  const handlePressIn = useCallback(() => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.96,
-      useNativeDriver: true,
-      friction: 8,
-    }).start();
-  }, [scaleAnim]);
-
-  const handlePressOut = useCallback(() => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      friction: 8,
-    }).start();
-  }, [scaleAnim]);
-
-  const finalPrice = useMemo(() => 
-    product.discount
-      ? product.price * (1 - product.discount / 100)
-      : product.price,
-    [product.discount, product.price]
-  );
-
-  const handleWishlistPress = useCallback((e: any) => {
-    e.stopPropagation();
-    if (onToggleWishlist) {
-      onToggleWishlist(product.id);
-    }
-  }, [onToggleWishlist, product.id]);
-
-  return (
-    <Animated.View style={[styles.productCard, { transform: [{ scale: scaleAnim }] }]}>
-      <TouchableOpacity
-        activeOpacity={1}
-        onPress={onPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-      >
-        <View style={styles.productImageContainer}>
-          <SafeImage uri={product.image} style={styles.productImage} />
-          {/* Discount badge removed - no discount data available */}
-          {(product.brandName || product.brand) && (
-            <View style={styles.productBrandBadge}>
-              <Text style={styles.productBrandBadgeText}>
-                {String(product.brandName || product.brand || 'Brand')}
-              </Text>
-            </View>
-          )}
-          <TouchableOpacity 
-            style={styles.favoriteButton} 
-            activeOpacity={0.7}
-            onPress={handleWishlistPress}
-          >
-            <Feather 
-              name={isInWishlist ? "heart" : "heart"} 
-              size={18} 
-              color={isInWishlist ? Colors.error : Colors.text.secondary}
-              fill={isInWishlist ? Colors.error : 'none'}
-            />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.productInfo}>
-          <Text style={styles.productBrand}>
-            {String(product.brandName || product.brand || 'Brand')}
-          </Text>
-          <Text style={styles.productName} numberOfLines={2}>
-            {String(typeof product.name === 'string' ? product.name : (product.name?.[language] || product.name?.en || 'Product'))}
-          </Text>
-          {product.subcategoryName && (
-            <Text style={styles.productCategory} numberOfLines={1}>
-              {String(typeof product.subcategoryName === 'string' ? product.subcategoryName : 
-               (product.subcategoryName?.[language] || product.subcategoryName?.en || ''))}
-            </Text>
-          )}
-          <View style={styles.ratingContainer}>
-            <Feather name="star" size={13} color={Colors.warning} style={{ marginRight: 2 }} />
-            <Text style={styles.ratingText}>{String(product.rating || 0)}</Text>
-            <Text style={styles.reviewsText}>{`(${String(product.reviews || 0)})`}</Text>
-          </View>
-          <View style={styles.priceContainer}>
-            <Text style={styles.price}>{String(formatPrice(finalPrice) || '$0.00')}</Text>
-          </View>
-        </View>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-});
-
 
 const styles = StyleSheet.create({
   container: {
@@ -1091,122 +806,9 @@ const styles = StyleSheet.create({
   productsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.md,
-  },
-  productCard: {
-    width: (width - Spacing.md * 3) / 2,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.xl,
-    overflow: 'hidden',
-    ...Shadows.md,
-    borderWidth: 1,
-    borderColor: Colors.border.light,
-  },
-  productImageContainer: {
-    width: '100%',
-    aspectRatio: 1,
-    position: 'relative',
-    backgroundColor: Colors.gray[50],
-  },
-  productImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  discountBadge: {
-    position: 'absolute',
-    top: Spacing.sm,
-    left: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.md,
-  },
-  discountText: {
-    color: Colors.white,
-    fontSize: FontSizes.xs,
-    fontWeight: FontWeights.bold,
-  },
-  favoriteButton: {
-    position: 'absolute',
-    top: Spacing.sm,
-    right: Spacing.sm,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...Shadows.sm,
-  },
-  productInfo: {
-    padding: Spacing.md,
-  },
-  productBrand: {
-    fontSize: FontSizes.xs,
-    color: Colors.text.secondary,
-    fontWeight: FontWeights.semibold,
-    marginBottom: 4,
-    textTransform: 'uppercase',
-  },
-  productBrandBadge: {
-    position: 'absolute',
-    top: Spacing.sm,
-    left: Spacing.sm,
-    backgroundColor: 'rgba(124, 58, 237, 0.9)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.md,
-    zIndex: 10,
-    maxWidth: 100,
-  },
-  productBrandBadgeText: {
-    color: Colors.white,
-    fontSize: 10,
-    fontWeight: FontWeights.bold,
-    letterSpacing: 0.3,
-  },
-  productCategory: {
-    fontSize: 10,
-    color: Colors.text.secondary,
-    marginBottom: 4,
-    fontWeight: FontWeights.medium,
-  },
-  productName: {
-    fontSize: FontSizes.md,
-    fontWeight: FontWeights.semibold,
-    color: Colors.text.primary,
-    marginBottom: 6,
-    minHeight: 38,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  ratingText: {
-    fontSize: FontSizes.xs,
-    fontWeight: FontWeights.semibold,
-    color: Colors.text.primary,
-    marginLeft: 2,
-  },
-  reviewsText: {
-    fontSize: FontSizes.xs,
-    color: Colors.text.secondary,
-    marginLeft: 4,
-    fontWeight: FontWeights.medium,
-  },
-  priceContainer: {},
-  price: {
-    fontSize: FontSizes.lg,
-    fontWeight: FontWeights.bold,
-    color: Colors.primary,
-  },
-  originalPrice: {
-    fontSize: FontSizes.xs,
-    color: Colors.text.secondary,
-    textDecorationLine: 'line-through',
-    marginTop: 2,
-    fontWeight: FontWeights.medium,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 8,
   },
   modalOverlay: {
     flex: 1,

@@ -18,7 +18,6 @@ import Toast from 'react-native-toast-message';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Colors, Spacing, BorderRadius, FontSizes } from '@/constants/theme';
-import SafeImage from '@/components/SafeImage';
 import { getDocuments, collections, where, deleteDocument, getDocument } from '@/constants/firestore';
 
 interface WishlistItem {
@@ -29,7 +28,7 @@ interface WishlistItem {
 }
 
 export default function WishlistScreen() {
-  const { t, language, formatPrice, addToCart } = useApp();
+  const { t, language, formatPrice } = useApp();
   const { user } = useAuth();
   const router = useRouter();
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
@@ -103,28 +102,6 @@ export default function WishlistScreen() {
     }
   };
 
-  const handleAddToCart = (product: any) => {
-    if (Platform.OS !== 'web') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }
-    addToCart(product, 1);
-    Toast.show({
-      type: 'success',
-      text1: '🛒 ' + t('product.addedToCart'),
-      text2: language === 'ar' ? product.name.ar : product.name.en,
-      position: 'bottom',
-      visibilityTime: 2000,
-      bottomOffset: 100,
-    });
-  };
-
-  const handleProductPress = (productId: string) => {
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-    router.push(`/product/${productId}` as any);
-  };
-
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -187,49 +164,18 @@ export default function WishlistScreen() {
 
             return (
               <View key={wishlistItem.id} style={styles.productCard}>
-                <TouchableOpacity
-                  onPress={() => handleProductPress(product.id)}
-                  activeOpacity={0.7}
-                  style={styles.productContent}
-                >
-                  <SafeImage uri={product.image} style={styles.productImage} />
+                <View style={styles.productContent}>
                   <View style={styles.productInfo}>
                     <Text style={styles.productName} numberOfLines={2}>
-                      {typeof product.name === 'string'
-                        ? product.name
-                        : (product.name?.[language] || product.name?.en || product.name?.ar || '')}
+                      {t('wishlist.savedItem')} {/* عنصر محفوظ */}
                     </Text>
-                    {product.brand && (
-                      <Text style={styles.productBrand}>
-                        {typeof product.brand === 'string'
-                          ? product.brand
-                          : (product.brand?.[language] || product.brand?.en || product.brand?.ar || '')}
-                      </Text>
-                    )}
                     <View style={styles.priceRow}>
                       <Text style={styles.productPrice}>
-                        {formatPrice(finalPrice) || '$0.00'}
+                        {formatPrice(finalPrice)}
                       </Text>
-                      {product.discount && product.discount > 0 && (
-                        <View style={styles.discountBadge}>
-                          <Text style={styles.discountText}>{`-${product.discount}%`}</Text>
-                        </View>
-                      )}
                     </View>
-                    {product.discount && product.discount > 0 && (
-                      <Text style={styles.originalPrice}>
-                        {formatPrice(product.price) || '$0.00'}
-                      </Text>
-                    )}
-                    {(product.rating !== undefined && product.rating !== null) && (
-                      <View style={styles.ratingRow}>
-                        <Feather name="star" size={14} color={Colors.warning} />
-                        <Text style={styles.ratingText}>{String(product.rating || 0)}</Text>
-                        <Text style={styles.reviewsText}>{`(${String(product.reviews || 0)} reviews)`}</Text>
-                      </View>
-                    )}
                   </View>
-                </TouchableOpacity>
+                </View>
 
                 <View style={styles.productActions}>
                   <TouchableOpacity
@@ -243,14 +189,6 @@ export default function WishlistScreen() {
                     activeOpacity={0.7}
                   >
                     <Feather name="trash-2" size={20} color={Colors.error} />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.addToCartButton}
-                    onPress={() => handleAddToCart(product)}
-                    activeOpacity={0.8}
-                  >
-                    <Feather name="shopping-cart" size={18} color={Colors.white} />
-                    <Text style={styles.addToCartText}>{t('product.addToCart')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>

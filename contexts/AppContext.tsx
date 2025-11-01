@@ -180,13 +180,26 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
   }, []);
 
-  // Format price in USD only
-  const formatPrice = useCallback((price: number) => {
-    const formatted = price.toLocaleString('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-    return `$${formatted}`;
+  // Format price in USD only - Safe version
+  const formatPrice = useCallback((price: number | undefined | null) => {
+    // تأكد من أن السعر رقم صالح
+    if (price === null || price === undefined || isNaN(price) || typeof price !== 'number') {
+      return '$0.00';
+    }
+    
+    // تأكد من أن السعر موجب
+    const safePrice = Math.max(0, price);
+    
+    try {
+      const formatted = safePrice.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+      return `$${formatted}`;
+    } catch (error) {
+      console.warn('Error formatting price:', price, error);
+      return '$0.00';
+    }
   }, []);
 
   const cartTotal = useMemo(() => {

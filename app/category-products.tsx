@@ -1,9 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
@@ -15,8 +14,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '@/contexts/AppContext';
 import { Colors, Spacing, BorderRadius, FontSizes, FontWeights, Shadows } from '@/constants/theme';
 import { useProducts } from '@/hooks/useFirestore';
-import SafeImage from '@/components/SafeImage';
-import type { Product } from '@/types';
 
 export default function CategoryProductsScreen() {
   const { t, language } = useApp();
@@ -27,76 +24,13 @@ export default function CategoryProductsScreen() {
     subcategoryName?: string;
   }>();
 
-  const { products, loading, error, refetch } = useProducts({
+  const { loading, error, refetch } = useProducts({
     categoryId: params.categoryId,
     subcategoryName: params.subcategoryName,
     limit: 20, // تحميل 20 منتج فقط في البداية
   });
 
   const [selectedSort, setSelectedSort] = useState<'newest' | 'price-low' | 'price-high' | 'popular'>('newest');
-
-  const sortedProducts = React.useMemo(() => {
-    const filtered = [...products];
-    
-    switch (selectedSort) {
-      case 'price-low':
-        return filtered.sort((a, b) => a.price - b.price);
-      case 'price-high':
-        return filtered.sort((a, b) => b.price - a.price);
-      case 'popular':
-        return filtered.sort((a, b) => b.rating - a.rating);
-      case 'newest':
-      default:
-        return filtered;
-    }
-  }, [products, selectedSort]);
-
-  const renderProduct = useCallback(({ item }: { item: Product }) => {
-    const name = typeof item.name === 'string' ? item.name : (item.name?.[language] || item.name?.en || '');
-    const finalPrice = item.discount ? item.price * (1 - item.discount / 100) : item.price;
-
-    return (
-      <TouchableOpacity
-        style={styles.productCard}
-        activeOpacity={0.8}
-        onPress={() => router.push(`/product/${item.id}`)}
-      >
-        <View style={styles.imageContainer}>
-          <SafeImage uri={item.image} style={styles.productImage} />
-          {item.discount && item.discount > 0 && (
-            <View style={styles.discountBadge}>
-              <Text style={styles.discountText}>{`-${item.discount}%`}</Text>
-            </View>
-          )}
-          {!item.inStock && (
-            <View style={styles.outOfStockOverlay}>
-              <Text style={styles.outOfStockText}>{t('products.outOfStock')}</Text>
-            </View>
-          )}
-        </View>
-        <View style={styles.productInfo}>
-          <Text style={styles.productName} numberOfLines={2}>
-            {name}
-          </Text>
-          <View style={styles.priceRow}>
-            <Text style={styles.price}>${finalPrice.toFixed(2)}</Text>
-            {item.discount && item.discount > 0 && (
-              <Text style={styles.originalPrice}>${item.price.toFixed(2)}</Text>
-            )}
-          </View>
-          {item.rating > 0 && (
-            <View style={styles.ratingRow}>
-              <Feather name="star" size={14} color="#FFA500" style={{ marginRight: 4 }} />
-              <Text style={styles.rating}>{item.rating.toFixed(1)}</Text>
-              {item.reviews != null && (
-                <Text style={styles.reviews}>({item.reviews})</Text>
-              )}
-            </View>
-          )}
-        </View>
-      </TouchableOpacity>
-    );
-  }, [language, t]);
 
   return (
     <View style={styles.container}>
@@ -182,38 +116,12 @@ export default function CategoryProductsScreen() {
             <Text style={styles.retryButtonText}>{t('common.tryAgain')}</Text>
           </TouchableOpacity>
         </View>
-      ) : sortedProducts.length === 0 ? (
+      ) : (
         <View style={styles.emptyContainer}>
           <Feather name="package" size={64} color={Colors.gray[300]} />
-          <Text style={styles.emptyTitle}>{t('products.noProducts')}</Text>
-          <Text style={styles.emptyDescription}>{t('products.noProductsDescription')}</Text>
+          <Text style={styles.emptyTitle}>{language === 'ar' ? 'المنتجات غير متاحة للعرض' : 'Products not available for display'}</Text>
+          <Text style={styles.emptyDescription}>{language === 'ar' ? 'عذراً، المنتجات مخفية حالياً' : 'Sorry, products are currently hidden'}</Text>
         </View>
-      ) : (
-        <FlatList
-          data={sortedProducts}
-          renderItem={renderProduct}
-          keyExtractor={(item) => item.id}
-          numColumns={2}
-          contentContainerStyle={styles.productList}
-          showsVerticalScrollIndicator={false}
-          // Performance optimizations
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={10}
-          updateCellsBatchingPeriod={50}
-          initialNumToRender={10}
-          windowSize={10}
-          getItemLayout={(data, index) => ({
-            length: 280,
-            offset: 280 * Math.floor(index / 2),
-            index,
-          })}
-          // Additional optimizations
-          scrollEventThrottle={16}
-          decelerationRate="fast"
-          maintainVisibleContentPosition={{
-            minIndexForVisible: 0,
-          }}
-        />
       )}
     </View>
   );
