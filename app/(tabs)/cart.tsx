@@ -20,14 +20,13 @@ import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import SafeImage from '@/components/SafeImage';
 import { useProducts } from '@/hooks/useFirestore';
-
-const FREE_SHIPPING_THRESHOLD = 100; // SAR
-const SHIPPING_COST = 15; // SAR - يمكن تغييره حسب نظام الشحن
+import { useSettings } from '@/hooks/useSettings';
 
 export default function ModernCartScreen() {
   const router = useRouter();
   const { cart, cartTotal, formatPrice, removeFromCart, updateCartItemQuantity, language, addToCart } = useApp();
   const { isAuthenticated } = useAuth();
+  const { shippingCost, freeShippingThreshold } = useSettings();
   
   const [couponCode, setCouponCode] = useState('');
   const [discount, setDiscount] = useState(0);
@@ -37,8 +36,8 @@ export default function ModernCartScreen() {
   const { products: featuredProducts } = useProducts({ featured: true, limit: 10 });
 
   // Calculate shipping progress
-  const shippingProgress = Math.min((cartTotal / FREE_SHIPPING_THRESHOLD) * 100, 100);
-  const remainingForFreeShipping = Math.max(FREE_SHIPPING_THRESHOLD - cartTotal, 0);
+  const shippingProgress = Math.min((cartTotal / freeShippingThreshold) * 100, 100);
+  const remainingForFreeShipping = Math.max(freeShippingThreshold - cartTotal, 0);
 
   // Handle remove item with animation
   const handleRemoveItem = (productId: string) => {
@@ -117,10 +116,9 @@ export default function ModernCartScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Cart Header */}
-        <View style={styles.cartHeader}>
-          <Text style={styles.cartTitle}>Cart</Text>
-          <Text style={styles.itemCount}>
+        {/* Item Count Badge */}
+        <View style={styles.itemCountBadge}>
+          <Text style={styles.itemCountText}>
             {cart.length} {cart.length === 1 ? 'item' : 'items'}
           </Text>
         </View>
@@ -302,7 +300,7 @@ export default function ModernCartScreen() {
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Shipping</Text>
             <Text style={[styles.summaryValue, { color: remainingForFreeShipping > 0 ? '#6B7280' : '#10B981' }]}>
-              {remainingForFreeShipping > 0 ? formatPrice(SHIPPING_COST) : 'FREE'}
+              {remainingForFreeShipping > 0 ? formatPrice(shippingCost) : 'FREE'}
             </Text>
           </View>
 
@@ -311,7 +309,7 @@ export default function ModernCartScreen() {
           <View style={styles.summaryRow}>
             <Text style={styles.totalLabel}>Total</Text>
             <Text style={styles.totalValue}>
-              {formatPrice(finalTotal + (remainingForFreeShipping > 0 ? SHIPPING_COST : 0))}
+              {formatPrice(finalTotal + (remainingForFreeShipping > 0 ? shippingCost : 0))}
             </Text>
           </View>
         </View>
@@ -329,10 +327,12 @@ export default function ModernCartScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.recommendedScroll}
             >
-              {featuredProducts.slice(0, 8).map((product) => {
+              {featuredProducts && featuredProducts.slice(0, 8).map((product) => {
+                if (!product || !product.name) return null;
+                
                 const productName = typeof product.name === 'object' 
-                  ? product.name[language] || product.name.en || product.name.ar
-                  : product.name;
+                  ? (product.name[language] || product.name.en || product.name.ar || '')
+                  : (product.name || '');
                 
                 const finalPrice = product.discount 
                   ? product.price * (1 - product.discount / 100)
@@ -397,7 +397,7 @@ export default function ModernCartScreen() {
           <View>
             <Text style={styles.bottomLabel}>Total</Text>
             <Text style={styles.bottomTotal}>
-              {formatPrice(finalTotal + (remainingForFreeShipping > 0 ? SHIPPING_COST : 0))}
+              {formatPrice(finalTotal + (remainingForFreeShipping > 0 ? shippingCost : 0))}
             </Text>
           </View>
           
@@ -426,6 +426,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
+  },
+  itemCountBadge: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 8,
+    backgroundColor: '#F9FAFB',
+  },
+  itemCountText: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '600',
   },
   cartHeader: {
     backgroundColor: '#FFF',
@@ -474,16 +485,18 @@ const styles = StyleSheet.create({
   },
   shippingCard: {
     backgroundColor: '#FFF',
-    margin: 16,
-    padding: 16,
-    borderRadius: 16,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 12,
+    padding: 14,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
   shippingHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   shippingText: {
     fontSize: 14,
@@ -512,8 +525,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#D1FAE5',
     marginHorizontal: 16,
-    marginTop: 16,
-    padding: 12,
+    marginTop: 12,
+    marginBottom: 12,
+    padding: 10,
     borderRadius: 12,
   },
   freeShippingText: {
@@ -523,21 +537,23 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   itemsContainer: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
   cartItem: {
     flexDirection: 'row',
     backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 12,
-    marginBottom: 12,
+    borderRadius: 14,
+    padding: 10,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
   imageContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 12,
+    width: 90,
+    height: 90,
+    borderRadius: 10,
     overflow: 'hidden',
     backgroundColor: '#F3F4F6',
   },
@@ -638,11 +654,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#FFF',
     marginHorizontal: 16,
-    padding: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   couponToggleLeft: {
     flexDirection: 'row',
@@ -657,11 +674,11 @@ const styles = StyleSheet.create({
   couponContainer: {
     backgroundColor: '#FFF',
     marginHorizontal: 16,
-    padding: 16,
+    padding: 14,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   couponInputRow: {
     flexDirection: 'row',
@@ -708,8 +725,9 @@ const styles = StyleSheet.create({
   summaryCard: {
     backgroundColor: '#FFF',
     marginHorizontal: 16,
-    padding: 16,
-    borderRadius: 16,
+    marginTop: 10,
+    padding: 14,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
@@ -750,14 +768,14 @@ const styles = StyleSheet.create({
   },
   // Recommended Products Styles
   recommendedSection: {
-    marginTop: 24,
-    marginBottom: 16,
+    marginTop: 16,
+    marginBottom: 12,
   },
   recommendedHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   recommendedTitle: {
     fontSize: 18,
@@ -769,17 +787,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   recommendedCard: {
-    width: 160,
+    width: 150,
     backgroundColor: '#FFF',
     borderRadius: 12,
-    marginHorizontal: 6,
+    marginHorizontal: 5,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
   recommendedImageContainer: {
     width: '100%',
-    height: 160,
+    height: 150,
     backgroundColor: '#F9FAFB',
     position: 'relative',
   },
@@ -802,28 +820,28 @@ const styles = StyleSheet.create({
     color: '#FFF',
   },
   recommendedInfo: {
-    padding: 12,
+    padding: 10,
   },
   recommendedName: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: '#1F2937',
-    marginBottom: 8,
-    lineHeight: 18,
+    marginBottom: 6,
+    lineHeight: 16,
   },
   recommendedPriceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   recommendedPrice: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: '#8B5CF6',
     marginRight: 6,
   },
   recommendedOldPrice: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#9CA3AF',
     textDecorationLine: 'line-through',
   },
@@ -832,11 +850,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#F3E8FF',
-    paddingVertical: 8,
+    paddingVertical: 7,
     borderRadius: 8,
   },
   quickAddText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: '#8B5CF6',
     marginLeft: 4,
