@@ -122,18 +122,48 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
   }, [language]);
 
-  const addToCart = useCallback(async (product: Product, quantity: number = 1) => {
-    const existingItem = cart.find((item) => item.product.id === product.id);
+  const addToCart = useCallback(async (
+    product: Product, 
+    quantity: number = 1,
+    options?: {
+      size?: string | null;
+      color?: {ar: string; en: string; hex: string} | null;
+      age?: string | null;
+    }
+  ) => {
+    // Find existing item with same product AND same options
+    const existingItem = cart.find((item) => {
+      if (item.product.id !== product.id) return false;
+      
+      // Check if options match
+      const sameSize = (item as any).selectedSize === options?.size;
+      const sameColor = JSON.stringify((item as any).selectedColor) === JSON.stringify(options?.color);
+      const sameAge = (item as any).selectedAge === options?.age;
+      
+      return sameSize && sameColor && sameAge;
+    });
+    
     let newCart: CartItem[];
 
     if (existingItem) {
-      newCart = cart.map((item) =>
-        item.product.id === product.id
+      newCart = cart.map((item) => {
+        const sameProduct = item.product.id === product.id;
+        const sameSize = (item as any).selectedSize === options?.size;
+        const sameColor = JSON.stringify((item as any).selectedColor) === JSON.stringify(options?.color);
+        const sameAge = (item as any).selectedAge === options?.age;
+        
+        return (sameProduct && sameSize && sameColor && sameAge)
           ? { ...item, quantity: item.quantity + quantity }
-          : item
-      );
+          : item;
+      });
     } else {
-      newCart = [...cart, { product, quantity }];
+      newCart = [...cart, { 
+        product, 
+        quantity,
+        ...(options?.size && { selectedSize: options.size }),
+        ...(options?.color && { selectedColor: options.color }),
+        ...(options?.age && { selectedAge: options.age }),
+      } as any];
     }
 
     setCart(newCart);

@@ -36,6 +36,30 @@ export interface Product {
   reviews: number;
   inStock: boolean;
   discount?: number;
+  
+  // Additional product details
+  brandName?: string;
+  categoryName?: string;
+  subcategoryName?: string;
+  colors?: {
+    ar: string;
+    en: string;
+    hex: string;
+  }[];
+  sizes?: string[];
+  shoeSizes?: string[];
+  ageRange?: string[];
+  gender?: 'Boy' | 'Girl' | 'Unisex-Kids' | 'Men' | 'Women' | 'Unisex';
+  season?: 'Summer' | 'Winter' | 'All-Season';
+  deliveryTime?: string;
+  stock?: number;
+  available?: boolean;
+  
+  // Product specifications
+  material?: string;
+  careInstructions?: string;
+  features?: string[];
+  reviewsCount?: number;
 }
 
 export interface Subcategory {

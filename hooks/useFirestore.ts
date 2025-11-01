@@ -250,19 +250,17 @@ export function useProducts(options: UseProductsOptions = {}) {
           console.log('📦 Product ID:', docSnap.id);
           console.log('📝 Raw data from Firestore:');
           console.log('  name:', JSON.stringify(data.name));
-          console.log('  description:', JSON.stringify(data.description));
-          console.log('  price:', data.price);
-          console.log('  image:', data.image);
-          console.log('  images:', data.images);
           console.log('  brand:', data.brand);
-          console.log('  brandId:', data.brandId);
-          console.log('  categoryId:', data.categoryId);
-          console.log('  rating:', data.rating);
-          console.log('  reviews:', data.reviews);
-          console.log('  inStock:', data.inStock);
-          console.log('  discount:', data.discount);
-          console.log('  featured:', data.featured);
-          console.log('  createdAt:', data.createdAt);
+          console.log('  brandName:', data.brandName);
+          console.log('  categoryName:', data.categoryName);
+          console.log('  subcategoryName:', data.subcategoryName);
+          console.log('  colors:', data.colors);
+          console.log('  sizes:', data.sizes);
+          console.log('  shoeSizes:', data.shoeSizes);
+          console.log('  ageRange:', data.ageRange);
+          console.log('  gender:', data.gender);
+          console.log('  season:', data.season);
+          console.log('  deliveryTime:', data.deliveryTime);
           console.log('🔍 === نهاية الفحص ===');
         }
         
@@ -284,10 +282,23 @@ export function useProducts(options: UseProductsOptions = {}) {
           images: images,
           category: data.categoryId || '',
           brand: data.brand,
+          brandId: data.brandId,
+          brandName: data.brandName || data.brand,
+          categoryName: data.categoryName,
+          subcategoryName: data.subcategoryName,
           rating: data.rating || 0,
           reviews: data.reviews || 0,
           inStock: data.inStock !== false,
           discount: data.discount || 0,
+          colors: data.colors,
+          sizes: data.sizes,
+          shoeSizes: data.shoeSizes,
+          ageRange: data.ageRange,
+          gender: data.gender,
+          season: data.season,
+          deliveryTime: data.deliveryTime,
+          stock: data.stock,
+          available: data.available,
         });
       });
 
@@ -356,10 +367,23 @@ export function useProduct(productId: string) {
           images: images,
           category: data.categoryId || '',
           brand: data.brand,
+          brandId: data.brandId,
+          brandName: data.brandName || data.brand,
+          categoryName: data.categoryName,
+          subcategoryName: data.subcategoryName,
           rating: data.rating || 0,
           reviews: data.reviews || 0,
           inStock: data.inStock !== false,
           discount: data.discount || 0,
+          colors: data.colors,
+          sizes: data.sizes,
+          shoeSizes: data.shoeSizes,
+          ageRange: data.ageRange,
+          gender: data.gender,
+          season: data.season,
+          deliveryTime: data.deliveryTime,
+          stock: data.stock,
+          available: data.available,
         });
         console.log('✅ Product loaded from Firestore:', productDoc.id);
       } else {

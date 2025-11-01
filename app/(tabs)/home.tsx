@@ -22,7 +22,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useApp } from '@/contexts/AppContext';
 import { Colors, Spacing, BorderRadius, FontSizes, Shadows, FontWeights } from '@/constants/theme';
-import { useCategories, useProducts } from '@/hooks/useFirestore';
+import { useCategories, useProducts, useBrands } from '@/hooks/useFirestore';
 import SafeImage from '@/components/SafeImage';
 import { CategoryCardSkeleton, ProductCardSkeleton } from '@/components/SkeletonLoader';
 
@@ -34,6 +34,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { categories, loading: categoriesLoading, refetch: refetchCategories } = useCategories();
   const { products, loading: productsLoading, refetch: refetchProducts } = useProducts({ featured: true, limit: 6 });
+  const { brands, loading: brandsLoading, refetch: refetchBrands } = useBrands();
 
   // Hardcoded banners with memoization for performance
   const hardcodedBanners = useMemo(() => [
@@ -68,13 +69,14 @@ export default function HomeScreen() {
       await Promise.all([
         refetchCategories(),
         refetchProducts(),
+        refetchBrands(),
       ]);
     } catch (error) {
       console.error('Error refreshing data:', error);
     } finally {
       setRefreshing(false);
     }
-  }, [refetchCategories, refetchProducts]);
+  }, [refetchCategories, refetchProducts, refetchBrands]);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
@@ -158,7 +160,7 @@ export default function HomeScreen() {
         colors={['#7C3AED', '#A78BFA', '#C4B5FD']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={[styles.headerGradient, { paddingTop: insets.top + Spacing.lg, paddingBottom: Spacing.md }]}
+        style={[styles.headerGradient, { paddingTop: insets.top + Spacing.sm, paddingBottom: Spacing.sm }]}
       >
         <View style={styles.headerContent}>
           <View style={styles.welcomeSection}>
@@ -177,7 +179,7 @@ export default function HomeScreen() {
                 setShowLanguageModal(true);
               }}
             >
-              <Feather name="globe" size={24} color={Colors.white} />
+              <Feather name="globe" size={20} color={Colors.white} />
               <Text style={styles.languageButtonText}>{language.toUpperCase()}</Text>
             </TouchableOpacity>
             
@@ -191,7 +193,7 @@ export default function HomeScreen() {
                 router.push('/notifications' as any);
               }}
             >
-              <Feather name="bell" size={24} color={Colors.white} />
+              <Feather name="bell" size={20} color={Colors.white} />
               <View style={styles.notificationDot} />
             </TouchableOpacity>
           </View>
@@ -216,17 +218,6 @@ export default function HomeScreen() {
                 <Feather name="x" size={18} color={Colors.gray[400]} />
               </TouchableOpacity>
             )}
-            <TouchableOpacity 
-              style={styles.filterButton} 
-              activeOpacity={0.7}
-              onPress={() => {
-                if (Platform.OS !== 'web') {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }
-              }}
-            >
-              <Feather name="sliders" size={18} color={Colors.primary} />
-            </TouchableOpacity>
           </View>
         </View>
       </LinearGradient>
@@ -347,6 +338,74 @@ export default function HomeScreen() {
           )}
         </View>
 
+        {/* Special Deals Section */}
+        <View style={styles.dealsSection}>
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={styles.sectionTitle}>{language === 'ar' ? 'عروض حصرية' : 'Special Deals'}</Text>
+              <Text style={styles.sectionSubtitle}>{language === 'ar' ? 'وفّر حتى 70%' : 'Save up to 70%'}</Text>
+            </View>
+            <TouchableOpacity style={styles.viewAllButton}>
+              <Text style={styles.viewAllText}>{t('common.viewAll')}</Text>
+              <Feather name="chevron-right" size={16} color={Colors.primary} />
+            </TouchableOpacity>
+          </View>
+          {productsLoading ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.dealsScroll}
+            >
+              {[1, 2].map((i) => (
+                <View key={i} style={styles.dealCardSkeleton}>
+                  <ProductCardSkeleton />
+                </View>
+              ))}
+            </ScrollView>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.dealsScroll}
+            >
+              {products.filter(p => p.discount && p.discount > 20).slice(0, 3).map((product) => (
+                <TouchableOpacity
+                  key={product.id}
+                  style={styles.dealCard}
+                  activeOpacity={0.9}
+                  onPress={() => handleProductPress(product.id)}
+                >
+                  <View style={styles.dealImageContainer}>
+                    <SafeImage uri={product.image} style={styles.dealImage} />
+                    <LinearGradient
+                      colors={['#FF6B6B', '#EE5A6F']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.dealBadge}
+                    >
+                      <Text style={styles.dealBadgeText}>-{String(product.discount)}%</Text>
+                    </LinearGradient>
+                  </View>
+                  <View style={styles.dealInfo}>
+                    <Text style={styles.dealBrand} numberOfLines={1}>
+                      {String(product.brandName || product.brand || 'Brand')}
+                    </Text>
+                    <Text style={styles.dealName} numberOfLines={2}>
+                      {typeof product.name === 'string' ? product.name : (product.name?.[language] || product.name?.en || 'Product')}
+                    </Text>
+                    <View style={styles.dealPriceRow}>
+                      <Text style={styles.dealPrice}>
+                        {formatPrice(product.price * (1 - (product.discount || 0) / 100))}
+                      </Text>
+                      <Text style={styles.dealOriginalPrice}>{formatPrice(product.price)}</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+
         <View style={styles.productsSection}>
           <View style={styles.sectionHeader}>
             <View>
@@ -378,6 +437,94 @@ export default function HomeScreen() {
                 />
               ))}
             </View>
+          )}
+        </View>
+
+        {/* Best Sellers Section */}
+        <View style={styles.bestSellersSection}>
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={styles.sectionTitle}>{language === 'ar' ? 'الأكثر مبيعاً' : 'Best Sellers'}</Text>
+              <Text style={styles.sectionSubtitle}>{language === 'ar' ? 'منتجات الأكثر طلباً' : 'Most Popular Products'}</Text>
+            </View>
+            <TouchableOpacity style={styles.viewAllButton}>
+              <Text style={styles.viewAllText}>{t('common.viewAll')}</Text>
+              <Feather name="chevron-right" size={16} color={Colors.primary} />
+            </TouchableOpacity>
+          </View>
+          {productsLoading ? (
+            <View style={styles.bestSellersGrid}>
+              {[1, 2, 3, 4].map((i) => (
+                <View key={i} style={{ width: (width - Spacing.md * 3) / 2 }}>
+                  <ProductCardSkeleton />
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.bestSellersGrid}>
+              {products.slice(0, 4).map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onPress={() => handleProductPress(product.id)}
+                  formatPrice={formatPrice}
+                  language={language}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Featured Brands Section */}
+        <View style={styles.brandsSection}>
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={styles.sectionTitle}>{language === 'ar' ? 'ماركات مميزة' : 'Featured Brands'}</Text>
+              <Text style={styles.sectionSubtitle}>{language === 'ar' ? 'تسوق من علاماتك المفضلة' : 'Shop from your favorite brands'}</Text>
+            </View>
+          </View>
+          {brandsLoading ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.brandsScroll}
+            >
+              {[1, 2, 3, 4, 5].map((i) => (
+                <View key={i} style={styles.brandCardSkeleton}>
+                  <CategoryCardSkeleton />
+                </View>
+              ))}
+            </ScrollView>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.brandsScroll}
+            >
+              {brands.slice(0, 10).map((brand) => (
+                <TouchableOpacity
+                  key={brand.id}
+                  style={styles.brandCard}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    if (Platform.OS !== 'web') {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }
+                    router.push(`/brand/${brand.id}` as any);
+                  }}
+                >
+                  <View style={styles.brandLogoContainer}>
+                    <SafeImage 
+                      uri={brand.logo || brand.image || 'https://via.placeholder.com/150'} 
+                      style={styles.brandLogo} 
+                    />
+                  </View>
+                  <Text style={styles.brandName} numberOfLines={1}>
+                    {typeof brand.name === 'string' ? brand.name : (brand.name?.[language] || brand.name?.en || 'Brand')}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           )}
         </View>
       </ScrollView>
@@ -476,22 +623,37 @@ function ProductCard({ product, onPress, formatPrice, language }: ProductCardPro
               end={{ x: 1, y: 1 }}
               style={styles.discountBadge}
             >
-              <Text style={styles.discountText}>-{product.discount}%</Text>
+              <Text style={styles.discountText}>-{String(product.discount)}%</Text>
             </LinearGradient>
+          )}
+          {(product.brandName || product.brand) && (
+            <View style={styles.productBrandBadge}>
+              <Text style={styles.productBrandBadgeText}>
+                {String(product.brandName || product.brand || 'Brand')}
+              </Text>
+            </View>
           )}
           <TouchableOpacity style={styles.favoriteButton} activeOpacity={0.7}>
             <Feather name="heart" size={18} color={Colors.text.secondary} />
           </TouchableOpacity>
         </View>
         <View style={styles.productInfo}>
-          <Text style={styles.productBrand}>{product.brand}</Text>
-          <Text style={styles.productName} numberOfLines={2}>
-            {product.name[language]}
+          <Text style={styles.productBrand}>
+            {String(product.brandName || product.brand || 'Brand')}
           </Text>
+          <Text style={styles.productName} numberOfLines={2}>
+            {typeof product.name === 'string' ? product.name : (product.name?.[language] || product.name?.en || 'Product')}
+          </Text>
+          {product.subcategoryName && (
+            <Text style={styles.productCategory} numberOfLines={1}>
+              {typeof product.subcategoryName === 'string' ? product.subcategoryName : 
+               (product.subcategoryName?.[language] || product.subcategoryName?.en || '')}
+            </Text>
+          )}
           <View style={styles.ratingContainer}>
             <Feather name="star" size={13} color={Colors.warning} style={{ marginRight: 2 }} />
-            <Text style={styles.ratingText}>{product.rating}</Text>
-            <Text style={styles.reviewsText}>({product.reviews})</Text>
+            <Text style={styles.ratingText}>{String(product.rating || 0)}</Text>
+            <Text style={styles.reviewsText}>({String(product.reviews || 0)})</Text>
           </View>
           <View style={styles.priceContainer}>
             <Text style={styles.price}>{formatPrice(finalPrice)}</Text>
@@ -517,27 +679,27 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     paddingHorizontal: Spacing.md,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   welcomeSection: {
     flex: 1,
   },
   welcomeText: {
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.sm,
     color: Colors.white,
     fontWeight: FontWeights.medium,
-    marginBottom: 4,
+    marginBottom: 2,
     opacity: 0.95,
   },
   storeTitle: {
-    fontSize: FontSizes.xxxl + 4,
+    fontSize: FontSizes.xxl,
     fontWeight: FontWeights.extrabold,
     color: Colors.white,
-    marginBottom: 4,
-    letterSpacing: 0.5,
+    marginBottom: 2,
+    letterSpacing: 0.3,
   },
   storeSubtitle: {
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.xs,
     color: Colors.white,
     fontWeight: FontWeights.medium,
     opacity: 0.9,
@@ -548,24 +710,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   languageButton: {
-    height: 48,
-    paddingHorizontal: Spacing.md,
-    borderRadius: 24,
+    height: 36,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: 18,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
   },
   languageButtonText: {
     color: Colors.white,
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.xs,
     fontWeight: FontWeights.bold,
   },
   notificationButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -573,13 +735,13 @@ const styles = StyleSheet.create({
   },
   notificationDot: {
     position: 'absolute',
-    top: 10,
-    right: 12,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    top: 8,
+    right: 10,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: Colors.accent,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: Colors.white,
   },
   searchBarContainer: {
@@ -593,24 +755,16 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.xl,
     paddingLeft: Spacing.md,
     paddingRight: Spacing.sm,
-    height: 48,
+    height: 40,
   },
   searchIcon: {
     marginRight: Spacing.sm,
   },
   searchInput: {
     flex: 1,
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.sm,
     color: Colors.text.primary,
     fontWeight: FontWeights.medium,
-  },
-  filterButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.primary + '15',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   clearButton: {
     width: 32,
@@ -623,11 +777,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: Spacing.xxl,
+    paddingBottom: Spacing.md,
   },
   bannerSection: {
-    marginTop: Spacing.md,
-    marginBottom: Spacing.xl,
+    marginTop: 0,
+    marginBottom: Spacing.sm,
   },
   bannerScrollContent: {
     paddingHorizontal: Spacing.md,
@@ -635,7 +789,7 @@ const styles = StyleSheet.create({
   },
   bannerCard: {
     width: BANNER_WIDTH,
-    height: 160,
+    height: 140,
     borderRadius: BorderRadius.xl,
     overflow: 'hidden',
     ...Shadows.lg,
@@ -648,19 +802,19 @@ const styles = StyleSheet.create({
   bannerOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'flex-end',
-    padding: Spacing.lg,
+    padding: Spacing.md,
   },
   bannerTitle: {
-    fontSize: FontSizes.xxxl,
+    fontSize: FontSizes.xxl,
     fontWeight: FontWeights.extrabold,
     color: Colors.white,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   bannerSubtitle: {
-    fontSize: FontSizes.lg,
+    fontSize: FontSizes.md,
     color: Colors.white,
     fontWeight: FontWeights.medium,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   bannerButton: {
     flexDirection: 'row',
@@ -697,24 +851,100 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   categoriesSection: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.sm,
+  },
+  dealsSection: {
+    marginBottom: Spacing.sm,
+  },
+  dealsScroll: {
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.md,
+  },
+  dealCardSkeleton: {
+    width: 240,
+  },
+  dealCard: {
+    width: 240,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.xl,
+    overflow: 'hidden',
+    ...Shadows.lg,
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+  },
+  dealImageContainer: {
+    width: '100%',
+    height: 140,
+    position: 'relative',
+    backgroundColor: Colors.gray[50],
+  },
+  dealImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  dealBadge: {
+    position: 'absolute',
+    top: Spacing.md,
+    right: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+  },
+  dealBadgeText: {
+    color: Colors.white,
+    fontSize: FontSizes.lg,
+    fontWeight: FontWeights.extrabold,
+  },
+  dealInfo: {
+    padding: Spacing.md,
+  },
+  dealBrand: {
+    fontSize: FontSizes.xs,
+    color: Colors.text.secondary,
+    fontWeight: FontWeights.semibold,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  dealName: {
+    fontSize: FontSizes.lg,
+    fontWeight: FontWeights.bold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.sm,
+    minHeight: 44,
+  },
+  dealPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  dealPrice: {
+    fontSize: FontSizes.xxl,
+    fontWeight: FontWeights.extrabold,
+    color: Colors.primary,
+  },
+  dealOriginalPrice: {
+    fontSize: FontSizes.md,
+    color: Colors.text.secondary,
+    textDecorationLine: 'line-through',
+    fontWeight: FontWeights.medium,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Spacing.md,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   sectionTitle: {
-    fontSize: FontSizes.xxl,
+    fontSize: FontSizes.xl,
     fontWeight: FontWeights.bold,
     color: Colors.text.primary,
   },
   sectionSubtitle: {
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.xs,
     color: Colors.text.secondary,
-    marginTop: 2,
+    marginTop: 1,
     fontWeight: FontWeights.medium,
   },
   viewAllButton: {
@@ -733,16 +963,16 @@ const styles = StyleSheet.create({
   },
   categoryItem: {
     alignItems: 'center',
-    width: 90,
+    width: 75,
   },
   categoryIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 16,
+    width: 70,
+    height: 70,
+    borderRadius: 14,
     backgroundColor: Colors.white,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
     overflow: 'hidden',
     ...Shadows.md,
     borderWidth: 1,
@@ -754,14 +984,62 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
   categoryName: {
-    fontSize: FontSizes.xs,
+    fontSize: 10,
     color: Colors.text.primary,
     textAlign: 'center',
     fontWeight: FontWeights.semibold,
-    lineHeight: 16,
+    lineHeight: 14,
   },
   productsSection: {
     paddingHorizontal: Spacing.md,
+  },
+  bestSellersSection: {
+    paddingHorizontal: Spacing.md,
+    marginTop: Spacing.sm,
+  },
+  bestSellersGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.md,
+  },
+  brandsSection: {
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  brandsScroll: {
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.md,
+  },
+  brandCardSkeleton: {
+    width: 90,
+  },
+  brandCard: {
+    width: 90,
+    alignItems: 'center',
+  },
+  brandLogoContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+    overflow: 'hidden',
+    ...Shadows.md,
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+  },
+  brandLogo: {
+    width: '85%',
+    height: '85%',
+    resizeMode: 'contain',
+  },
+  brandName: {
+    fontSize: 11,
+    color: Colors.text.primary,
+    textAlign: 'center',
+    fontWeight: FontWeights.semibold,
   },
   productsGrid: {
     flexDirection: 'row',
@@ -822,6 +1100,29 @@ const styles = StyleSheet.create({
     fontWeight: FontWeights.semibold,
     marginBottom: 4,
     textTransform: 'uppercase',
+  },
+  productBrandBadge: {
+    position: 'absolute',
+    top: Spacing.sm,
+    left: Spacing.sm,
+    backgroundColor: 'rgba(124, 58, 237, 0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.md,
+    zIndex: 10,
+    maxWidth: 100,
+  },
+  productBrandBadgeText: {
+    color: Colors.white,
+    fontSize: 10,
+    fontWeight: FontWeights.bold,
+    letterSpacing: 0.3,
+  },
+  productCategory: {
+    fontSize: 10,
+    color: Colors.text.secondary,
+    marginBottom: 4,
+    fontWeight: FontWeights.medium,
   },
   productName: {
     fontSize: FontSizes.md,

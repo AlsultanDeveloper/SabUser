@@ -31,8 +31,19 @@ yarn-error.*
 
 # local env files
 .env*.local
-.env
 
 # typescript
 *.tsbuildinfo
+
+# Vercel
 .vercel
+
+# IDE
+.vscode/
+.idea/
+
+# Android
+android/app/google-services.json
+
+# iOS
+ios/GoogleService-Info.plist
