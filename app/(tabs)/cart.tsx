@@ -27,7 +27,7 @@ const FREE_SHIPPING_THRESHOLD = 100; // SAR
 
 export default function ModernCartScreen() {
   const router = useRouter();
-  const { t, cart, cartTotal, formatPrice, removeFromCart, updateCartItemQuantity } = useApp();
+  const { t, cart, cartTotal, formatPrice, removeFromCart, updateCartItemQuantity, language } = useApp();
   const { isAuthenticated } = useAuth();
   
   const [couponCode, setCouponCode] = useState('');
@@ -158,7 +158,10 @@ export default function ModernCartScreen() {
               {/* Product Details */}
               <View style={styles.itemDetails}>
                 <Text style={styles.productName} numberOfLines={2}>
-                  {(item.product as any).nameEn || (item.product as any).nameAr || item.product.name}
+                  {typeof item.product.name === 'object' 
+                    ? item.product.name[language] || item.product.name.en || item.product.name.ar
+                    : item.product.name
+                  }
                 </Text>
                 
                 {/* Price with discount */}
