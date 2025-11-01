@@ -1,4 +1,4 @@
-// [id].tsx - dummy content
+// Modern Order Details with Timeline
 import React from 'react';
 import {
   View,
@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from '@/contexts/AppContext';
 import { useOrders } from '@/contexts/OrderContext';
@@ -32,13 +32,14 @@ export default function OrderDetailsScreen() {
         <SafeAreaView style={styles.headerContainer} edges={['top']}>
           <View style={styles.header}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <Feather name="arrow-left" size={24} color={Colors.text.primary} />
+              <Feather name="arrow-left" size={24} color="#FFF" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>{t('order.orderDetails')}</Text>
             <View style={styles.backButton} />
           </View>
         </SafeAreaView>
         <View style={styles.emptyContainer}>
+          <Feather name="package" size={64} color={Colors.gray[300]} />
           <Text style={styles.emptyText}>{t('pages.orderNotFound')}</Text>
         </View>
       </View>
@@ -48,7 +49,6 @@ export default function OrderDetailsScreen() {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', {
-      year: 'numeric',
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
@@ -63,6 +63,16 @@ export default function OrderDetailsScreen() {
   const handleTrackOrder = () => {
     router.push(`/order/track/${order.id}` as any);
   };
+
+  // Order status steps
+  const orderSteps = [
+    { key: 'pending', label: language === 'ar' ? 'قيد المعالجة' : 'Processing', icon: 'clock' },
+    { key: 'confirmed', label: language === 'ar' ? 'مؤكد' : 'Confirmed', icon: 'check-circle' },
+    { key: 'shipping', label: language === 'ar' ? 'قيد التوصيل' : 'Shipping', icon: 'truck' },
+    { key: 'delivered', label: language === 'ar' ? 'تم التوصيل' : 'Delivered', icon: 'package' },
+  ];
+
+  const currentStepIndex = orderSteps.findIndex(step => step.key === order.status);
 
   return (
     <View style={styles.container}>
@@ -94,6 +104,8 @@ export default function OrderDetailsScreen() {
               <View style={styles.statusBadge}>
                 <Text style={styles.statusText}>
                   {order.status === 'pending' && (language === 'ar' ? 'جديد' : 'New')}
+                  {order.status === 'confirmed' && (language === 'ar' ? 'مؤكد' : 'Confirmed')}
+                  {order.status === 'shipping' && (language === 'ar' ? 'قيد التوصيل' : 'Shipping')}
                   {order.status === 'delivered' && (language === 'ar' ? 'تم التوصيل' : 'Delivered')}
                 </Text>
               </View>
@@ -103,19 +115,52 @@ export default function OrderDetailsScreen() {
                 <Feather name="clock" size={14} color="#6B7280" />
                 <Text style={styles.metaText}>{formatDate(order.createdAt)}</Text>
               </View>
-              {order.trackingNumber && (
-                <View style={styles.metaItem}>
-                  <Feather name="hash" size={14} color="#6B7280" />
-                  <Text style={styles.metaText}>{order.trackingNumber}</Text>
-                </View>
-              )}
+              <View style={styles.metaItem}>
+                <Feather name="hash" size={14} color="#6B7280" />
+                <Text style={styles.metaText}>{order.trackingNumber}</Text>
+              </View>
             </View>
           </View>
         </SafeAreaView>
       </LinearGradient>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Products Card */}
+        {/* Timeline */}
+        <View style={styles.timelineCard}>
+          <Text style={styles.cardTitle}>{language === 'ar' ? 'حالة الطلب' : 'Order Status'}</Text>
+          <View style={styles.timeline}>
+            {orderSteps.map((step, index) => (
+              <View key={step.key} style={styles.timelineItem}>
+                <View style={styles.timelineIconContainer}>
+                  <View style={[
+                    styles.timelineIcon,
+                    index <= currentStepIndex && styles.timelineIconActive
+                  ]}>
+                    <Feather 
+                      name={step.icon as any} 
+                      size={16} 
+                      color={index <= currentStepIndex ? '#FFF' : '#9CA3AF'}
+                    />
+                  </View>
+                  {index < orderSteps.length - 1 && (
+                    <View style={[
+                      styles.timelineLine,
+                      index < currentStepIndex && styles.timelineLineActive
+                    ]} />
+                  )}
+                </View>
+                <Text style={[
+                  styles.timelineLabel,
+                  index <= currentStepIndex && styles.timelineLabelActive
+                ]}>
+                  {step.label}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Products */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Feather name="shopping-bag" size={20} color="#8B5CF6" />
@@ -177,7 +222,7 @@ export default function OrderDetailsScreen() {
           </View>
         </View>
 
-        {/* Delivery Info Card */}
+        {/* Delivery Info */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Feather name="map-pin" size={20} color="#10B981" />
@@ -186,7 +231,7 @@ export default function OrderDetailsScreen() {
           <View style={styles.infoBlock}>
             <Text style={styles.infoTitle}>{order.address.fullName}</Text>
             <Text style={styles.infoText}>{order.address.address}</Text>
-            <Text style={styles.infoText}>{order.address.city}, {order.address.country || 'Saudi Arabia'}</Text>
+            <Text style={styles.infoText}>{order.address.city}, {order.address.country}</Text>
             <Text style={styles.infoText}>📱 {order.address.phoneNumber}</Text>
           </View>
           {order.estimatedDelivery && (
@@ -199,7 +244,7 @@ export default function OrderDetailsScreen() {
           )}
         </View>
 
-        {/* Payment Info Card */}
+        {/* Payment Info */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Feather name="credit-card" size={20} color="#F59E0B" />
@@ -263,11 +308,12 @@ const styles = StyleSheet.create({
   backButton: {
     width: 40,
     height: 40,
+    alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold' as const,
+    fontWeight: 'bold',
     color: '#FFF',
   },
   orderInfoCard: {
@@ -295,7 +341,7 @@ const styles = StyleSheet.create({
   },
   orderNumber: {
     fontSize: 16,
-    fontWeight: 'bold' as const,
+    fontWeight: 'bold',
     color: '#111827',
   },
   statusBadge: {
@@ -307,7 +353,7 @@ const styles = StyleSheet.create({
   statusText: {
     color: '#FFF',
     fontSize: 12,
-    fontWeight: '600' as const,
+    fontWeight: '600',
   },
   orderMetaRow: {
     flexDirection: 'row',
@@ -322,154 +368,61 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
   },
-  headerContainer: {
-    backgroundColor: Colors.white,
-  },
   scrollView: {
     flex: 1,
   },
-  section: {
-    backgroundColor: Colors.white,
-    marginTop: Spacing.md,
-    padding: Spacing.md,
+  timelineCard: {
+    backgroundColor: '#FFF',
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  sectionTitle: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold' as const,
-    color: Colors.text.primary,
-    marginBottom: Spacing.md,
+  timeline: {
+    marginTop: 20,
   },
-  trackingText: {
-    color: Colors.primary,
-    fontWeight: '600' as const,
-  },
-  productCard: {
-    flexDirection: 'row',
-    backgroundColor: Colors.gray[50],
-    borderRadius: BorderRadius.md,
-    padding: Spacing.sm,
-    marginBottom: Spacing.sm,
-  },
-  productImage: {
-    width: 80,
-    height: 80,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.gray[200],
-  },
-  productInfo: {
-    flex: 1,
-    marginLeft: Spacing.md,
-    justifyContent: 'space-between',
-  },
-  productName: {
-    fontSize: FontSizes.md,
-    fontWeight: '600' as const,
-    color: Colors.text.primary,
-  },
-  productQuantity: {
-    fontSize: FontSizes.sm,
-    color: Colors.text.secondary,
-  },
-  productPrice: {
-    fontSize: FontSizes.md,
-    fontWeight: 'bold' as const,
-    color: Colors.primary,
-  },
-  infoCard: {
-    backgroundColor: Colors.gray[50],
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  infoCardHeader: {
+  timelineItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
+    marginBottom: 24,
   },
-  infoCardTitle: {
-    fontSize: FontSizes.md,
-    fontWeight: '600' as const,
-    color: Colors.text.primary,
-  },
-  addressText: {
-    fontSize: FontSizes.sm,
-    color: Colors.text.secondary,
-    lineHeight: 20,
-  },
-  paymentStatusContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  timelineIconContainer: {
     alignItems: 'center',
-    marginTop: Spacing.sm,
+    marginRight: 16,
   },
-  paymentStatusLabel: {
-    fontSize: FontSizes.md,
-    color: Colors.text.secondary,
-  },
-  paymentStatus: {
-    fontSize: FontSizes.md,
-    fontWeight: 'bold' as const,
-  },
-  buttonsContainer: {
-    padding: Spacing.md,
-    gap: Spacing.sm,
-    paddingBottom: Spacing.xl,
-  },
-  actionButton: {
-    flexDirection: 'row',
+  timelineIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#E5E7EB',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.lg,
   },
-  callButton: {
-    backgroundColor: Colors.success,
+  timelineIconActive: {
+    backgroundColor: '#8B5CF6',
   },
-  trackButton: {
-    backgroundColor: Colors.primary,
+  timelineLine: {
+    width: 2,
+    height: 24,
+    backgroundColor: '#E5E7EB',
+    marginTop: 4,
   },
-  actionButtonText: {
-    fontSize: FontSizes.md,
-    fontWeight: 'bold' as const,
-    color: Colors.white,
+  timelineLineActive: {
+    backgroundColor: '#8B5CF6',
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  timelineLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
   },
-  emptyText: {
-    fontSize: FontSizes.lg,
-    color: Colors.text.secondary,
-  },
-  productDetails: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 8,
-  },
-  detailBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3E8FF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
-  },
-  detailText: {
-    fontSize: 12,
-    color: '#8B5CF6',
-    fontWeight: '600' as const,
-  },
-  colorDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+  timelineLabelActive: {
+    color: '#111827',
+    fontWeight: '600',
   },
   card: {
     backgroundColor: '#FFF',
@@ -491,7 +444,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 16,
-    fontWeight: 'bold' as const,
+    fontWeight: 'bold',
     color: '#111827',
   },
   productRow: {
@@ -500,6 +453,22 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
+  },
+  productImage: {
+    width: 70,
+    height: 70,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+  },
+  productInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  productName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 8,
   },
   productBadges: {
     flexDirection: 'row',
@@ -519,7 +488,14 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 11,
     color: '#6366F1',
-    fontWeight: '600' as const,
+    fontWeight: '600',
+  },
+  colorDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   productMeta: {
     flexDirection: 'row',
@@ -529,6 +505,11 @@ const styles = StyleSheet.create({
   productQty: {
     fontSize: 12,
     color: '#6B7280',
+  },
+  productPrice: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#8B5CF6',
   },
   totalRow: {
     flexDirection: 'row',
@@ -540,12 +521,12 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 16,
-    fontWeight: 'bold' as const,
+    fontWeight: 'bold',
     color: '#111827',
   },
   totalAmount: {
     fontSize: 20,
-    fontWeight: 'bold' as const,
+    fontWeight: 'bold',
     color: '#8B5CF6',
   },
   infoBlock: {
@@ -553,7 +534,7 @@ const styles = StyleSheet.create({
   },
   infoTitle: {
     fontSize: 14,
-    fontWeight: '600' as const,
+    fontWeight: '600',
     color: '#111827',
     marginBottom: 4,
   },
@@ -574,7 +555,7 @@ const styles = StyleSheet.create({
   deliveryText: {
     fontSize: 13,
     color: '#92400E',
-    fontWeight: '600' as const,
+    fontWeight: '600',
   },
   paymentRow: {
     flexDirection: 'row',
@@ -588,7 +569,7 @@ const styles = StyleSheet.create({
   },
   paymentStatusText: {
     fontSize: 12,
-    fontWeight: '600' as const,
+    fontWeight: '600',
   },
   actionButtonsContainer: {
     flexDirection: 'row',
@@ -598,5 +579,35 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  callButton: {
+    backgroundColor: '#10B981',
+  },
+  trackButton: {
+    backgroundColor: '#8B5CF6',
+  },
+  actionButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFF',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#6B7280',
   },
 });

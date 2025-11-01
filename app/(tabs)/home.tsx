@@ -21,8 +21,10 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Colors, Spacing, BorderRadius, FontSizes, Shadows, FontWeights } from '@/constants/theme';
 import { useCategories, useProducts, useBrands } from '@/hooks/useFirestore';
+import { getDocuments, collections, where } from '@/constants/firestore';
 import SafeImage from '@/components/SafeImage';
 import { CategoryCardSkeleton, ProductCardSkeleton } from '@/components/SkeletonLoader';
 
@@ -31,10 +33,13 @@ const BANNER_WIDTH = width - Spacing.md * 2;
 
 export default function HomeScreen() {
   const { t, language, formatPrice, changeLanguage } = useApp();
+  const { user } = useAuth();
   const router = useRouter();
   const { categories, loading: categoriesLoading, refetch: refetchCategories } = useCategories();
   const { products, loading: productsLoading, refetch: refetchProducts } = useProducts({ featured: true, limit: 6 });
   const { brands, loading: brandsLoading, refetch: refetchBrands } = useBrands();
+
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
 
   // Hardcoded banners with memoization for performance
   const hardcodedBanners = useMemo(() => [
@@ -61,6 +66,33 @@ export default function HomeScreen() {
 
   const scrollViewRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
+
+  // Fetch unread notifications count
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      if (!user?.uid) {
+        setUnreadNotificationsCount(0);
+        return;
+      }
+
+      try {
+        const notifications = await getDocuments(collections.userNotifications, [
+          where('userId', '==', user.uid),
+          where('read', '==', false),
+        ]);
+        setUnreadNotificationsCount(notifications.length);
+      } catch (error) {
+        console.error('Error fetching unread notifications count:', error);
+      }
+    };
+
+    fetchUnreadCount();
+    
+    // Poll every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000);
+    
+    return () => clearInterval(interval);
+  }, [user]);
 
   // Refresh handler
   const onRefresh = useCallback(async () => {
@@ -194,7 +226,13 @@ export default function HomeScreen() {
               }}
             >
               <Feather name="bell" size={20} color={Colors.white} />
-              <View style={styles.notificationDot} />
+              {unreadNotificationsCount > 0 && (
+                <View style={styles.notificationDot}>
+                  <Text style={styles.notificationDotText}>
+                    {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -735,14 +773,23 @@ const styles = StyleSheet.create({
   },
   notificationDot: {
     position: 'absolute',
-    top: 8,
-    right: 10,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    top: 6,
+    right: 8,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: Colors.accent,
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  notificationDotText: {
+    color: Colors.white,
+    fontSize: 10,
+    fontWeight: 'bold' as const,
+    textAlign: 'center' as const,
   },
   searchBarContainer: {
     paddingHorizontal: Spacing.md,

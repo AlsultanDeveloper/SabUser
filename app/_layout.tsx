@@ -46,6 +46,23 @@ function RootLayoutNav() {
         }}
       />
       <Stack.Screen
+        name="checkout-details"
+        options={{
+          presentation: 'card',
+          headerShown: true,
+          title: 'Checkout',
+          headerStyle: {
+            backgroundColor: '#FFF',
+          },
+          headerTintColor: '#1F2937',
+          headerTitleStyle: {
+            fontWeight: '700',
+            fontSize: 20,
+          },
+          headerShadowVisible: true,
+        }}
+      />
+      <Stack.Screen
         name="addresses"
         options={{
           presentation: 'card',

@@ -10,21 +10,25 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  Linking,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useSettings } from '@/hooks/useSettings';
 import * as Location from 'expo-location';
+import MapPicker from '@/components/MapPicker';
+import { useOrders } from '@/contexts/OrderContext';
+import type { OrderItem } from '@/types';
 
 export default function CheckoutDetailsScreen() {
   const router = useRouter();
-  const { cart, cartTotal, formatPrice } = useApp();
+  const { cart, cartTotal, formatPrice, clearCart } = useApp();
+  const { user } = useAuth();
   const { shippingCost, freeShippingThreshold } = useSettings();
+  const { createOrder } = useOrders();
 
   // Shipping Address State
   const [fullName, setFullName] = useState('');
@@ -36,7 +40,10 @@ export default function CheckoutDetailsScreen() {
   const [longitude, setLongitude] = useState<number | null>(null);
 
   // Payment Method State
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'omt' | 'whish'>('cash');
+  
+  // Map Picker State
+  const [showMapPicker, setShowMapPicker] = useState(false);
 
   // Calculate totals
   const remainingForFreeShipping = Math.max(freeShippingThreshold - cartTotal, 0);
@@ -83,61 +90,135 @@ export default function CheckoutDetailsScreen() {
 
   // Open Maps to Pick Location
   const handleOpenMaps = () => {
-    const lat = latitude || 24.7136; // Default: Riyadh
-    const lng = longitude || 46.6753;
-    
-    const scheme = Platform.select({
-      ios: 'maps:',
-      android: 'geo:',
-    });
-    
-    const url = Platform.select({
-      ios: `${scheme}?q=${lat},${lng}`,
-      android: `${scheme}${lat},${lng}?q=${lat},${lng}`,
-    });
+    setShowMapPicker(true);
+  };
 
-    if (url) {
-      Linking.openURL(url).catch(() => {
-        Alert.alert('Error', 'Could not open maps application');
+  // Handle location selected from map
+  const handleLocationSelected = async (location: {
+    latitude: number;
+    longitude: number;
+    address?: string;
+  }) => {
+    setLatitude(location.latitude);
+    setLongitude(location.longitude);
+    
+    if (location.address) {
+      setAddress(location.address);
+    }
+    
+    // Try to get more detailed address info
+    try {
+      const addresses = await Location.reverseGeocodeAsync({
+        latitude: location.latitude,
+        longitude: location.longitude,
       });
+
+      if (addresses.length > 0) {
+        const addr = addresses[0];
+        if (!location.address) {
+          setAddress(`${addr.street || ''} ${addr.name || ''}`);
+        }
+        setCity(addr.city || addr.region || '');
+        setPostalCode(addr.postalCode || '');
+      }
+    } catch (error) {
+      console.error('Error getting address details:', error);
     }
   };
 
   // Validate and Place Order
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     // Validation
     if (!fullName || !phone || !address || !city) {
       Alert.alert('Missing Information', 'Please fill in all required fields');
       return;
     }
 
-    // TODO: Send order to Firebase
-    Alert.alert(
-      'Order Placed! 🎉',
-      `Your order of ${formatPrice(finalTotal)} has been confirmed!`,
-      [
-        {
-          text: 'OK',
-          onPress: () => router.push('/(tabs)/home' as any),
-        },
-      ]
-    );
+    // Check if user is logged in
+    if (!user || !user.uid) {
+      Alert.alert('Error', 'You must be logged in to place an order');
+      return;
+    }
+
+    // Show loading
+    Alert.alert('Processing', 'Please wait...');
+
+    try {
+      // Prepare order items - preserve selected options
+      const orderItems: OrderItem[] = cart.map((item) => ({
+        product: item.product,
+        quantity: item.quantity,
+        price: item.product.discount
+          ? item.product.price * (1 - item.product.discount / 100)
+          : item.product.price,
+        ...((item as any).selectedSize && { selectedSize: (item as any).selectedSize }),
+        ...((item as any).selectedColor && { selectedColor: (item as any).selectedColor }),
+        ...((item as any).selectedAge && { selectedAge: (item as any).selectedAge }),
+      } as any));
+
+      // Prepare address with coordinates
+      const orderAddress = {
+        fullName,
+        phoneNumber: phone,
+        address,
+        city,
+        postalCode: postalCode || '',
+        country: 'Saudi Arabia',
+        ...(latitude && longitude && {
+          latitude,
+          longitude,
+        }),
+      };
+
+      // Create order in Firebase
+      const order = await createOrder(
+        user.uid,
+        orderItems,
+        finalTotal,
+        orderAddress,
+        paymentMethod
+      );
+
+      console.log('✅ Order created successfully:', order.orderNumber);
+
+      // Clear cart
+      clearCart();
+
+      // Show success message
+      Alert.alert(
+        'Order Placed! 🎉',
+        `Your order ${order.orderNumber} has been confirmed!\n\nTotal: ${formatPrice(finalTotal)}${
+          latitude && longitude
+            ? '\n\n📍 Delivery location saved for accurate tracking'
+            : ''
+        }`,
+        [
+          {
+            text: 'View Order',
+            onPress: () => router.push(`/order/${order.id}` as any),
+          },
+          {
+            text: 'Continue Shopping',
+            onPress: () => router.push('/(tabs)/home' as any),
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('❌ Error placing order:', error);
+      Alert.alert(
+        'Error',
+        'Failed to place your order. Please try again.',
+        [
+          {
+            text: 'OK',
+          },
+        ]
+      );
+    }
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Feather name="arrow-left" size={24} color="#1F2937" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Checkout</Text>
-        <View style={{ width: 40 }} />
-      </View>
-
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Order Summary Card */}
         <View style={styles.summaryCard}>
@@ -170,7 +251,7 @@ export default function CheckoutDetailsScreen() {
             <Text style={styles.label}>Full Name *</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter your full name"
+              placeholder="Enter your name"
               value={fullName}
               onChangeText={setFullName}
             />
@@ -180,7 +261,7 @@ export default function CheckoutDetailsScreen() {
             <Text style={styles.label}>Phone Number *</Text>
             <TextInput
               style={styles.input}
-              placeholder="+966 XX XXX XXXX"
+              placeholder="Enter here"
               value={phone}
               onChangeText={setPhone}
               keyboardType="phone-pad"
@@ -280,25 +361,25 @@ export default function CheckoutDetailsScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.paymentOption, paymentMethod === 'card' && styles.paymentOptionActive]}
-            onPress={() => setPaymentMethod('card')}
+            style={[styles.paymentOption, paymentMethod === 'omt' && styles.paymentOptionActive]}
+            onPress={() => setPaymentMethod('omt')}
           >
             <View style={styles.paymentLeft}>
               <MaterialCommunityIcons 
                 name="credit-card-outline" 
                 size={24} 
-                color={paymentMethod === 'card' ? '#8B5CF6' : '#6B7280'} 
+                color={paymentMethod === 'omt' ? '#8B5CF6' : '#6B7280'} 
               />
-              <Text style={[styles.paymentText, paymentMethod === 'card' && styles.paymentTextActive]}>
+              <Text style={[styles.paymentText, paymentMethod === 'omt' && styles.paymentTextActive]}>
                 Credit/Debit Card
               </Text>
             </View>
-            <View style={[styles.radio, paymentMethod === 'card' && styles.radioActive]}>
-              {paymentMethod === 'card' && <View style={styles.radioDot} />}
+            <View style={[styles.radio, paymentMethod === 'omt' && styles.radioActive]}>
+              {paymentMethod === 'omt' && <View style={styles.radioDot} />}
             </View>
           </TouchableOpacity>
 
-          {paymentMethod === 'card' && (
+          {paymentMethod === 'omt' && (
             <View style={styles.comingSoon}>
               <Feather name="info" size={16} color="#F59E0B" />
               <Text style={styles.comingSoonText}>Card payment coming soon!</Text>
@@ -334,6 +415,14 @@ export default function CheckoutDetailsScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Map Picker Modal */}
+      <MapPicker
+        visible={showMapPicker}
+        onClose={() => setShowMapPicker(false)}
+        onLocationSelected={handleLocationSelected}
+        initialLocation={latitude && longitude ? { latitude, longitude } : undefined}
+      />
     </SafeAreaView>
   );
 }
@@ -342,27 +431,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1F2937',
   },
   summaryCard: {
     backgroundColor: '#FFF',

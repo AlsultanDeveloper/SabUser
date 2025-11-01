@@ -18,22 +18,11 @@ import { useRouter } from 'expo-router';
 import { Colors, Spacing, BorderRadius, FontSizes } from '@/constants/theme';
 
 export default function AccountScreen() {
-  const { t, currency, changeCurrency } = useApp();
+  const { t } = useApp();
   const { user, isAuthenticated, signOut } = useAuth();
   const router = useRouter();
   
-  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
   const [showHelpMenu, setShowHelpMenu] = useState(false);
-
-  const handleCurrencySelect = async (newCurrency: 'USD' | 'LBP') => {
-    if (newCurrency !== currency) {
-      await changeCurrency(newCurrency);
-      if (Platform.OS !== 'web') {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
-    }
-    setShowCurrencyModal(false);
-  };
 
   if (!isAuthenticated) {
     return (
@@ -75,31 +64,6 @@ export default function AccountScreen() {
           >
             <Feather name="edit-2" size={16} color={Colors.primary} />
             <Text style={styles.editProfileButtonText}>{t('profile.editProfile')}</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('account.preferences')}</Text>
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => {
-              if (Platform.OS !== 'web') {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }
-              setShowCurrencyModal(true);
-            }}
-            activeOpacity={0.7}
-          >
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.iconContainer, { backgroundColor: Colors.secondary + '20' }]}>
-                <Feather name="dollar-sign" size={20} color={Colors.secondary} />
-              </View>
-              <Text style={styles.menuItemText}>{t('common.currency')}</Text>
-            </View>
-            <View style={styles.menuItemRight}>
-              <Text style={styles.valueText}>{currency}</Text>
-              <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
-            </View>
           </TouchableOpacity>
         </View>
 
@@ -244,55 +208,6 @@ export default function AccountScreen() {
           <Text style={styles.versionText}>{t('account.version')}</Text>
         </View>
       </ScrollView>
-      
-      <Modal
-        visible={showCurrencyModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowCurrencyModal(false)}
-      >
-        <TouchableOpacity 
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowCurrencyModal(false)}
-        >
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{t('account.selectCurrency')}</Text>
-            
-            <TouchableOpacity
-              style={[styles.modalOption, currency === 'USD' && styles.modalOptionSelected]}
-              onPress={() => handleCurrencySelect('USD')}
-              activeOpacity={0.7}
-            >
-              <View>
-                <Text style={[styles.modalOptionText, currency === 'USD' && styles.modalOptionTextSelected]}>
-                  USD
-                </Text>
-                <Text style={styles.modalOptionSubtext}>US Dollar</Text>
-              </View>
-              {currency === 'USD' && (
-                <Feather name="check" size={20} color={Colors.primary} />
-              )}
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.modalOption, currency === 'LBP' && styles.modalOptionSelected]}
-              onPress={() => handleCurrencySelect('LBP')}
-              activeOpacity={0.7}
-            >
-              <View>
-                <Text style={[styles.modalOptionText, currency === 'LBP' && styles.modalOptionTextSelected]}>
-                  LBP
-                </Text>
-                <Text style={styles.modalOptionSubtext}>Lebanese Pound</Text>
-              </View>
-              {currency === 'LBP' && (
-                <Feather name="check" size={20} color={Colors.primary} />
-              )}
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
 
       <Modal
         visible={showHelpMenu}

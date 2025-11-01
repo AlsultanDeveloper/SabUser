@@ -16,7 +16,7 @@ import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { getDocuments, collections, where, orderBy } from '@/constants/firestore';
+import { getDocuments, collections, where, orderBy, updateDocument, deleteDocument } from '@/constants/firestore';
 import { Colors, Spacing, BorderRadius, FontSizes } from '@/constants/theme';
 
 
@@ -81,10 +81,22 @@ export default function NotificationsScreen() {
     fetchNotifications();
   }, [user]);
 
-  const handleNotificationPress = (notification: Notification) => {
+  const handleNotificationPress = async (notification: Notification) => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
+
+    // Update read status in Firestore
+    try {
+      await updateDocument(collections.userNotifications, notification.id, {
+        read: true,
+      });
+      console.log('✅ Notification marked as read in Firestore:', notification.id);
+    } catch (error) {
+      console.error('❌ Error updating notification in Firestore:', error);
+    }
+
+    // Update local state
     setNotifications((prev) =>
       prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n))
     );
@@ -102,17 +114,45 @@ export default function NotificationsScreen() {
     }
   };
 
-  const handleMarkAllAsRead = () => {
+  const handleMarkAllAsRead = async () => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
+
+    // Update all notifications in Firestore
+    try {
+      const updatePromises = notifications
+        .filter(n => !n.read)
+        .map(n => updateDocument(collections.userNotifications, n.id, { read: true }));
+      
+      await Promise.all(updatePromises);
+      console.log('✅ All notifications marked as read in Firestore');
+    } catch (error) {
+      console.error('❌ Error marking all as read in Firestore:', error);
+    }
+
+    // Update local state
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 
-  const handleClearAll = () => {
+  const handleClearAll = async () => {
     if (Platform.OS !== 'web') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     }
+
+    // Delete all notifications from Firestore
+    try {
+      const deletePromises = notifications.map(n => 
+        deleteDocument(collections.userNotifications, n.id)
+      );
+      
+      await Promise.all(deletePromises);
+      console.log('✅ All notifications deleted from Firestore');
+    } catch (error) {
+      console.error('❌ Error deleting notifications from Firestore:', error);
+    }
+
+    // Clear local state
     setNotifications([]);
   };
 

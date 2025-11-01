@@ -6,13 +6,12 @@ import { I18nManager, Platform } from 'react-native';
 import * as Updates from 'expo-updates';
 import Toast from 'react-native-toast-message';
 import i18n from '@/constants/i18n';
-import type { Language, Currency, Product, CartItem } from '@/types';
-
-const EXCHANGE_RATE = 89500;
+import type { Language, Product, CartItem } from '@/types';
 
 export const [AppProvider, useApp] = createContextHook(() => {
   const [language, setLanguage] = useState<Language>('en');
-  const [currency, setCurrency] = useState<Currency>('USD');
+  // Fixed currency: USD only
+  const currency = 'USD' as const;
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -34,18 +33,16 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
   const loadSettings = async () => {
     try {
-      const [storedLanguage, storedCurrency, storedCart] = await Promise.all([
+      const [storedLanguage, storedCart] = await Promise.all([
         AsyncStorage.getItem('language'),
-        AsyncStorage.getItem('currency'),
         AsyncStorage.getItem('cart'),
       ]);
 
       if (storedLanguage) {
         setLanguage(storedLanguage as Language);
+        i18n.locale = storedLanguage;
       }
-      if (storedCurrency) {
-        setCurrency(storedCurrency as Currency);
-      }
+
       if (storedCart) {
         setCart(JSON.parse(storedCart));
       }
@@ -92,35 +89,6 @@ export const [AppProvider, useApp] = createContextHook(() => {
       });
     }
   }, []);
-
-  const changeCurrency = useCallback(async (newCurrency: Currency) => {
-    try {
-      console.log('[AppContext] Changing currency to:', newCurrency);
-      console.log('[AppContext] Current language (should not change):', language);
-      
-      await AsyncStorage.setItem('currency', newCurrency);
-      setCurrency(newCurrency);
-      
-      
-      Toast.show({
-        type: 'success',
-        text1: language === 'en' ? 'Currency Changed' : 'تم تغيير العملة',
-        text2: language === 'en' ? `Currency set to ${newCurrency}` : `تم تعيين العملة إلى ${newCurrency}`,
-        position: 'top',
-        visibilityTime: 2000,
-      });
-      
-      console.log('[AppContext] Currency changed successfully to:', newCurrency);
-    } catch (error) {
-      console.error('[AppContext] Error saving currency:', error);
-      Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: 'Failed to change currency',
-        position: 'top',
-      });
-    }
-  }, [language]);
 
   const addToCart = useCallback(async (
     product: Product, 
@@ -212,16 +180,14 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
   }, []);
 
+  // Format price in USD only
   const formatPrice = useCallback((price: number) => {
-    const finalPrice = currency === 'LBP' ? price * EXCHANGE_RATE : price;
-    const symbol = currency === 'USD' ? '$' : 'ل.ل';
-    const formatted = finalPrice.toLocaleString('en-US', {
-      minimumFractionDigits: currency === 'USD' ? 2 : 0,
-      maximumFractionDigits: currency === 'USD' ? 2 : 0,
+    const formatted = price.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     });
-    
-    return currency === 'USD' ? `${symbol}${formatted}` : `${formatted} ${symbol}`;
-  }, [currency]);
+    return `$${formatted}`;
+  }, []);
 
   const cartTotal = useMemo(() => {
     return cart.reduce((total, item) => {
@@ -251,12 +217,11 @@ export const [AppProvider, useApp] = createContextHook(() => {
     cartItemsCount,
     isRTL,
     changeLanguage,
-    changeCurrency,
     addToCart,
     updateCartItemQuantity,
     removeFromCart,
     clearCart,
     formatPrice,
     t,
-  }), [language, currency, cart, isLoading, cartTotal, cartItemsCount, isRTL, changeLanguage, changeCurrency, addToCart, updateCartItemQuantity, removeFromCart, clearCart, formatPrice, t]);
+  }), [language, currency, cart, isLoading, cartTotal, cartItemsCount, isRTL, changeLanguage, addToCart, updateCartItemQuantity, removeFromCart, clearCart, formatPrice, t]);
 });

@@ -58,12 +58,71 @@ export const [OrderProvider, useOrders] = createContextHook(() => {
     const orderNumber = generateOrderNumber();
     const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+    // Clean address object - remove undefined values
+    const cleanAddress: any = {
+      fullName: address.fullName,
+      phoneNumber: address.phoneNumber,
+      address: address.address,
+      city: address.city,
+      postalCode: address.postalCode || '',
+      country: address.country || 'Lebanon',
+    };
+
+    // Only add coordinates if they exist
+    if (address.latitude != null && address.longitude != null) {
+      cleanAddress.latitude = address.latitude;
+      cleanAddress.longitude = address.longitude;
+    }
+
+    // Clean items - remove undefined values from product objects
+    const cleanItems = items.map(item => {
+      // Create clean product object without undefined values
+      const cleanProduct: any = {
+        id: item.product.id,
+        name: item.product.name,
+        description: item.product.description,
+        price: item.product.price,
+        image: item.product.image,
+        images: item.product.images || [],
+        category: item.product.category,
+        brand: item.product.brand,
+        rating: item.product.rating || 0,
+        reviews: item.product.reviews || 0,
+        inStock: item.product.inStock ?? true,
+      };
+
+      // Only add optional fields if they exist
+      if (item.product.brandId) cleanProduct.brandId = item.product.brandId;
+      if (item.product.discount != null) cleanProduct.discount = item.product.discount;
+      if (item.product.brandName) cleanProduct.brandName = item.product.brandName;
+      if (item.product.categoryName) cleanProduct.categoryName = item.product.categoryName;
+      if (item.product.subcategoryName) cleanProduct.subcategoryName = item.product.subcategoryName;
+      if (item.product.colors) cleanProduct.colors = item.product.colors;
+      if (item.product.sizes) cleanProduct.sizes = item.product.sizes;
+      if (item.product.shoeSizes) cleanProduct.shoeSizes = item.product.shoeSizes;
+      if (item.product.ageRange) cleanProduct.ageRange = item.product.ageRange;
+
+      // Build clean item object
+      const cleanItem: any = {
+        product: cleanProduct,
+        quantity: item.quantity,
+        price: item.price,
+      };
+
+      // Add selected options if they exist
+      if ((item as any).selectedSize) cleanItem.selectedSize = (item as any).selectedSize;
+      if ((item as any).selectedColor) cleanItem.selectedColor = (item as any).selectedColor;
+      if ((item as any).selectedAge) cleanItem.selectedAge = (item as any).selectedAge;
+
+      return cleanItem;
+    });
+
     const orderData = {
       orderNumber,
       userId,
-      items,
+      items: cleanItems,
       total,
-      address,
+      address: cleanAddress,
       paymentMethod,
       paymentStatus: 'pending' as const,
       status: 'pending' as const,
@@ -94,6 +153,27 @@ export const [OrderProvider, useOrders] = createContextHook(() => {
       
       const updatedOrders = [newOrder, ...orders];
       setOrders(updatedOrders);
+
+      // Create notification in Firestore
+      try {
+        const notificationData = {
+          userId,
+          orderId: newOrder.id,
+          type: 'order',
+          title: 'Order Placed Successfully! 🎉',
+          message: {
+            en: `Your order ${orderNumber} has been confirmed and is being processed.`,
+            ar: `تم تأكيد طلبك ${orderNumber} وجاري معالجته.`,
+          },
+          read: false,
+          createdAt: new Date(),
+        };
+        
+        await createDocument(collections.userNotifications, notificationData);
+        console.log('✅ Order notification saved to Firestore');
+      } catch (notifError) {
+        console.error('❌ Error saving notification to Firestore:', notifError);
+      }
     } catch (error) {
       console.error('❌ Error saving order to Firestore:', error);
       throw error;

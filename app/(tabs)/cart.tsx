@@ -116,16 +116,9 @@ export default function ModernCartScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Item Count Badge */}
-        <View style={styles.itemCountBadge}>
-          <Text style={styles.itemCountText}>
-            {cart.length} {cart.length === 1 ? 'item' : 'items'}
-          </Text>
-        </View>
-
         {/* Free Shipping Progress */}
         {remainingForFreeShipping > 0 ? (
-          <View style={styles.shippingCard}>
+          <View style={[styles.shippingCard, { marginTop: 16 }]}>
             <View style={styles.shippingHeader}>
               <MaterialCommunityIcons name="truck-delivery-outline" size={24} color="#8B5CF6" />
               <Text style={styles.shippingText}>
@@ -137,7 +130,7 @@ export default function ModernCartScreen() {
             </View>
           </View>
         ) : (
-          <View style={styles.freeShippingBadge}>
+          <View style={[styles.freeShippingBadge, { marginTop: 16 }]}>
             <Feather name="check-circle" size={20} color="#10B981" />
             <Text style={styles.freeShippingText}>🎉 You&apos;ve got FREE Shipping!</Text>
           </View>
@@ -164,7 +157,7 @@ export default function ModernCartScreen() {
                   }
                 </Text>
                 
-                {/* Size and Color */}
+                {/* Size, Color, and Age */}
                 <View style={styles.variantsRow}>
                   {(item as any).selectedSize && (
                     <View style={styles.variantBadge}>
@@ -181,6 +174,12 @@ export default function ModernCartScreen() {
                           : (item as any).selectedColor
                         }
                       </Text>
+                    </View>
+                  )}
+                  {(item as any).selectedAge && (
+                    <View style={styles.variantBadge}>
+                      <Text style={styles.variantLabel}>Age:</Text>
+                      <Text style={styles.variantValue}>{(item as any).selectedAge}</Text>
                     </View>
                   )}
                 </View>
@@ -281,7 +280,12 @@ export default function ModernCartScreen() {
 
         {/* Order Summary */}
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>Order Summary</Text>
+          <View style={styles.summaryHeader}>
+            <Text style={styles.summaryTitle}>Order Summary</Text>
+            <Text style={styles.summaryItemCount}>
+              {cart.length} {cart.length === 1 ? 'item' : 'items'}
+            </Text>
+          </View>
           
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Subtotal</Text>
@@ -438,17 +442,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
-  },
-  itemCountBadge: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 8,
-    backgroundColor: '#F9FAFB',
-  },
-  itemCountText: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontWeight: '600',
   },
   cartHeader: {
     backgroundColor: '#FFF',
@@ -743,11 +736,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
+  summaryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   summaryTitle: {
     fontSize: 16,
     fontWeight: '700',
     color: '#1F2937',
-    marginBottom: 16,
+  },
+  summaryItemCount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#8B5CF6',
   },
   summaryRow: {
     flexDirection: 'row',
