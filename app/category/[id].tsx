@@ -1,335 +1,326 @@
-// [id].tsx - dummy content
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
-  Platform,
-  Dimensions,
+  SafeAreaView,
+  Image,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
-import { useApp } from '@/contexts/AppContext';
 import { useCategory } from '@/hooks/useFirestore';
-import { Colors, Spacing, BorderRadius, FontSizes, Shadows, FontWeights } from '@/constants/theme';
-import SafeImage from '@/components/SafeImage';
-
-const { width } = Dimensions.get('window');
-
-export default function SubcategoryScreen() {
-  const { t, language } = useApp();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const { category, loading } = useCategory(id || '');
-
-  if (loading || !category) {
-    return (
-      <>
-        <Stack.Screen
-          options={{
-            headerShown: false,
-          }}
-        />
-        <SafeAreaView style={styles.container} edges={['top']}>
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={styles.loadingText}>{t('common.loading')}</Text>
-          </View>
-        </SafeAreaView>
-      </>
-    );
-  }
-
-  const categoryName = category.name?.[language] || category.name?.en || 'Category';
-  const subcategories = category.subcategories || [];
-
-  return (
-    <>
-      <Stack.Screen
-        options={{
-          headerShown: false,
-        }}
-      />
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => {
-              if (Platform.OS !== 'web') {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }
-              router.back();
-            }}
-            activeOpacity={0.7}
-          >
-            <Feather name="arrow-left" size={24} color={Colors.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{categoryName}</Text>
-          <View style={{ width: 40 }} />
-        </View>
-
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {subcategories.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Feather name="layers" size={64} color={Colors.gray[300]} />
-              <Text style={styles.emptyTitle}>{t('categories.noSubcategories')}</Text>
-              <Text style={styles.emptyDescription}>
-                {t('pages.noSubcategoriesAvailable')}
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.grid}>
-              {subcategories.map((subcategory, index) => (
-                <SubcategoryCard
-                  key={subcategory.id}
-                  subcategory={subcategory}
-                  language={language}
-                  index={index}
-                />
-              ))}
-            </View>
-          )}
-        </ScrollView>
-      </SafeAreaView>
-    </>
-  );
-}
+import type { Subcategory } from '@/types';
 
 interface SubcategoryCardProps {
-  subcategory: { id: string; name: { en: string; ar: string }; image?: string };
-  language: 'en' | 'ar';
-  index: number;
+  subcategory: Subcategory;
+  language: string;
+  onPress: () => void;
 }
 
-function SubcategoryCard({ subcategory, language, index }: SubcategoryCardProps) {
-  const { t } = useApp();
-  const displayName = (() => {
-    if (typeof subcategory.name === 'string') {
-      return subcategory.name;
-    }
+const SubcategoryCard: React.FC<SubcategoryCardProps> = ({ subcategory, language, onPress }) => {
+  const subcategoryName = typeof subcategory.name === 'object' 
+    ? (language === 'ar' ? subcategory.name.ar : subcategory.name.en)
+    : subcategory.name;
 
-    if (subcategory.name && typeof subcategory.name === 'object') {
-      const name = subcategory.name[language] || subcategory.name.en || subcategory.name.ar;
-      if (name) return name;
-    }
+  return (
+    <TouchableOpacity style={styles.subcategoryCard} onPress={onPress} activeOpacity={0.8}>
+      <View style={styles.subcategoryImageContainer}>
+        <Image 
+          source={{ uri: subcategory.image || 'https://via.placeholder.com/150/E8F4FD/333?text=No+Image' }} 
+          style={styles.subcategoryImage}
+          resizeMode="cover"
+        />
+      </View>
+      <View style={styles.subcategoryContent}>
+        <Text style={styles.subcategoryTitle} numberOfLines={2}>
+          {subcategoryName}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+};
 
-    console.error('❌ Invalid subcategory name structure:', subcategory);
-    return t('pages.unnamedSubcategory');
+// Loading skeleton component
+const SubcategorySkeleton = () => (
+  <View style={styles.subcategoryCard}>
+    <View style={[styles.subcategoryImageContainer, styles.skeletonImage]} />
+    <View style={styles.subcategoryContent}>
+      <View style={[styles.skeletonText, { width: '80%' }]} />
+    </View>
+  </View>
+);
+
+export default function CategoryDetails() {
+  const [language, setLanguage] = useState('ar');
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { category, loading, error, refetch } = useCategory(id || '');
+
+  const categoryName: string = (() => {
+    if (!category?.name) return 'Category';
+    if (typeof category.name === 'string') return category.name;
+    return language === 'ar' ? category.name.ar : category.name.en;
   })();
 
-  const handlePress = () => {
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
+  const handleSubcategoryPress = (subcategory: Subcategory) => {
+    console.log('Subcategory pressed:', subcategory.name);
+    // Navigate to subcategory products
+    const subcategoryName = typeof subcategory.name === 'object' 
+      ? (language === 'ar' ? subcategory.name.ar : subcategory.name.en)
+      : subcategory.name;
     
-    console.log('📱 Navigating to subcategory:', { 
-      id: subcategory.id, 
-      name: displayName 
-    });
-    
-    // Navigate to category-products with subcategory name
     router.push({
-      pathname: '/category-products',
+      pathname: '/category-products/[categoryId]/[subcategoryId]',
       params: {
-        subcategoryId: subcategory.id,
-        subcategoryName: displayName,
+        categoryId: id,
+        subcategoryId: encodeURIComponent(subcategoryName),
       },
     });
   };
 
-  const hasImage = subcategory.image && subcategory.image.trim().length > 0;
-
+  const handleBackPress = () => {
+    router.back();
+  };
 
   return (
-    <TouchableOpacity
-      style={styles.subcategoryCard}
-      activeOpacity={0.7}
-      onPress={handlePress}
-    >
-      {hasImage ? (
-        <View style={styles.subcategoryImageContainer}>
-          <SafeImage 
-            uri={subcategory.image || 'https://via.placeholder.com/200'} 
-            style={styles.subcategoryImage} 
-          />
-          <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.75)']}
-            style={styles.subcategoryOverlay}
-          >
-            <Text style={styles.subcategoryNameOverlay} numberOfLines={2}>
-              {displayName}
-            </Text>
-            <View style={styles.arrowIcon}>
-              <Feather name="arrow-right" size={18} color={Colors.white} />
-            </View>
-          </LinearGradient>
-        </View>
-      ) : (
-        <LinearGradient
-          colors={[Colors.primary + '10', Colors.secondary + '10']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.subcategoryGradient}
-        >
-          <View style={styles.subcategoryIconContainer}>
-            <Feather name="tag" size={24} color={Colors.primary} />
-          </View>
-          <Text style={styles.subcategoryName} numberOfLines={2}>
-            {displayName}
+    <SafeAreaView style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
+      
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+          <Feather name="arrow-left" size={24} color="#000" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {categoryName || 'Category'}
+        </Text>
+        <TouchableOpacity onPress={() => setLanguage(prev => prev === 'ar' ? 'en' : 'ar')}>
+          <Text style={styles.langButton}>
+            {language === 'ar' ? 'EN' : 'عربي'}
           </Text>
-          <View style={styles.arrowContainer}>
-            <Feather name="arrow-right" size={20} color={Colors.primary} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Content */}
+      <ScrollView 
+        style={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {loading ? (
+          // Loading State
+          <View style={styles.subcategoriesGrid}>
+            {[1, 2, 3, 4, 5, 6].map((item) => (
+              <SubcategorySkeleton key={item} />
+            ))}
           </View>
-        </LinearGradient>
-      )}
-    </TouchableOpacity>
+        ) : error ? (
+          // Error State
+          <View style={styles.errorContainer}>
+            <Feather name="wifi-off" size={64} color="#666" />
+            <Text style={styles.errorTitle}>
+              {language === 'ar' ? 'خطأ في التحميل' : 'Loading Error'}
+            </Text>
+            <Text style={styles.errorText}>
+              {language === 'ar' ? 'تحقق من اتصال الإنترنت' : 'Check your internet connection'}
+            </Text>
+            <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
+              <Feather name="refresh-cw" size={20} color="#fff" />
+              <Text style={styles.retryText}>
+                {language === 'ar' ? 'إعادة المحاولة' : 'Try Again'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : category?.subcategories && category.subcategories.length > 0 ? (
+          // Subcategories Grid
+          <View>
+            <Text style={styles.sectionTitle}>
+              {language === 'ar' ? 'الفئات الفرعية' : 'Subcategories'}
+            </Text>
+            <View style={styles.subcategoriesGrid}>
+              {category.subcategories.map((subcategory) => (
+                <SubcategoryCard
+                  key={subcategory.id}
+                  subcategory={subcategory}
+                  language={language}
+                  onPress={() => handleSubcategoryPress(subcategory)}
+                />
+              ))}
+            </View>
+          </View>
+        ) : (
+          // No subcategories
+          <View style={styles.emptyContainer}>
+            <Feather name="package" size={64} color="#ccc" />
+            <Text style={styles.emptyText}>
+              {language === 'ar' ? 'لا توجد فئات فرعية' : 'No subcategories found'}
+            </Text>
+            <Text style={styles.emptySubtext}>
+              {language === 'ar' ? 'سيتم إضافة المنتجات قريباً' : 'Products will be added soon'}
+            </Text>
+          </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border.light,
+    borderBottomColor: '#E5E5E5',
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.gray[100],
-    justifyContent: 'center',
-    alignItems: 'center',
+    padding: 8,
+    marginLeft: -8,
   },
   headerTitle: {
-    fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
-    color: Colors.text.primary,
     flex: 1,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000',
     textAlign: 'center',
+    marginHorizontal: 16,
   },
-  scrollView: {
+  langButton: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#007185',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
+    backgroundColor: '#E3F2FD',
+  },
+  scrollContainer: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   scrollContent: {
-    padding: Spacing.md,
+    padding: 16,
+    paddingBottom: 32,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 16,
   },
-  loadingText: {
-    marginTop: Spacing.md,
-    fontSize: FontSizes.md,
-    color: Colors.text.secondary,
-    fontWeight: FontWeights.medium,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: Spacing.xxl * 3,
-  },
-  emptyTitle: {
-    fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
-    color: Colors.text.primary,
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.sm,
-  },
-  emptyDescription: {
-    fontSize: FontSizes.md,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-    fontWeight: FontWeights.medium,
-  },
-  grid: {
+  // Subcategories Grid - 2 columns for better visibility
+  subcategoriesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.md,
+    justifyContent: 'space-between',
   },
   subcategoryCard: {
-    width: (width - Spacing.md * 3) / 2,
-    aspectRatio: 1,
-    borderRadius: BorderRadius.xl,
+    width: '48%', // 2 columns with gap
+    marginBottom: 16,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
     overflow: 'hidden',
-    ...Shadows.md,
+    // Amazon card shadow
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   subcategoryImageContainer: {
-    width: '100%',
-    height: '100%',
-    position: 'relative',
+    height: 120, // Taller than main categories
+    backgroundColor: '#E8F4FD',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   subcategoryImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
   },
-  subcategoryOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'flex-end',
-    padding: Spacing.md,
+  subcategoryContent: {
+    padding: 12,
   },
-  subcategoryNameOverlay: {
-    color: Colors.white,
-    fontSize: FontSizes.lg,
-    fontWeight: FontWeights.bold,
-    marginBottom: Spacing.sm,
+  subcategoryTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#000',
+    textAlign: 'center',
+    lineHeight: 18,
   },
-  arrowIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignSelf: 'flex-end',
+  // Loading skeleton styles
+  skeletonImage: {
+    backgroundColor: '#E0E0E0',
   },
-  subcategoryGradient: {
+  skeletonText: {
+    height: 16,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 4,
+  },
+  // Error state styles
+  errorContainer: {
     flex: 1,
-    padding: Spacing.md,
-    justifyContent: 'space-between',
-  },
-  subcategoryIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.white,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Shadows.sm,
+    paddingVertical: 60,
   },
-  subcategoryName: {
-    fontSize: FontSizes.lg,
-    fontWeight: FontWeights.bold,
-    color: Colors.text.primary,
-    marginTop: Spacing.sm,
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginTop: 16,
+    marginBottom: 8,
   },
-  arrowContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.white,
+  errorText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#007185',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  retryText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  // Empty state styles
+  emptyContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    alignSelf: 'flex-end',
-    ...Shadows.sm,
+    paddingVertical: 80,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#666',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 8,
+    textAlign: 'center',
   },
 });

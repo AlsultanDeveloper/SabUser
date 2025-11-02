@@ -22,19 +22,57 @@ import * as Haptics from 'expo-haptics';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Colors, Spacing, BorderRadius, FontSizes, Shadows, FontWeights } from '@/constants/theme';
-import { useCategories } from '@/hooks/useFirestore';
+import { useCategories, useProducts } from '@/hooks/useFirestore';
 import { getDocuments, collections, where } from '@/constants/firestore';
 import SafeImage from '@/components/SafeImage';
 import { CategoryCardSkeleton } from '@/components/SkeletonLoader';
+import AmazonStyleProductCard from '@/components/AmazonStyleProductCard';
 
 const { width } = Dimensions.get('window');
 const BANNER_WIDTH = width - Spacing.md * 2;
+
+// بيانات المنتجات التجريبية - 10 منتجات متنوعة
+// كومبونت لعرض بطاقة Amazon فقط
+const ProductCardDisplay = ({ product, language, formatPrice }: any) => {
+  const handlePress = () => {
+    console.log('Product pressed:', product.id);
+  };
+
+  const handleWishlist = (productId: string) => {
+    console.log('Wishlist toggled for:', productId);
+  };
+
+  return (
+    <AmazonStyleProductCard
+      product={product}
+      onPress={handlePress}
+      formatPrice={formatPrice}
+      language={language}
+      onToggleWishlist={handleWishlist}
+      isInWishlist={false}
+    />
+  );
+};
 
 export default function HomeScreen() {
   const { language, changeLanguage } = useApp();
   const { user } = useAuth();
   const router = useRouter();
   const { categories, loading: categoriesLoading, refetch: refetchCategories } = useCategories();
+  
+  // جلب المنتجات المميزة من Firebase
+  const { products: featuredProducts, loading: productsLoading } = useProducts({ 
+    featured: true, 
+    limit: 10 
+  });
+
+  // دالة تنسيق السعر
+  const formatPrice = (price: number) => {
+    if (language === 'ar') {
+      return `${price.toFixed(2)} ريال`;
+    }
+    return `$${price.toFixed(2)}`;
+  };
 
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
 
@@ -208,6 +246,19 @@ export default function HomeScreen() {
                 if (Platform.OS !== 'web') {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 }
+                router.push('/view-firebase-products' as any);
+              }}
+            >
+              <Feather name="database" size={20} color={Colors.white} />
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.notificationButton}
+              activeOpacity={0.7}
+              onPress={() => {
+                if (Platform.OS !== 'web') {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }
                 router.push('/notifications' as any);
               }}
             >
@@ -371,7 +422,60 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Products section removed - بطاقات المنتجات محذوفة */}
+        {/* Products Section - قسم المنتجات */}
+        <View style={styles.productsSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>
+              {language === 'ar' ? 'تصفح منتجاتنا المميزة' : 'Scroll to see our products'}
+            </Text>
+            <TouchableOpacity onPress={() => router.push('/featured-products')}>
+              <Text style={styles.viewAllText}>
+                {language === 'ar' ? 'عرض الكل' : 'See All'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Amazon Products Grid - المنتجات المميزة من Firebase */}
+          <View style={styles.productsGrid}>
+            {productsLoading ? (
+              // عرض skeleton loading أثناء التحميل
+              Array(5).fill(null).map((_, rowIndex) => (
+                <View key={`skeleton-row-${rowIndex}`} style={styles.productsRow}>
+                  {Array(2).fill(null).map((_, colIndex) => (
+                    <View key={`skeleton-${rowIndex}-${colIndex}`} style={styles.productCardSkeleton}>
+                      <View style={styles.skeletonImage} />
+                      <View style={styles.skeletonContent}>
+                        <View style={styles.skeletonText} />
+                        <View style={[styles.skeletonText, { width: '60%' }]} />
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ))
+            ) : featuredProducts && featuredProducts.length > 0 ? (
+              // عرض المنتجات المميزة من Firebase
+              Array(Math.ceil(featuredProducts.slice(0, 10).length / 2)).fill(null).map((_, rowIndex) => (
+                <View key={`row-${rowIndex}`} style={styles.productsRow}>
+                  {featuredProducts.slice(rowIndex * 2, (rowIndex + 1) * 2).map((product, index: number) => (
+                    <ProductCardDisplay 
+                      key={product.id}
+                      product={product}
+                      language={language}
+                      formatPrice={formatPrice}
+                    />
+                  ))}
+                </View>
+              ))
+            ) : (
+              // عرض رسالة عدم وجود منتجات
+              <View style={styles.noProductsContainer}>
+                <Text style={styles.noProductsText}>
+                  {language === 'ar' ? 'لا توجد منتجات مميزة حالياً' : 'No featured products available'}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
       </ScrollView>
 
       <Modal
@@ -804,11 +908,13 @@ const styles = StyleSheet.create({
     fontWeight: FontWeights.semibold,
   },
   productsGrid: {
+    gap: Spacing.xs, // مسافة أقل بين الصفوف
+  },
+  productsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 8,
+    marginBottom: Spacing.xs, // مسافة أقل بين الصفوف
+    paddingHorizontal: 2, // مسافة صغيرة من الجانبين
   },
   modalOverlay: {
     flex: 1,
@@ -870,6 +976,44 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     color: Colors.text.secondary,
     marginTop: Spacing.sm,
+    textAlign: 'center',
+    fontWeight: FontWeights.medium,
+  },
+  // Skeleton loading styles
+  productCardSkeleton: {
+    flex: 1,
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
+    marginHorizontal: Spacing.xs,
+    ...Shadows.sm,
+  },
+  skeletonImage: {
+    width: '100%',
+    height: 120,
+    backgroundColor: Colors.gray[200],
+    borderRadius: BorderRadius.sm,
+    marginBottom: Spacing.sm,
+  },
+  skeletonContent: {
+    flex: 1,
+  },
+  skeletonText: {
+    height: 12,
+    backgroundColor: Colors.gray[200],
+    borderRadius: 6,
+    marginBottom: Spacing.xs,
+  },
+  // No products container
+  noProductsContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.xl,
+  },
+  noProductsText: {
+    fontSize: FontSizes.md,
+    color: Colors.text.secondary,
     textAlign: 'center',
     fontWeight: FontWeights.medium,
   },

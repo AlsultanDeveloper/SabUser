@@ -32,8 +32,173 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
   isInWishlist = false,
 }: AmazonStyleProductCardProps) {
   
-  // Product cards are hidden - بطاقات المنتجات مخفية
-  return null;
+  const handleWishlistPress = () => {
+    if (Platform.OS === 'ios') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    onToggleWishlist?.(product.id);
+  };
+
+  const handlePress = () => {
+    if (Platform.OS === 'ios') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    onPress();
+  };
+
+  // استخراج اسم المنتج حسب اللغة
+  const getProductName = () => {
+    if (typeof product.name === 'object' && product.name !== null) {
+      // البنية الجديدة: {en: "...", ar: "..."}
+      const nameByLanguage = language === 'ar' ? product.name.ar : product.name.en;
+      return typeof nameByLanguage === 'string' && nameByLanguage.trim() ? nameByLanguage : 'Product Name';
+    } else if (typeof product.name === 'string' && product.name.trim()) {
+      // البنية القديمة: nameAr منفصل
+      return language === 'ar' ? (product.nameAr || product.name) : product.name;
+    }
+    return 'Product Name';
+  };
+
+  // حساب السعر بعد الخصم
+  const hasDiscount = product.discount && product.discount > 0 && typeof product.discount === 'number';
+  const basePrice = typeof product.price === 'number' && !isNaN(product.price) && product.price > 0 ? product.price : 0;
+  const discountedPrice = hasDiscount 
+    ? basePrice * (1 - product.discount / 100) 
+    : basePrice;
+  
+  // حساب المدخرات
+  const savings = hasDiscount ? basePrice - discountedPrice : 0;
+
+  // عرض النجوم
+  const renderStars = () => {
+    const rating = typeof product.rating === 'number' && !isNaN(product.rating) ? product.rating : 0;
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      stars.push(
+        <Feather
+          key={i}
+          name="star"
+          size={12}
+          color={i <= rating ? '#FFA41B' : '#E5E5E5'}
+          style={{ marginRight: 1 }}
+        />
+      );
+    }
+    return stars;
+  };
+
+  return (
+    <View style={styles.container}>
+      <TouchableOpacity onPress={handlePress} activeOpacity={0.95}>
+        {/* قسم الصورة */}
+        <View style={styles.imageContainer}>
+          <SafeImage 
+            uri={product.image || product.imageUrl || 'https://via.placeholder.com/200'} 
+            style={styles.productImage} 
+          />
+          
+          {/* شارة الخصم */}
+          {hasDiscount && (
+            <View style={styles.discountBadge}>
+              <Text style={styles.discountText}>-{product.discount}%</Text>
+            </View>
+          )}
+
+          {/* زر المفضلة */}
+          {onToggleWishlist && (
+            <TouchableOpacity
+              style={styles.wishlistButton}
+              onPress={handleWishlistPress}
+              activeOpacity={0.7}
+            >
+              <Feather
+                name="heart"
+                size={16}
+                color={isInWishlist ? '#FF6B6B' : '#666'}
+                style={{ opacity: isInWishlist ? 1 : 0.7 }}
+              />
+            </TouchableOpacity>
+          )}
+
+          {/* شارة العلامة التجارية */}
+          {((product.brandName && typeof product.brandName === 'string') || 
+            (product.brand && typeof product.brand === 'string')) && (
+            <View style={styles.brandBadge}>
+              <Text style={styles.brandBadgeText} numberOfLines={1}>
+                {product.brandName || product.brand}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* معلومات المنتج */}
+        <View style={styles.productInfo}>
+          {/* اسم العلامة التجارية */}
+          {((product.brandName && typeof product.brandName === 'string') || 
+            (product.brand && typeof product.brand === 'string')) && (
+            <Text style={styles.brandText} numberOfLines={1}>
+              {product.brandName || product.brand}
+            </Text>
+          )}
+
+          {/* اسم المنتج */}
+          <Text style={styles.productName} numberOfLines={2}>
+            {getProductName()}
+          </Text>
+
+          {/* التقييم والمراجعات */}
+          {product.rating && typeof product.rating === 'number' && product.rating > 0 && (
+            <View style={styles.ratingContainer}>
+              <View style={styles.starsContainer}>
+                {renderStars()}
+              </View>
+              <Text style={styles.ratingText}>
+                {typeof product.rating === 'number' && !isNaN(product.rating) 
+                  ? product.rating.toFixed(1) 
+                  : '0.0'}
+              </Text>
+              {(product.reviews || product.reviewsCount) && (
+                <Text style={styles.reviewsText}>
+                  ({typeof (product.reviews || product.reviewsCount) === 'number' 
+                    ? (product.reviews || product.reviewsCount).toLocaleString() 
+                    : '0'})
+                </Text>
+              )}
+            </View>
+          )}
+
+          {/* قسم الأسعار */}
+          <View style={styles.priceSection}>
+            <View style={styles.priceRow}>
+              {hasDiscount && (
+                <Text style={styles.originalPrice}>
+                  {formatPrice(basePrice) || '0 ر.س'}
+                </Text>
+              )}
+              <Text style={styles.currentPrice}>
+                {formatPrice(discountedPrice) || '0 ر.س'}
+              </Text>
+              {savings > 0 && (
+                <View style={styles.savingsBadge}>
+                  <Text style={styles.savingsText}>
+                    {language === 'ar' ? 'وفر' : 'Save'} {formatPrice(savings) || '0'}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* معلومات الشحن */}
+          <View style={styles.shippingContainer}>
+            <Feather name="truck" size={12} color="#007185" />
+            <Text style={styles.shippingText}>
+              {language === 'ar' ? 'شحن مجاني' : 'FREE Shipping'}
+            </Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    </View>
+  );
 });
 
 const styles = StyleSheet.create({
@@ -41,7 +206,7 @@ const styles = StyleSheet.create({
     width: CARD_WIDTH,
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
-    marginBottom: 16,
+    marginBottom: 8, // تقليل المسافة السفلية
     shadowColor: '#000',
     shadowOffset: {
       width: 0,

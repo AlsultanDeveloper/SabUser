@@ -1,464 +1,346 @@
-import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Animated,
   TextInput,
-  Platform,
   ScrollView,
+  SafeAreaView,
+  Image,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
-import { useApp } from '@/contexts/AppContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Feather, MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Colors, Spacing, BorderRadius, FontSizes, Shadows, FontWeights } from '@/constants/theme';
-import SafeImage from '@/components/SafeImage';
 import { useCategories } from '@/hooks/useFirestore';
-import type { Category, Language } from '@/types';
+import type { Category } from '@/types';
 
-export default function CategoriesScreen() {
-  const { t, language } = useApp();
-  const [searchQuery, setSearchQuery] = useState('');
-  const { categories, loading, error, refetch } = useCategories();
-  const [cachedCategories, setCachedCategories] = useState<Category[]>([]);
+interface CategoryCardProps {
+  category: Category;
+  language: string;
+  onPress: () => void;
+}
 
-  useEffect(() => {
-    loadCachedCategories();
-  }, []);
+const CategoryCard: React.FC<CategoryCardProps> = ({ category, language, onPress }) => {
+  const categoryName = typeof category.name === 'object' 
+    ? (language === 'ar' ? category.name.ar : category.name.en)
+    : category.name;
 
-  useEffect(() => {
-    if (categories.length > 0) {
-      cacheCategories(categories);
-      setCachedCategories(categories);
-    }
-  }, [categories]);
-
-  const loadCachedCategories = async () => {
-    try {
-      const cached = await AsyncStorage.getItem('cached_categories');
-      if (cached) {
-        setCachedCategories(JSON.parse(cached));
-      }
-    } catch (error) {
-      console.error('Error loading cached categories:', error);
-    }
-  };
-
-  const cacheCategories = async (cats: Category[]) => {
-    try {
-      await AsyncStorage.setItem('cached_categories', JSON.stringify(cats));
-    } catch (error) {
-      console.error('Error caching categories:', error);
-    }
-  };
-
-  const displayCategories = useMemo(() => {
-    return categories.length > 0 ? categories : cachedCategories;
-  }, [categories, cachedCategories]);
-
-  const filteredCategories = searchQuery
-    ? displayCategories.filter((cat) => {
-        const name = typeof cat.name === 'string' ? cat.name : (cat.name?.[language] || cat.name?.en || '');
-        return name.toLowerCase().includes(searchQuery.toLowerCase());
-      })
-    : displayCategories;
+  const subcategoryCount = category.subcategories?.length || 0;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.searchBarContainer}>
-        <View style={styles.searchContainer}>
-          <Feather name="search" size={18} color={Colors.gray[400]} style={styles.searchIcon} />
+    <TouchableOpacity style={styles.categoryCard} onPress={onPress} activeOpacity={0.8}>
+      <View style={styles.categoryImageContainer}>
+        <Image 
+          source={{ uri: category.image || 'https://via.placeholder.com/150/E8F4FD/333?text=No+Image' }} 
+          style={styles.categoryImage}
+          resizeMode="cover"
+        />
+      </View>
+      <View style={styles.categoryContent}>
+        <Text style={styles.categoryTitle} numberOfLines={2}>
+          {categoryName}
+        </Text>
+        {subcategoryCount > 0 && (
+          <Text style={styles.subcategoryCount}>
+            {subcategoryCount} {language === 'ar' ? 'فئة فرعية' : 'subcategories'}
+          </Text>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+// Loading skeleton component
+const CategorySkeleton = () => (
+  <View style={styles.categoryCard}>
+    <View style={[styles.categoryImageContainer, styles.skeletonImage]} />
+    <View style={styles.categoryContent}>
+      <View style={[styles.skeletonText, { width: '80%' }]} />
+      <View style={[styles.skeletonText, { width: '60%', height: 12 }]} />
+    </View>
+  </View>
+);
+
+export default function Categories() {
+  const [language, setLanguage] = useState('ar');
+  const [searchQuery, setSearchQuery] = useState('');
+  const { categories, loading, error, refetch } = useCategories();
+
+  const filteredCategories = searchQuery 
+    ? categories.filter(category => {
+        const name = typeof category.name === 'object' 
+          ? (language === 'ar' ? category.name.ar : category.name.en)
+          : category.name;
+        return name.toLowerCase().includes(searchQuery.toLowerCase());
+      })
+    : categories;
+
+  const handleCategoryPress = (category: Category) => {
+    console.log('Category pressed:', category.name);
+    // Navigate to category subcategories page
+    router.push(`/category/${category.id}`);
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* Search Bar - Amazon Style */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchBar}>
+          <Feather name="search" size={20} color="#666" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder={t('common.search')}
-            placeholderTextColor={Colors.gray[400]}
+            placeholder={language === 'ar' ? 'ابحث في SABSTORE' : 'Search SABSTORE'}
+            placeholderTextColor="#666"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
-              <Feather name="x-circle" size={18} color={Colors.gray[400]} />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity style={styles.cameraButton}>
+            <MaterialIcons name="camera-alt" size={20} color="#666" />
+          </TouchableOpacity>
         </View>
       </View>
 
-      {loading && cachedCategories.length === 0 ? (
-        <View style={styles.skeletonContainer}>
-          <View style={styles.skeletonGrid}>
-            {[1, 2, 3, 4, 5, 6].map((item) => (
-              <SkeletonCard key={item} />
+      {/* Header with Language Toggle */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>
+          {language === 'ar' ? 'تسوق حسب الفئة' : 'Shop by category'}
+        </Text>
+        <TouchableOpacity onPress={() => setLanguage(prev => prev === 'ar' ? 'en' : 'ar')}>
+          <Text style={styles.langButton}>
+            {language === 'ar' ? 'EN' : 'عربي'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Content */}
+      <ScrollView 
+        style={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {loading ? (
+          // Loading State
+          <View style={styles.categoriesGrid}>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((item) => (
+              <CategorySkeleton key={item} />
             ))}
           </View>
-        </View>
-      ) : error ? (
-        <View style={styles.errorContainer}>
-          <Feather name="alert-circle" size={64} color={Colors.error} />
-          <Text style={styles.errorTitle}>{t('common.error')}</Text>
-          <Text style={styles.errorText}>{t('categories.errorLoadingCategories')}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
-            <Feather name="refresh-cw" size={20} color={Colors.white} />
-            <Text style={styles.retryButtonText}>{t('categories.tryAgain')}</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.grid}>
-            {filteredCategories.map((category, index) => (
+        ) : error ? (
+          // Error State
+          <View style={styles.errorContainer}>
+            <Feather name="wifi-off" size={64} color="#666" />
+            <Text style={styles.errorTitle}>
+              {language === 'ar' ? 'خطأ في التحميل' : 'Loading Error'}
+            </Text>
+            <Text style={styles.errorText}>
+              {language === 'ar' ? 'تحقق من اتصال الإنترنت' : 'Check your internet connection'}
+            </Text>
+            <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
+              <Feather name="refresh-cw" size={20} color="#fff" />
+              <Text style={styles.retryText}>
+                {language === 'ar' ? 'إعادة المحاولة' : 'Try Again'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          // Categories Grid
+          <View style={styles.categoriesGrid}>
+            {filteredCategories.map((category) => (
               <CategoryCard
                 key={category.id}
                 category={category}
                 language={language}
-                index={index}
+                onPress={() => handleCategoryPress(category)}
               />
             ))}
+            
+            {filteredCategories.length === 0 && (
+              <View style={styles.emptyContainer}>
+                <Feather name="search" size={64} color="#ccc" />
+                <Text style={styles.emptyText}>
+                  {language === 'ar' ? 'لا توجد فئات' : 'No categories found'}
+                </Text>
+              </View>
+            )}
           </View>
-
-          {filteredCategories.length === 0 && (
-            <View style={styles.emptyContainer}>
-              <Feather name="search" size={64} color={Colors.gray[300]} />
-              <Text style={styles.emptyTitle}>{t('categories.noProducts')}</Text>
-              <Text style={styles.emptyDescription}>{t('categories.tryDifferentKeywords')}</Text>
-            </View>
-          )}
-        </ScrollView>
-      )}
-    </View>
-  );
-}
-
-interface CategoryCardProps {
-  category: Category;
-  language: Language;
-  index: number;
-}
-
-function SkeletonCard() {
-  const pulseAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 0,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, [pulseAnim]);
-
-  const opacity = pulseAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.3, 0.7],
-  });
-
-  return (
-    <Animated.View style={[styles.skeletonCard, { opacity }]}>
-      <View style={styles.skeletonImage} />
-      <View style={styles.skeletonTextContainer}>
-        <View style={styles.skeletonText} />
-        <View style={styles.skeletonTextSmall} />
-      </View>
-    </Animated.View>
-  );
-}
-
-function CategoryCard({ category, language, index }: CategoryCardProps) {
-  const { t } = useApp();
-  const scaleAnim = useRef(new Animated.Value(0)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-
-  React.useEffect(() => {
-    Animated.parallel([
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        delay: index * 50,
-        useNativeDriver: true,
-        friction: 8,
-      }),
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        delay: index * 50,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [fadeAnim, index, scaleAnim]);
-
-  const handlePressIn = useCallback(() => {
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-    Animated.spring(scaleAnim, {
-      toValue: 0.95,
-      useNativeDriver: true,
-      friction: 8,
-    }).start();
-  }, [scaleAnim]);
-
-  const handlePressOut = useCallback(() => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      friction: 8,
-    }).start();
-  }, [scaleAnim]);
-
-  const handlePress = useCallback(() => {
-    // Navigate to category details page instead of opening modal
-    router.push(`/category/${category.id}` as any);
-  }, [category.id]);
-
-  return (
-    <Animated.View
-      style={[
-        styles.categoryCard,
-        {
-          opacity: fadeAnim,
-          transform: [{ scale: scaleAnim }],
-        },
-      ]}
-    >
-      <TouchableOpacity
-        activeOpacity={1}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        onPress={handlePress}
-      >
-        <View style={styles.imageContainer}>
-          <SafeImage 
-            uri={category.image || 'https://via.placeholder.com/300'} 
-            style={styles.categoryImage} 
-          />
-          <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.85)']}
-            style={styles.categoryOverlay}
-          >
-            <View style={styles.categoryInfo}>
-              <Text style={styles.categoryName} numberOfLines={2}>
-                {typeof category.name === 'string' ? category.name : (category.name?.[language] || category.name?.en || 'Category')}
-              </Text>
-              {category.subcategories && category.subcategories.length > 0 && (
-                <View style={styles.categoryBadge}>
-                  <Text style={styles.categoryBadgeText}>
-                    {category.subcategories.length} {category.subcategories.length === 1 ? t('categories.subcategory') : t('categories.subcategories')}
-                  </Text>
-                </View>
-              )}
-            </View>
-            <TouchableOpacity style={styles.arrowButton} activeOpacity={0.8}>
-              <Feather name="arrow-right" size={20} color={Colors.white} />
-            </TouchableOpacity>
-          </LinearGradient>
-        </View>
-      </TouchableOpacity>
-    </Animated.View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#FFFFFF',
   },
-  searchBarContainer: {
-    backgroundColor: Colors.white,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray[200],
-  },
+  // Amazon Search Bar Style
   searchContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
+  },
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.gray[100],
-    borderRadius: BorderRadius.xl,
-    paddingLeft: Spacing.md,
-    paddingRight: Spacing.sm,
-    height: 48,
+    backgroundColor: '#F8F8F8',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   searchIcon: {
-    marginRight: Spacing.sm,
+    marginRight: 8,
   },
   searchInput: {
     flex: 1,
-    fontSize: FontSizes.md,
-    color: Colors.text.primary,
-    fontWeight: FontWeights.medium,
+    fontSize: 16,
+    color: '#333',
+    paddingVertical: 0,
   },
-  clearButton: {
-    padding: Spacing.sm,
+  cameraButton: {
+    padding: 6,
+    borderRadius: 4,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
-  scrollView: {
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#000',
+  },
+  langButton: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#007185',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
+    backgroundColor: '#E3F2FD',
+  },
+  scrollContainer: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   scrollContent: {
-    padding: Spacing.md,
+    padding: 16,
+    paddingBottom: 32,
   },
-  grid: {
-  flexDirection: 'row',
-  flexWrap: 'wrap',
-  gap: Spacing.sm,
+  // Amazon Grid Style - 3 columns exactly
+  categoriesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
   categoryCard: {
-  width: '48%',
-  aspectRatio: 0.85,
-  borderRadius: BorderRadius.xl,
-  overflow: 'hidden',
-  marginBottom: Spacing.sm,
-  ...Shadows.lg,
+    width: '31.5%', // 3 columns with small gaps
+    marginBottom: 16,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    overflow: 'hidden',
+    // Amazon card shadow
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  imageContainer: {
-    width: '100%',
-    height: '100%',
-    position: 'relative',
+  categoryImageContainer: {
+    height: 90,
+    backgroundColor: '#E8F4FD', // Light blue like Amazon
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   categoryImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
   },
-  categoryOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'flex-end',
-    padding: Spacing.md,
+  categoryContent: {
+    padding: 8,
   },
-  categoryInfo: {
-    flex: 1,
-    justifyContent: 'flex-end',
+  categoryTitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#000',
+    textAlign: 'left',
+    lineHeight: 16,
   },
-  categoryName: {
-    color: Colors.white,
-    fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
-    marginBottom: Spacing.sm,
+  subcategoryCount: {
+    fontSize: 11,
+    color: '#666',
+    marginTop: 2,
   },
-  categoryBadge: {
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.md,
-    alignSelf: 'flex-start',
-    backdropFilter: 'blur(10px)',
-  },
-  categoryBadgeText: {
-    color: Colors.white,
-    fontSize: FontSizes.xs,
-    fontWeight: FontWeights.semibold,
-  },
-  arrowButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignSelf: 'flex-end',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: Spacing.xxl * 2,
-  },
-  emptyTitle: {
-    fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
-    color: Colors.text.primary,
-    marginTop: Spacing.lg,
-  },
-  emptyDescription: {
-    fontSize: FontSizes.md,
-    color: Colors.text.secondary,
-    marginTop: Spacing.sm,
-    textAlign: 'center',
-    fontWeight: FontWeights.medium,
-  },
-  skeletonContainer: {
-    flex: 1,
-    padding: Spacing.md,
-  },
-  skeletonGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.md,
-  },
-  skeletonCard: {
-    width: '48%',
-    aspectRatio: 0.85,
-    borderRadius: BorderRadius.xl,
-    backgroundColor: Colors.gray[200],
-    overflow: 'hidden',
-  },
+  // Loading skeleton styles
   skeletonImage: {
-    flex: 1,
-    backgroundColor: Colors.gray[300],
-  },
-  skeletonTextContainer: {
-    position: 'absolute',
-    bottom: Spacing.md,
-    left: Spacing.md,
-    right: Spacing.md,
+    backgroundColor: '#E0E0E0',
   },
   skeletonText: {
-    height: 16,
-    backgroundColor: Colors.gray[300],
+    height: 14,
+    backgroundColor: '#E0E0E0',
     borderRadius: 4,
-    marginBottom: Spacing.xs,
-    width: '70%',
+    marginBottom: 4,
   },
-  skeletonTextSmall: {
-    height: 12,
-    backgroundColor: Colors.gray[300],
-    borderRadius: 4,
-    width: '40%',
-  },
+  // Error state styles
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: Spacing.xl,
+    paddingVertical: 60,
   },
   errorTitle: {
-    fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
-    color: Colors.text.primary,
-    marginTop: Spacing.lg,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginTop: 16,
+    marginBottom: 8,
   },
   errorText: {
-    fontSize: FontSizes.md,
-    color: Colors.text.secondary,
-    marginTop: Spacing.sm,
+    fontSize: 14,
+    color: '#666',
     textAlign: 'center',
-    fontWeight: FontWeights.medium,
+    marginBottom: 24,
   },
   retryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    marginTop: Spacing.lg,
+    backgroundColor: '#007185',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 8,
   },
-  retryButtonText: {
-    color: Colors.white,
-    fontSize: FontSizes.md,
-    fontWeight: FontWeights.bold,
+  retryText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  // Empty state styles
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 16,
   },
 });

@@ -30,8 +30,156 @@ const NewProductCard = React.memo(function NewProductCard({
   isInWishlist 
 }: ProductCardProps) {
 
-  // Product cards are hidden - بطاقات المنتجات مخفية
-  return null;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handleWishlistPress = useCallback(() => {
+    if (Platform.OS === 'ios') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    onToggleWishlist?.(product.id);
+  }, [product.id, onToggleWishlist]);
+
+  const handlePressIn = useCallback(() => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.95,
+      useNativeDriver: true,
+    }).start();
+  }, [scaleAnim]);
+
+  const handlePressOut = useCallback(() => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+    }).start();
+  }, [scaleAnim]);
+
+  const handlePress = useCallback(() => {
+    if (Platform.OS === 'ios') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    onPress();
+  }, [onPress]);
+
+  // حساب السعر بعد الخصم
+  const hasDiscount = product.discount && product.discount > 0;
+  const discountedPrice = hasDiscount 
+    ? product.price * (1 - product.discount / 100) 
+    : product.price;
+
+  // عرض النجوم
+  const renderStars = () => {
+    const rating = product.rating || 0;
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      stars.push(
+        <Feather
+          key={i}
+          name="star"
+          size={12}
+          color={i <= rating ? '#FFD700' : '#E5E5E5'}
+          style={{ marginRight: 1 }}
+        />
+      );
+    }
+    return stars;
+  };
+
+  return (
+    <Animated.View style={[styles.container, { transform: [{ scale: scaleAnim }] }]}>
+      <TouchableOpacity 
+        style={styles.touchable}
+        onPress={handlePress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={0.95}
+      >
+        {/* حاوي الصورة */}
+        <View style={styles.imageContainer}>
+          <SafeImage 
+            uri={product.image || product.imageUrl || 'https://via.placeholder.com/200'} 
+            style={styles.image} 
+          />
+          
+          {/* شارة العلامة التجارية */}
+          {(product.brandName || product.brand) && (
+            <View style={styles.brandBadge}>
+              <Text style={styles.brandBadgeText} numberOfLines={1}>
+                {product.brandName || product.brand}
+              </Text>
+            </View>
+          )}
+
+          {/* زر المفضلة */}
+          {onToggleWishlist && (
+            <TouchableOpacity
+              style={styles.wishlistButton}
+              onPress={handleWishlistPress}
+              activeOpacity={0.7}
+            >
+              <Feather
+                name="heart"
+                size={18}
+                color={isInWishlist ? Colors.error : Colors.text.secondary}
+                style={{ opacity: isInWishlist ? 1 : 0.7 }}
+              />
+            </TouchableOpacity>
+          )}
+
+          {/* شارة الخصم */}
+          {hasDiscount && (
+            <View style={styles.discountBadge}>
+              <Text style={styles.discountText}>-{product.discount}%</Text>
+            </View>
+          )}
+        </View>
+
+        {/* معلومات المنتج */}
+        <View style={styles.infoContainer}>
+          {/* العلامة التجارية */}
+          {(product.brandName || product.brand) && (
+            <Text style={styles.brandText} numberOfLines={1}>
+              {product.brandName || product.brand}
+            </Text>
+          )}
+
+          {/* اسم المنتج */}
+          <Text style={styles.nameText} numberOfLines={2}>
+            {language === 'ar' ? (product.nameAr || product.name) : (product.name || product.nameAr)}
+          </Text>
+
+          {/* الفئة */}
+          {product.category && (
+            <Text style={styles.categoryText} numberOfLines={1}>
+              {language === 'ar' ? (product.categoryAr || product.category) : (product.category || product.categoryAr)}
+            </Text>
+          )}
+
+          {/* التقييم */}
+          {product.rating && (
+            <View style={styles.ratingContainer}>
+              {renderStars()}
+              <Text style={styles.ratingText}>{product.rating.toFixed(1)}</Text>
+              {product.reviewsCount && (
+                <Text style={styles.reviewsText}>({product.reviewsCount})</Text>
+              )}
+            </View>
+          )}
+
+          {/* الأسعار */}
+          <View style={styles.priceContainer}>
+            <Text style={styles.priceText}>
+              {formatPrice(discountedPrice)}
+            </Text>
+            {hasDiscount && (
+              <Text style={styles.originalPriceText}>
+                {formatPrice(product.price)}
+              </Text>
+            )}
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
 });
 
 const styles = StyleSheet.create({

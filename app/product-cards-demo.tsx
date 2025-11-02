@@ -1,0 +1,242 @@
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, Stack } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
+import { Colors, Spacing, BorderRadius, FontSizes, FontWeights } from '@/constants/theme';
+import AmazonStyleProductCard from '@/components/AmazonStyleProductCard';
+
+// بيانات المنتجات التجريبية
+const sampleProducts = [
+  {
+    id: '1',
+    name: 'Wireless Headphones',
+    nameAr: 'سماعات لاسلكية',
+    price: 99.99,
+    discount: 20,
+    image: 'https://via.placeholder.com/200/4F46E5/FFFFFF?text=Headphones',
+    brand: 'TechBrand',
+    rating: 4.5,
+    reviewsCount: 128,
+    colors: ['#000000', '#FFFFFF', '#0066CC'],
+    isNew: true,
+    freeShipping: true,
+  },
+  {
+    id: '2',
+    name: 'Summer Dress',
+    nameAr: 'فستان صيفي',
+    price: 45.00,
+    discount: 30,
+    images: [
+      'https://via.placeholder.com/200/EC4899/FFFFFF?text=Dress1',
+      'https://via.placeholder.com/200/F59E0B/FFFFFF?text=Dress2',
+      'https://via.placeholder.com/200/10B981/FFFFFF?text=Dress3',
+    ],
+    image: 'https://via.placeholder.com/200/EC4899/FFFFFF?text=Dress',
+    brand: 'FashionBrand',
+    rating: 4.3,
+    reviewsCount: 89,
+    colors: ['#FF69B4', '#00CED1', '#FFD700'],
+    isTrending: true,
+    fastShipping: true,
+  },
+  {
+    id: '3',
+    name: 'Smart Watch',
+    nameAr: 'ساعة ذكية',
+    price: 199.99,
+    image: 'https://via.placeholder.com/200/10B981/FFFFFF?text=Watch',
+    brand: 'SmartTech',
+    rating: 4.8,
+    reviewsCount: 456,
+    freeShipping: true,
+  },
+  {
+    id: '4',
+    name: 'Gaming Mouse',
+    nameAr: 'فأرة ألعاب',
+    price: 79.99,
+    discount: 15,
+    image: 'https://via.placeholder.com/200/6366F1/FFFFFF?text=Mouse',
+    brand: 'GameGear',
+    rating: 4.6,
+    reviewsCount: 234,
+    isNew: true,
+  },
+];
+
+export default function ProductCardsDemo() {
+  const router = useRouter();
+  const [language, setLanguage] = useState('ar');
+  const [wishlist, setWishlist] = useState<string[]>([]);
+
+  const formatPrice = (price: number) => {
+    if (language === 'ar') {
+      return `${price.toFixed(2)} ريال`;
+    }
+    return `$${price.toFixed(2)}`;
+  };
+
+  const handleProductPress = (product: any) => {
+    console.log('Product pressed:', product.name);
+    // يمكنك هنا التنقل إلى صفحة تفاصيل المنتج
+  };
+
+  const handleToggleWishlist = (productId: string) => {
+    setWishlist(prev => 
+      prev.includes(productId) 
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+    );
+  };
+
+  const toggleLanguage = () => {
+    setLanguage(prev => prev === 'ar' ? 'en' : 'ar');
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
+      
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Feather name="arrow-left" size={24} color={Colors.text.primary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>
+          {language === 'ar' ? 'تصفح منتجاتنا' : 'Browse our products'}
+        </Text>
+        <TouchableOpacity onPress={toggleLanguage}>
+          <Text style={styles.langButton}>
+            {language === 'ar' ? 'EN' : 'عربي'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        
+        {/* Amazon Style Cards - الأفضل على الإطلاق! */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            {language === 'ar' ? 'منتجاتنا المميزة' : 'Our Featured Products'}
+          </Text>
+          
+          {/* الصف الأول - Wireless Headphones & Summer Dress */}
+          <View style={styles.cardsRow}>
+            {sampleProducts.slice(0, 2).map((product) => (
+              <AmazonStyleProductCard
+                key={product.id}
+                product={product}
+                onPress={() => handleProductPress(product)}
+                formatPrice={formatPrice}
+                language={language}
+                onToggleWishlist={handleToggleWishlist}
+                isInWishlist={wishlist.includes(product.id)}
+              />
+            ))}
+          </View>
+          
+          {/* الصف الثاني - Smart Watch & Gaming Mouse */}
+          <View style={styles.cardsRow}>
+            {sampleProducts.slice(2, 4).map((product) => (
+              <AmazonStyleProductCard
+                key={product.id}
+                product={product}
+                onPress={() => handleProductPress(product)}
+                formatPrice={formatPrice}
+                language={language}
+                onToggleWishlist={handleToggleWishlist}
+                isInWishlist={wishlist.includes(product.id)}
+              />
+            ))}
+          </View>
+        </View>
+
+        {/* معلومات إضافية */}
+        <View style={styles.infoSection}>
+          <Text style={styles.infoTitle}>
+            {language === 'ar' ? '⭐ لماذا نحن الأفضل؟' : '⭐ Why Choose Us?'}
+          </Text>
+          <Text style={styles.infoText}>
+            {language === 'ar' 
+              ? '🎯 تصميم احترافي وأنيق\n✨ تجربة تسوق ممتعة\n❤️ إضافة للمفضلة بسهولة\n⭐ تقييمات العملاء الحقيقية\n💰 أسعار تنافسية مع خصومات\n🚚 شحن مجاني على جميع المنتجات\n📱 تجربة تفاعلية متطورة'
+              : '🎯 Professional and elegant design\n✨ Enjoyable shopping experience\n❤️ Easy wishlist management\n⭐ Real customer reviews\n💰 Competitive prices with discounts\n🚚 Free shipping on all products\n📱 Advanced interactive experience'
+            }
+          </Text>
+        </View>
+
+        <View style={{ height: 50 }} />
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border.light,
+    backgroundColor: Colors.surface,
+  },
+  headerTitle: {
+    fontSize: FontSizes.lg,
+    fontWeight: FontWeights.bold,
+    color: Colors.text.primary,
+  },
+  langButton: {
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
+    fontWeight: FontWeights.semibold,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: Colors.primary + '15',
+    borderRadius: BorderRadius.md,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  section: {
+    paddingHorizontal: Spacing.md,
+    marginTop: Spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: FontSizes.xl,
+    fontWeight: FontWeights.bold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.md,
+  },
+  cardsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: Spacing.md,
+    marginBottom: Spacing.xs, // مسافة أقل بين الصفوف
+  },
+  infoSection: {
+    margin: Spacing.md,
+    padding: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.primary,
+  },
+  infoTitle: {
+    fontSize: FontSizes.lg,
+    fontWeight: FontWeights.bold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.sm,
+  },
+  infoText: {
+    fontSize: FontSizes.sm,
+    color: Colors.text.secondary,
+    lineHeight: 20,
+  },
+});
