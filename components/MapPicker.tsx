@@ -108,7 +108,7 @@ export default function MapPicker({
   };
 
   // Get Google Maps API Key from environment
-  const GOOGLE_MAPS_API_KEY = 'AIzaSyDMt-RGeUT1wtUDepRCRoGu0Q05I4RD-2o';
+  const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   // HTML content with Google Maps
   const getMapHTML = () => {

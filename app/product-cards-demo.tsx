@@ -6,65 +6,8 @@ import { Feather } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius, FontSizes, FontWeights } from '@/constants/theme';
 import AmazonStyleProductCard from '@/components/AmazonStyleProductCard';
 
-// بيانات المنتجات التجريبية
-const sampleProducts = [
-  {
-    id: '1',
-    name: 'Wireless Headphones',
-    nameAr: 'سماعات لاسلكية',
-    price: 99.99,
-    discount: 20,
-    image: 'https://via.placeholder.com/200/4F46E5/FFFFFF?text=Headphones',
-    brand: 'TechBrand',
-    rating: 4.5,
-    reviewsCount: 128,
-    colors: ['#000000', '#FFFFFF', '#0066CC'],
-    isNew: true,
-    freeShipping: true,
-  },
-  {
-    id: '2',
-    name: 'Summer Dress',
-    nameAr: 'فستان صيفي',
-    price: 45.00,
-    discount: 30,
-    images: [
-      'https://via.placeholder.com/200/EC4899/FFFFFF?text=Dress1',
-      'https://via.placeholder.com/200/F59E0B/FFFFFF?text=Dress2',
-      'https://via.placeholder.com/200/10B981/FFFFFF?text=Dress3',
-    ],
-    image: 'https://via.placeholder.com/200/EC4899/FFFFFF?text=Dress',
-    brand: 'FashionBrand',
-    rating: 4.3,
-    reviewsCount: 89,
-    colors: ['#FF69B4', '#00CED1', '#FFD700'],
-    isTrending: true,
-    fastShipping: true,
-  },
-  {
-    id: '3',
-    name: 'Smart Watch',
-    nameAr: 'ساعة ذكية',
-    price: 199.99,
-    image: 'https://via.placeholder.com/200/10B981/FFFFFF?text=Watch',
-    brand: 'SmartTech',
-    rating: 4.8,
-    reviewsCount: 456,
-    freeShipping: true,
-  },
-  {
-    id: '4',
-    name: 'Gaming Mouse',
-    nameAr: 'فأرة ألعاب',
-    price: 79.99,
-    discount: 15,
-    image: 'https://via.placeholder.com/200/6366F1/FFFFFF?text=Mouse',
-    brand: 'GameGear',
-    rating: 4.6,
-    reviewsCount: 234,
-    isNew: true,
-  },
-];
+// بيانات المنتجات التجريبية - تم حذف المنتجات الوهمية
+const sampleProducts: any[] = [];
 
 export default function ProductCardsDemo() {
   const router = useRouter();
@@ -122,7 +65,7 @@ export default function ProductCardsDemo() {
             {language === 'ar' ? 'منتجاتنا المميزة' : 'Our Featured Products'}
           </Text>
           
-          {/* الصف الأول - Wireless Headphones & Summer Dress */}
+          {/* عرض المنتجات - تم حذف المنتجات الوهمية */}
           <View style={styles.cardsRow}>
             {sampleProducts.slice(0, 2).map((product) => (
               <AmazonStyleProductCard
@@ -137,7 +80,7 @@ export default function ProductCardsDemo() {
             ))}
           </View>
           
-          {/* الصف الثاني - Smart Watch & Gaming Mouse */}
+          {/* الصف الثاني */}
           <View style={styles.cardsRow}>
             {sampleProducts.slice(2, 4).map((product) => (
               <AmazonStyleProductCard

@@ -1,13 +1,14 @@
+require('dotenv').config();
 const { initializeApp } = require('firebase/app');
 const { getFirestore, collection, getDocs } = require('firebase/firestore');
 
 const firebaseConfig = {
-  apiKey: 'AIzaSyAAl3WvONnGdkcN8VxqLrPBKQV6poxQQeQ',
-  authDomain: 'sabuser-25569.firebaseapp.com',
-  projectId: 'sabuser-25569',
-  storageBucket: 'sabuser-25569.appspot.com',
-  messagingSenderId: '956976901167',
-  appId: '1:956976901167:web:ecd1e1c1a4e1234a123456'
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID
 };
 
 const app = initializeApp(firebaseConfig);
