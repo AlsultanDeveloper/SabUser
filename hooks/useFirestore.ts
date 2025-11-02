@@ -34,23 +34,40 @@ async function fetchCategories(): Promise<Category[]> {
       const data = docSnap.data();
       
       const subcategoriesRef = collection(db, 'categories', docSnap.id, 'subcategory');
-      const subcategoriesQuery = query(subcategoriesRef, orderBy('order', 'asc'));
-      const subcategoriesSnapshot = await getDocs(subcategoriesQuery);
+      // إزالة orderBy مؤقتاً لتجنب مشاكل الفهرسة
+      // const subcategoriesQuery = query(subcategoriesRef, orderBy('order', 'asc'));
+      const subcategoriesSnapshot = await getDocs(subcategoriesRef);
       
       const subcategories = subcategoriesSnapshot.docs.map((subDoc) => {
         const subData = subDoc.data();
         const subImageUrl = subData.image && typeof subData.image === 'string' && subData.image.trim() ? subData.image.trim() : '';
         
+        // دعم جميع تنسيقات الأسماء الممكنة
         let subName;
-        if (typeof subData.name === 'object' && subData.name !== null) {
+        if (typeof subData.name === 'object' && subData.name !== null && (subData.name.en || subData.name.ar)) {
+          // التنسيق: name: { en: "...", ar: "..." }
           subName = subData.name;
-        } else if (typeof subData.name === 'string' && typeof subData.nameAr === 'string') {
-          subName = { en: subData.name, ar: subData.nameAr };
+        } else if (subData.subcategoryEn || subData.subcategoryAr) {
+          // التنسيق: subcategoryEn, subcategoryAr
+          subName = { 
+            en: subData.subcategoryEn || subData.subcategoryName || '', 
+            ar: subData.subcategoryAr || subData.subcategoryNameAr || '' 
+          };
+        } else if (subData.subcategoryName || subData.subcategoryNameAr) {
+          // التنسيق: subcategoryName, subcategoryNameAr
+          subName = { 
+            en: subData.subcategoryName || '', 
+            ar: subData.subcategoryNameAr || '' 
+          };
         } else if (typeof subData.name === 'string') {
+          // التنسيق: name كنص واحد
           subName = { en: subData.name, ar: subData.name };
         } else {
-          subName = { en: '', ar: '' };
+          // لا يوجد اسم
+          subName = { en: 'Unknown', ar: 'غير معروف' };
         }
+        
+        // console.log تم تعطيله لتجنب الأخطاء
         
         return {
           id: subDoc.id,
@@ -121,40 +138,42 @@ export function useCategory(categoryId: string) {
         const data = categoryDoc.data();
         
         const subcategoriesRef = collection(db, 'categories', categoryId, 'subcategory');
-        const subcategoriesQuery = query(subcategoriesRef, orderBy('order', 'asc'));
-        const subcategoriesSnapshot = await getDocs(subcategoriesQuery);
+        // إزالة orderBy مؤقتاً لتجنب مشاكل الفهرسة
+        // const subcategoriesQuery = query(subcategoriesRef, orderBy('order', 'asc'));
+        const subcategoriesSnapshot = await getDocs(subcategoriesRef);
         
         const subcategories = subcategoriesSnapshot.docs.map((subDoc) => {
           const subData = subDoc.data();
-          console.log('📦 Loading subcategory in useCategory:', {
-            id: subDoc.id,
-            rawData: subData,
-            name: subData.name,
-            nameAr: subData.nameAr,
-            nameEn: subData.name?.en,
-            nameArField: subData.name?.ar,
-          });
+          // console.log تم تعطيله لتجنب الأخطاء
           
           const subImageUrl = subData.image && typeof subData.image === 'string' && subData.image.trim() ? subData.image.trim() : '';
           
+          // دعم جميع تنسيقات الأسماء الممكنة
           let subName;
-          if (typeof subData.name === 'object' && subData.name !== null) {
+          if (typeof subData.name === 'object' && subData.name !== null && (subData.name.en || subData.name.ar)) {
+            // التنسيق: name: { en: "...", ar: "..." }
             subName = subData.name;
-          } else if (typeof subData.name === 'string' && typeof subData.nameAr === 'string') {
-            subName = { en: subData.name, ar: subData.nameAr };
+          } else if (subData.subcategoryEn || subData.subcategoryAr) {
+            // التنسيق: subcategoryEn, subcategoryAr
+            subName = { 
+              en: subData.subcategoryEn || subData.subcategoryName || '', 
+              ar: subData.subcategoryAr || subData.subcategoryNameAr || '' 
+            };
+          } else if (subData.subcategoryName || subData.subcategoryNameAr) {
+            // التنسيق: subcategoryName, subcategoryNameAr
+            subName = { 
+              en: subData.subcategoryName || '', 
+              ar: subData.subcategoryNameAr || '' 
+            };
           } else if (typeof subData.name === 'string') {
+            // التنسيق: name كنص واحد
             subName = { en: subData.name, ar: subData.name };
           } else {
-            subName = { en: '', ar: '' };
+            // لا يوجد اسم
+            subName = { en: 'Unknown', ar: 'غير معروف' };
           }
           
-          if (!subImageUrl) {
-            console.warn('⚠️ Subcategory missing image:', subDoc.id, subName);
-          }
-          
-          if (!subName.en && !subName.ar) {
-            console.error('❌ Subcategory has no name:', subDoc.id);
-          }
+          // console.log تم تعطيله لتجنب الأخطاء
           
           return {
             id: subDoc.id,
@@ -200,7 +219,8 @@ export function useCategory(categoryId: string) {
 
 interface UseProductsOptions {
   categoryId?: string;
-  subcategoryName?: string;
+  subcategoryId?: string; // تغيير من subcategoryName إلى subcategoryId
+  subcategoryName?: string; // نبقيه للتوافق مع الكود القديم
   featured?: boolean;
   limit?: number;
 }
@@ -217,11 +237,16 @@ async function fetchProducts(options: UseProductsOptions = {}): Promise<Product[
   
   if (options.categoryId) {
     constraints.push(where('categoryId', '==', options.categoryId));
-    constraints.push(orderBy('createdAt', 'desc'));
+    // تعطيل orderBy مؤقتاً لاختبار المشكلة
+    // constraints.push(orderBy('createdAt', 'desc'));
   } else if (options.featured) {
+    // جلب المنتجات المميزة فقط
     constraints.push(where('featured', '==', true));
+    // constraints.push(orderBy('createdAt', 'desc'));
   } else {
-    constraints.push(orderBy('createdAt', 'desc'));
+    // جلب جميع المنتجات بدون شرط featured
+    // تعطيل orderBy مؤقتاً لاختبار المشكلة
+    // constraints.push(orderBy('createdAt', 'desc'));
   }
   
   if (options.limit) {
@@ -232,12 +257,19 @@ async function fetchProducts(options: UseProductsOptions = {}): Promise<Product[
   const querySnapshot = await getDocs(q);
   let loadedProducts: Product[] = [];
   
+  console.log(`📦 جاري جلب المنتجات من Firebase...`);
+  console.log(`📊 عدد المنتجات المسترجعة: ${querySnapshot.size}`);
+  
   querySnapshot.forEach((docSnap) => {
     const data = docSnap.data();
     
-    // Filter by subcategory if specified
+    // Filter by subcategory if specified (يدعم كلاً من subcategoryId و subcategoryName)
+    if (options.subcategoryId && data.subcategoryId !== options.subcategoryId) {
+      return; // Skip products that don't match the subcategory ID
+    }
+    
     if (options.subcategoryName && data.subcategoryName !== options.subcategoryName) {
-      return; // Skip products that don't match the subcategory
+      return; // Skip products that don't match the subcategory name
     }
     
     const imageUrl = data.image && typeof data.image === 'string' && data.image.trim() ? data.image.trim() : undefined;
@@ -257,7 +289,8 @@ async function fetchProducts(options: UseProductsOptions = {}): Promise<Product[
       brandId: data.brandId,
       brandName: data.brandName || data.brand,
       categoryName: data.categoryName,
-      subcategoryName: data.subcategoryName,
+      subcategoryId: data.subcategoryId, // إضافة subcategoryId
+      subcategoryName: data.subcategoryName || data.subcategoryEn || data.subcategory, // دعم التسميات المختلفة
       rating: data.rating || 0,
       reviews: data.reviews || 0,
       inStock: data.inStock !== false,
@@ -274,16 +307,14 @@ async function fetchProducts(options: UseProductsOptions = {}): Promise<Product[
     });
   });
 
-  if (options.featured && !options.categoryId) {
-    loadedProducts = loadedProducts.filter(p => p.discount && p.discount > 0 || p.inStock);
-  }
+  console.log(`✅ تم تحميل ${loadedProducts.length} منتج بنجاح من Firebase`);
   
   return loadedProducts;
 }
 
 export function useProducts(options: UseProductsOptions = {}) {
   const { data: products = [], isLoading: loading, error, refetch } = useQuery({
-    queryKey: ['products', options.categoryId, options.subcategoryName, options.featured, options.limit],
+    queryKey: ['products', options.categoryId, options.subcategoryId, options.subcategoryName, options.featured, options.limit],
     queryFn: () => fetchProducts(options),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
@@ -342,7 +373,8 @@ export function useProduct(productId: string) {
           brandId: data.brandId,
           brandName: data.brandName || data.brand,
           categoryName: data.categoryName,
-          subcategoryName: data.subcategoryName,
+          subcategoryId: data.subcategoryId,
+          subcategoryName: data.subcategoryName || data.subcategoryEn || data.subcategory, // دعم التسميات المختلفة
           rating: data.rating || 0,
           reviews: data.reviews || 0,
           inStock: data.inStock !== false,

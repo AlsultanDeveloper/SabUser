@@ -67,19 +67,25 @@ const SafeImage = memo(function SafeImage({
         {...props}
         source={{ 
           uri: trimmedUri,
-          cache: 'force-cache' // Enable caching
+          cache: 'force-cache',
+          headers: {
+            'Accept': 'image/*',
+          }
         }}
-        style={[StyleSheet.absoluteFillObject, { resizeMode }]}
+        style={{
+          width: '100%',
+          height: '100%',
+          resizeMode: resizeMode,
+        }}
         onError={handleError}
         onLoad={handleLoad}
         onLoadStart={handleLoadStart}
-        // Performance optimizations
-        fadeDuration={100}
+        fadeDuration={200}
         progressiveRenderingEnabled={true}
         resizeMethod="resize"
       />
       {isLoading && showLoader && (
-        <View style={[styles.loader, style]}>
+        <View style={[styles.loader, StyleSheet.absoluteFillObject]}>
           <ActivityIndicator 
             size="small" 
             color={Colors.primary} 
@@ -97,9 +103,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray[100],
     justifyContent: 'center',
     alignItems: 'center',
+    width: '100%',
+    height: '100%',
   },
   loader: {
-    ...StyleSheet.absoluteFillObject,
     backgroundColor: Colors.gray[100],
     justifyContent: 'center',
     alignItems: 'center',

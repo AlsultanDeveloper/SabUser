@@ -1,7 +1,7 @@
 // 🛒 NEW CLEAN CART - بدون مشاكل Text Nodes
 // ✨ Simple, Clean, and Error-Free Design
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -16,11 +16,13 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
+import SafeImage from '@/components/SafeImage';
 
 export default function NewCartScreen() {
   const router = useRouter();
-  const { cart, cartTotal, formatPrice, removeFromCart, updateCartItemQuantity, t } = useApp();
+  const { cart, cartTotal, formatPrice, removeFromCart, updateCartItemQuantity, t, language } = useApp();
   const { isAuthenticated } = useAuth();
+  const [isOrderSummaryExpanded, setIsOrderSummaryExpanded] = useState(false);
 
   const handleRemoveItem = (productId: string) => {
     Alert.alert(
@@ -80,10 +82,10 @@ export default function NewCartScreen() {
   return (
     <SafeAreaView style={styles.container} edges={[]}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
+        {/* Header - مصغّر */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <MaterialCommunityIcons name="cart" size={28} color="#8B5CF6" />
+            <MaterialCommunityIcons name="cart" size={22} color="#8B5CF6" />
             <Text style={styles.headerTitle}>{t('cart.title')}</Text>
           </View>
           <View style={styles.headerRight}>
@@ -91,13 +93,26 @@ export default function NewCartScreen() {
           </View>
         </View>
 
-        {/* Cart Items - بطاقات المنتجات محذوفة */}
+        {/* Cart Items - مع الصور */}
         <View style={styles.itemsContainer}>
           {cart.map((item) => (
             <View key={item.product.id} style={styles.cartItem}>
+              {/* Product Image */}
+              <SafeImage
+                uri={item.product.image || 'https://picsum.photos/200/200'}
+                style={styles.productImage}
+                fallbackIconSize={30}
+                fallbackIconName="image"
+                showLoader={true}
+                resizeMode="cover"
+              />
+              
               <View style={styles.itemDetails}>
-                <Text style={styles.productName}>
-                  {t('cart.itemInCart')} {/* منتج في السلة */}
+                <Text style={styles.productName} numberOfLines={1}>
+                  {typeof item.product.name === 'object' && item.product.name !== null
+                    ? (language === 'ar' ? item.product.name.ar : item.product.name.en)
+                    : 'Product'
+                  }
                 </Text>
                 
                 <View style={styles.priceContainer}>
@@ -116,7 +131,7 @@ export default function NewCartScreen() {
                       }
                     }}
                   >
-                    <Feather name="minus" size={16} color="#6B7280" />
+                    <Feather name="minus" size={12} color="#6B7280" />
                   </TouchableOpacity>
                   
                   <Text style={styles.quantityText}>{item.quantity}</Text>
@@ -125,7 +140,7 @@ export default function NewCartScreen() {
                     style={styles.quantityButton}
                     onPress={() => updateCartItemQuantity(item.product.id, item.quantity + 1)}
                   >
-                    <Feather name="plus" size={16} color="#6B7280" />
+                    <Feather name="plus" size={12} color="#6B7280" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -135,64 +150,67 @@ export default function NewCartScreen() {
                 style={styles.deleteButton}
                 onPress={() => handleRemoveItem(item.product.id)}
               >
-                <Feather name="trash-2" size={20} color="#EF4444" />
+                <Feather name="trash-2" size={16} color="#EF4444" />
               </TouchableOpacity>
             </View>
           ))}
         </View>
 
-        {/* Spacer between items and summary */}
-        <View style={{ height: 32 }} />
-
-        {/* Order Summary */}
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>{t('cart.orderTotal')}</Text>
-          
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>{t('cart.subtotal')}</Text>
-            <Text style={styles.summaryValue}>{formatPrice(cartTotal)}</Text>
-          </View>
-
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>{t('cart.shipping')}</Text>
-            <Text style={styles.summaryValue}>{t('cart.free')}</Text>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.summaryRow}>
-            <Text style={styles.totalLabel}>{t('cart.orderTotal')}</Text>
-            <Text style={styles.totalValue}>{formatPrice(cartTotal)}</Text>
-          </View>
-        </View>
-
-        <View style={{ height: 120 }} />
+        <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Fixed Bottom Checkout Button */}
+      {/* Fixed Bottom: Order Summary + Checkout Button */}
       <View style={styles.bottomContainer}>
-        <View style={styles.bottomContent}>
-          <View>
-            <Text style={styles.bottomLabel}>{t('common.total')}</Text>
-            <Text style={styles.bottomTotal}>{formatPrice(cartTotal)}</Text>
+        {/* Order Summary - قابل للطي */}
+        {isOrderSummaryExpanded && (
+          <View style={styles.expandedSummary}>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>{t('cart.subtotal')}</Text>
+              <Text style={styles.summaryValue}>{formatPrice(cartTotal)}</Text>
+            </View>
+
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>{t('cart.shipping')}</Text>
+              <Text style={styles.summaryValue}>{t('cart.free')}</Text>
+            </View>
+
+            <View style={styles.divider} />
           </View>
-          
-          <TouchableOpacity
-            style={styles.checkoutButton}
-            onPress={handleCheckout}
-            activeOpacity={0.8}
+        )}
+
+        {/* Order Total - قابل للضغط */}
+        <TouchableOpacity 
+          style={styles.summaryHeader}
+          onPress={() => setIsOrderSummaryExpanded(!isOrderSummaryExpanded)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.summaryRow}>
+            <Text style={styles.totalLabel}>{t('cart.orderTotal')}</Text>
+            <Feather 
+              name={isOrderSummaryExpanded ? 'chevron-up' : 'chevron-down'} 
+              size={18} 
+              color="#6B7280" 
+            />
+          </View>
+          <Text style={styles.totalValue}>{formatPrice(cartTotal)}</Text>
+        </TouchableOpacity>
+
+        {/* Checkout Button */}
+        <TouchableOpacity
+          style={styles.checkoutButton}
+          onPress={handleCheckout}
+          activeOpacity={0.8}
+        >
+          <LinearGradient
+            colors={['#8B5CF6', '#EC4899']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.checkoutGradient}
           >
-            <LinearGradient
-              colors={['#8B5CF6', '#EC4899']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.checkoutGradient}
-            >
-              <Text style={styles.checkoutButtonText}>{t('cart.proceedToCheckout')}</Text>
-              <Feather name="arrow-right" size={20} color="#FFF" />
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
+            <Text style={styles.checkoutButtonText}>{t('cart.proceedToCheckout')}</Text>
+            <Feather name="arrow-right" size={18} color="#FFF" />
+          </LinearGradient>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -251,8 +269,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: '#FFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
@@ -260,10 +278,10 @@ const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#1F2937',
   },
@@ -271,12 +289,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   itemCount: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#6B7280',
     backgroundColor: '#F3F4F6',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
     fontWeight: '600',
   },
   itemsContainer: {
@@ -286,62 +304,58 @@ const styles = StyleSheet.create({
   cartItem: {
     flexDirection: 'row',
     backgroundColor: '#FFF',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
     elevation: 1,
-  },
-  imageContainer: {
-    width: 70,
-    height: 70,
-    borderRadius: 10,
-    overflow: 'hidden',
+    alignItems: 'center',
   },
   productImage: {
-    width: '100%',
-    height: '100%',
+    width: 50,
+    height: 50,
+    borderRadius: 6,
   },
   itemDetails: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 8,
   },
   productName: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '600',
     color: '#1F2937',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   priceContainer: {
-    marginBottom: 10,
+    marginBottom: 6,
   },
   discountPriceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: 4,
   },
   originalPrice: {
-    fontSize: 13,
+    fontSize: 11,
     color: '#9CA3AF',
     textDecorationLine: 'line-through',
   },
   discountBadge: {
     backgroundColor: '#EF4444',
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: 6,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 4,
   },
   discountText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: 'bold',
     color: '#FFF',
   },
   currentPrice: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#8B5CF6',
   },
@@ -349,33 +363,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F9FAFB',
-    borderRadius: 24,
-    padding: 4,
+    borderRadius: 20,
+    padding: 2,
     alignSelf: 'flex-start',
   },
   quantityButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: '#FFF',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
+    shadowOpacity: 0.06,
+    shadowRadius: 1,
     elevation: 1,
   },
   quantityText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: '#1F2937',
-    minWidth: 32,
+    minWidth: 24,
     textAlign: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
   },
   deleteButton: {
-    padding: 8,
+    padding: 6,
   },
   metaInfo: {
     flexDirection: 'row',
@@ -440,41 +454,45 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F3F4F6',
   },
+  summaryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   summaryTitle: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#1F2937',
-    marginBottom: 16,
-    textAlign: 'center',
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   summaryLabel: {
-    fontSize: 15,
+    fontSize: 12,
     color: '#6B7280',
     fontWeight: '500',
   },
   summaryValue: {
-    fontSize: 15,
+    fontSize: 12,
     fontWeight: '600',
     color: '#1F2937',
   },
   divider: {
     height: 1,
     backgroundColor: '#E5E7EB',
-    marginVertical: 12,
+    marginVertical: 6,
   },
   totalLabel: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#1F2937',
   },
   totalValue: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#8B5CF6',
   },
@@ -486,6 +504,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
+    paddingHorizontal: 16,
+    paddingTop: 8,
     paddingBottom: 34,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
@@ -493,42 +513,29 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
-  bottomContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  bottomLabel: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  bottomTotal: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1F2937',
+  expandedSummary: {
+    paddingBottom: 8,
   },
   checkoutButton: {
-    borderRadius: 16,
+    borderRadius: 12,
     overflow: 'hidden',
     shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 5,
+    marginTop: 12,
   },
   checkoutGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 28,
-    paddingVertical: 18,
-    gap: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    gap: 8,
   },
   checkoutButtonText: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: 'bold',
     color: '#FFF',
   },

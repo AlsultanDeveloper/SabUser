@@ -65,16 +65,12 @@ export default function CategoryDetails() {
 
   const handleSubcategoryPress = (subcategory: Subcategory) => {
     console.log('Subcategory pressed:', subcategory.name);
-    // Navigate to subcategory products
-    const subcategoryName = typeof subcategory.name === 'object' 
-      ? (language === 'ar' ? subcategory.name.ar : subcategory.name.en)
-      : subcategory.name;
-    
+    // Navigate to subcategory products using subcategory ID
     router.push({
       pathname: '/category-products/[categoryId]/[subcategoryId]',
       params: {
         categoryId: id,
-        subcategoryId: encodeURIComponent(subcategoryName),
+        subcategoryId: subcategory.id, // استخدام ID بدلاً من الاسم
       },
     });
   };

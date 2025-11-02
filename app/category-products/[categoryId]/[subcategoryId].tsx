@@ -12,7 +12,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useApp } from '@/contexts/AppContext';
-import { useProducts } from '@/hooks/useFirestore';
+import { useProducts, useCategory } from '@/hooks/useFirestore';
 import AmazonStyleProductCard from '@/components/AmazonStyleProductCard';
 import { ProductCardSkeleton } from '@/components/SkeletonLoader';
 
@@ -23,13 +23,36 @@ export default function CategoryProductsScreen() {
   }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { language } = useApp();
+  const { language, formatPrice: appFormatPrice } = useApp();
 
-  // جلب المنتجات مع الفلترة حسب الفئة والفئة الفرعية
+  // دالة آمنة لتنسيق السعر
+  const formatPrice = useCallback((price: number): string => {
+    try {
+      const result = appFormatPrice(price);
+      return typeof result === 'string' && result.length > 0 ? result : '$0.00';
+    } catch {
+      return '$0.00';
+    }
+  }, [appFormatPrice]);
+
+  // جلب معلومات الفئة للحصول على اسم الفئة الفرعية
+  const { category } = useCategory(categoryId || '');
+  
+  // جلب المنتجات باستخدام subcategoryId بدلاً من subcategoryName
   const { products, loading, error, refetch } = useProducts({
     categoryId: categoryId,
-    subcategoryName: decodeURIComponent(subcategoryId || ''),
+    subcategoryId: subcategoryId, // استخدام ID مباشرة
   });
+
+  // الحصول على اسم الفئة الفرعية
+  const subcategoryName = useMemo(() => {
+    if (!category?.subcategories || !subcategoryId) return '';
+    const subcategory = category.subcategories.find(sub => sub.id === subcategoryId);
+    if (!subcategory) return '';
+    return typeof subcategory.name === 'object' 
+      ? (language === 'ar' ? subcategory.name.ar : subcategory.name.en)
+      : subcategory.name;
+  }, [category, subcategoryId, language]);
 
   const handleGoBack = useCallback(() => {
     router.back();
@@ -39,11 +62,12 @@ export default function CategoryProductsScreen() {
     <View style={styles.productContainer}>
       <AmazonStyleProductCard 
         product={item} 
-        onPress={() => {}}
-        formatPrice={(price: number) => `$${price.toFixed(2)}`}
+        onPress={() => router.push(`/product/${item.id}` as any)}
+        formatPrice={formatPrice}
+        language={language}
       />
     </View>
-  ), []);
+  ), [formatPrice, language, router]);
 
   const renderEmptyState = useCallback(() => (
     <View style={styles.emptyContainer}>
@@ -77,9 +101,8 @@ export default function CategoryProductsScreen() {
 
   // عنوان الصفحة
   const pageTitle = useMemo(() => {
-    const decodedSubcategory = decodeURIComponent(subcategoryId || '');
-    return decodedSubcategory || (language === 'ar' ? 'المنتجات' : 'Products');
-  }, [subcategoryId, language]);
+    return subcategoryName || (language === 'ar' ? 'المنتجات' : 'Products');
+  }, [subcategoryName, language]);
 
   const productsCount = products?.length || 0;
 

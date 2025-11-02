@@ -22,7 +22,7 @@ import * as Haptics from 'expo-haptics';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Colors, Spacing, BorderRadius, FontSizes, Shadows, FontWeights } from '@/constants/theme';
-import { useCategories, useProducts } from '@/hooks/useFirestore';
+import { useCategories } from '@/hooks/useFirestore';
 import { getDocuments, collections, where } from '@/constants/firestore';
 import SafeImage from '@/components/SafeImage';
 import { CategoryCardSkeleton } from '@/components/SkeletonLoader';
@@ -33,9 +33,10 @@ const BANNER_WIDTH = width - Spacing.md * 2;
 
 // بيانات المنتجات التجريبية - 10 منتجات متنوعة
 // كومبونت لعرض بطاقة Amazon فقط
-const ProductCardDisplay = ({ product, language, formatPrice }: any) => {
+const ProductCardDisplay = ({ product, language, formatPrice, router }: any) => {
   const handlePress = () => {
     console.log('Product pressed:', product.id);
+    router.push(`/product/${product.id}`);
   };
 
   const handleWishlist = (productId: string) => {
@@ -55,23 +56,95 @@ const ProductCardDisplay = ({ product, language, formatPrice }: any) => {
 };
 
 export default function HomeScreen() {
-  const { language, changeLanguage } = useApp();
+  const { language, changeLanguage, formatPrice: appFormatPrice } = useApp();
   const { user } = useAuth();
   const router = useRouter();
   const { categories, loading: categoriesLoading, refetch: refetchCategories } = useCategories();
   
-  // جلب المنتجات المميزة من Firebase
-  const { products: featuredProducts, loading: productsLoading } = useProducts({ 
-    featured: true, 
-    limit: 10 
-  });
+  // State للمنتجات المتنوعة
+  const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+  
+  // جلب منتجات الموضة فقط (Fashion Only) - 60 منتج
+  useEffect(() => {
+    const fetchFashionProducts = async () => {
+      try {
+        setProductsLoading(true);
+        
+        // جلب جميع المنتجات من Firebase
+        const allProducts = await getDocuments(collections.products);
+        
+        console.log('📦 Total products fetched:', allProducts.length);
+        
+        // فلترة المنتجات: Fashion فقط
+        const fashionKeywords = [
+          'fashion', 'clothing', 'ملابس', 'أزياء', 'ازياء',
+          'shoes', 'أحذية', 'bags', 'حقائب', 'accessories', 
+          'إكسسوارات', 'اكسسوارات', 'dress', 'فستان', 'shirt', 
+          'قميص', 'pants', 'بنطال', 'kids', 'أطفال', 'اطفال',
+          'men', 'رجالي', 'women', 'نسائي', 'baby', 'طفل'
+        ];
+        
+        const fashionProducts = allProducts.filter((product: any) => {
+          // استبعاد SAB MARKET
+          if (product.categoryId === 'cwt28D5gjoLno8SFqoxQ') {
+            return false;
+          }
+          
+          // البحث في categoryName
+          const categoryName = (product.categoryName || '').toLowerCase();
+          const isFashion = fashionKeywords.some(keyword => 
+            categoryName.includes(keyword.toLowerCase())
+          );
+          
+          if (isFashion) {
+            console.log('✅ Fashion product:', product.id, '- Category:', product.categoryName);
+          }
+          
+          return isFashion;
+        });
+        
+        console.log('✅ Fashion products found:', fashionProducts.length);
+        
+        // إذا لم يجد منتجات موضة، اعرض كل المنتجات ما عدا SAB MARKET
+        if (fashionProducts.length === 0) {
+          console.log('⚠️ No fashion products found! Showing all products except SAB MARKET');
+          const nonSabProducts = allProducts.filter((p: any) => 
+            p.categoryId !== 'cwt28D5gjoLno8SFqoxQ'
+          );
+          const shuffled = nonSabProducts.sort(() => 0.5 - Math.random());
+          setFeaturedProducts(shuffled.slice(0, 60));
+          setProductsLoading(false);
+          return;
+        }
+        
+        // خلط المنتجات عشوائياً
+        const shuffled = fashionProducts.sort(() => 0.5 - Math.random());
+        
+        // اختيار أول 60 منتج
+        const selectedProducts = shuffled.slice(0, 60);
+        
+        console.log('🎯 Fashion Products to display:', selectedProducts.length);
+        setFeaturedProducts(selectedProducts);
+      } catch (error) {
+        console.error('❌ Error loading fashion products:', error);
+        setFeaturedProducts([]);
+      } finally {
+        setProductsLoading(false);
+      }
+    };
+    
+    fetchFashionProducts();
+  }, []);
 
-  // دالة تنسيق السعر
+  // دالة تنسيق السعر الآمنة
   const formatPrice = (price: number) => {
-    if (language === 'ar') {
-      return `${price.toFixed(2)} ريال`;
+    try {
+      const result = appFormatPrice(price);
+      return typeof result === 'string' && result.length > 0 ? result : '$0.00';
+    } catch {
+      return '$0.00';
     }
-    return `$${price.toFixed(2)}`;
   };
 
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
@@ -339,9 +412,13 @@ export default function HomeScreen() {
                   colors={['transparent', 'rgba(0,0,0,0.8)']}
                   style={styles.bannerOverlay}
                 >
-                  <Text style={styles.bannerTitle}>{banner.title[language]}</Text>
+                  <Text style={styles.bannerTitle}>
+                    {banner.title?.[language] || banner.title?.en || 'Shop Now'}
+                  </Text>
                   {banner.subtitle && (
-                    <Text style={styles.bannerSubtitle}>{banner.subtitle[language]}</Text>
+                    <Text style={styles.bannerSubtitle}>
+                      {banner.subtitle?.[language] || banner.subtitle?.en || ''}
+                    </Text>
                   )}
                   <View style={styles.bannerButton}>
                     <Text style={styles.bannerButtonText}>{language === 'ar' ? 'تسوق الآن' : 'Shop Now'}</Text>
@@ -453,8 +530,8 @@ export default function HomeScreen() {
                 </View>
               ))
             ) : featuredProducts && featuredProducts.length > 0 ? (
-              // عرض المنتجات المميزة من Firebase
-              Array(Math.ceil(featuredProducts.slice(0, 10).length / 2)).fill(null).map((_, rowIndex) => (
+              // عرض المنتجات من Firebase
+              Array(Math.ceil(featuredProducts.slice(0, 20).length / 2)).fill(null).map((_, rowIndex) => (
                 <View key={`row-${rowIndex}`} style={styles.productsRow}>
                   {featuredProducts.slice(rowIndex * 2, (rowIndex + 1) * 2).map((product, index: number) => (
                     <ProductCardDisplay 
@@ -462,6 +539,7 @@ export default function HomeScreen() {
                       product={product}
                       language={language}
                       formatPrice={formatPrice}
+                      router={router}
                     />
                   ))}
                 </View>
@@ -469,8 +547,12 @@ export default function HomeScreen() {
             ) : (
               // عرض رسالة عدم وجود منتجات
               <View style={styles.noProductsContainer}>
+                <Feather name="package" size={64} color={Colors.gray[300]} />
                 <Text style={styles.noProductsText}>
-                  {language === 'ar' ? 'لا توجد منتجات مميزة حالياً' : 'No featured products available'}
+                  {language === 'ar' ? 'لا توجد منتجات حالياً' : 'No products available'}
+                </Text>
+                <Text style={styles.noProductsSubtext}>
+                  {language === 'ar' ? 'يرجى إضافة منتجات من لوحة الإدارة' : 'Please add products from admin panel'}
                 </Text>
               </View>
             )}
@@ -1016,5 +1098,14 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     textAlign: 'center',
     fontWeight: FontWeights.medium,
+    marginTop: Spacing.md,
+  },
+  noProductsSubtext: {
+    fontSize: FontSizes.sm,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+    fontWeight: FontWeights.regular,
+    marginTop: Spacing.xs,
+    opacity: 0.7,
   },
 });

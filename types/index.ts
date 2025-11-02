@@ -40,6 +40,7 @@ export interface Product {
   // Additional product details
   brandName?: string;
   categoryName?: string;
+  subcategoryId?: string; // معرف الفئة الفرعية
   subcategoryName?: string;
   colors?: {
     ar: string;
@@ -60,6 +61,9 @@ export interface Product {
   careInstructions?: string;
   features?: string[];
   reviewsCount?: number;
+  
+  // Unit (وحدة القياس)
+  unit?: string; // e.g. "kg", "gram", "piece", "liter", "bottle", "box", "pack"
 }
 
 export interface Subcategory {

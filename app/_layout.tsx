@@ -3,7 +3,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect, useRef } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Platform } from 'react-native';
+import { Platform, LogBox } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import Toast from 'react-native-toast-message';
 import { AppProvider } from '@/contexts/AppContext';
@@ -15,6 +15,12 @@ import {
   addNotificationReceivedListener,
   addNotificationResponseReceivedListener,
 } from '@/constants/notifications';
+
+// Ignore Firebase WebChannel warnings - they are normal and Firebase reconnects automatically
+LogBox.ignoreLogs([
+  '@firebase/firestore: Firestore',
+  'WebChannelConnection',
+]);
 
 SplashScreen.preventAutoHideAsync();
 

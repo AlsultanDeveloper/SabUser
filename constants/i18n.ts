@@ -69,7 +69,7 @@ const translations = {
       shipping: 'Shipping',
       free: 'FREE',
       freeDelivery: 'Free delivery on orders above $50',
-      orderTotal: 'Order Total',
+      orderTotal: 'Total Order',
       proceedToCheckout: 'Proceed to Checkout',
       remove: 'Remove',
     },

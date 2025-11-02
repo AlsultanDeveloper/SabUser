@@ -69,6 +69,17 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
   // حساب المدخرات
   const savings = hasDiscount ? basePrice - discountedPrice : 0;
 
+  // دالة آمنة لتنسيق السعر
+  const safeFormatPrice = (price: number): string => {
+    try {
+      const result = formatPrice(price);
+      // تأكد من أن النتيجة string وليست undefined أو null
+      return typeof result === 'string' && result.length > 0 ? result : '$0.00';
+    } catch {
+      return '$0.00';
+    }
+  };
+
   // عرض النجوم
   const renderStars = () => {
     const rating = typeof product.rating === 'number' && !isNaN(product.rating) ? product.rating : 0;
@@ -93,14 +104,18 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
         {/* قسم الصورة */}
         <View style={styles.imageContainer}>
           <SafeImage 
-            uri={product.image || product.imageUrl || 'https://via.placeholder.com/200'} 
-            style={styles.productImage} 
+            uri={product.image || 'https://picsum.photos/400/400'} 
+            style={styles.productImage}
+            fallbackIconSize={60}
+            fallbackIconName="image"
+            showLoader={true}
+            resizeMode="cover"
           />
           
           {/* شارة الخصم */}
           {hasDiscount && (
             <View style={styles.discountBadge}>
-              <Text style={styles.discountText}>-{product.discount}%</Text>
+              <Text style={styles.discountText}>{`-${product.discount}%`}</Text>
             </View>
           )}
 
@@ -172,16 +187,16 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
             <View style={styles.priceRow}>
               {hasDiscount && (
                 <Text style={styles.originalPrice}>
-                  {formatPrice(basePrice) || '0 ر.س'}
+                  {safeFormatPrice(basePrice)}
                 </Text>
               )}
               <Text style={styles.currentPrice}>
-                {formatPrice(discountedPrice) || '0 ر.س'}
+                {safeFormatPrice(discountedPrice)}
               </Text>
               {savings > 0 && (
                 <View style={styles.savingsBadge}>
                   <Text style={styles.savingsText}>
-                    {language === 'ar' ? 'وفر' : 'Save'} {formatPrice(savings) || '0'}
+                    {`${language === 'ar' ? 'وفر' : 'Save'} ${safeFormatPrice(savings)}`}
                   </Text>
                 </View>
               )}
@@ -228,7 +243,6 @@ const styles = StyleSheet.create({
   productImage: {
     width: '100%',
     height: CARD_WIDTH * 0.8,
-    resizeMode: 'cover',
   },
   discountBadge: {
     position: 'absolute',
