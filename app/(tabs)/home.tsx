@@ -319,19 +319,6 @@ export default function HomeScreen() {
                 if (Platform.OS !== 'web') {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 }
-                router.push('/view-firebase-products' as any);
-              }}
-            >
-              <Feather name="database" size={20} color={Colors.white} />
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.notificationButton}
-              activeOpacity={0.7}
-              onPress={() => {
-                if (Platform.OS !== 'web') {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }
                 router.push('/notifications' as any);
               }}
             >
