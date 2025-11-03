@@ -65,7 +65,7 @@ export default function HomeScreen() {
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
   
-  // جلب منتجات الموضة فقط (Fashion Only) - 60 منتج
+  // جلب منتجات متنوعة تشمل SAB Market - 60 منتج
   useEffect(() => {
     const fetchFashionProducts = async () => {
       try {
@@ -76,19 +76,21 @@ export default function HomeScreen() {
         
         console.log('📦 Total products fetched:', allProducts.length);
         
-        // فلترة المنتجات: Fashion فقط
+        // فلترة المنتجات: Fashion فقط + SAB Market
         const fashionKeywords = [
           'fashion', 'clothing', 'ملابس', 'أزياء', 'ازياء',
           'shoes', 'أحذية', 'bags', 'حقائب', 'accessories', 
           'إكسسوارات', 'اكسسوارات', 'dress', 'فستان', 'shirt', 
           'قميص', 'pants', 'بنطال', 'kids', 'أطفال', 'اطفال',
-          'men', 'رجالي', 'women', 'نسائي', 'baby', 'طفل'
+          'men', 'رجالي', 'women', 'نسائي', 'baby', 'طفل',
+          'sab', 'ساب', 'market', 'ماركت', 'grocery', 'بقالة'
         ];
         
         const fashionProducts = allProducts.filter((product: any) => {
-          // استبعاد SAB MARKET
+          // فحص إذا كان المنتج من SAB MARKET
           if (product.categoryId === 'cwt28D5gjoLno8SFqoxQ') {
-            return false;
+            console.log('✅ SAB Market product:', product.id, '- Category:', product.categoryName);
+            return true; // إظهار منتجات SAB MARKET
           }
           
           // البحث في categoryName
@@ -106,13 +108,10 @@ export default function HomeScreen() {
         
         console.log('✅ Fashion products found:', fashionProducts.length);
         
-        // إذا لم يجد منتجات موضة، اعرض كل المنتجات ما عدا SAB MARKET
+        // إذا لم يجد منتجات موضة، اعرض كل المنتجات
         if (fashionProducts.length === 0) {
-          console.log('⚠️ No fashion products found! Showing all products except SAB MARKET');
-          const nonSabProducts = allProducts.filter((p: any) => 
-            p.categoryId !== 'cwt28D5gjoLno8SFqoxQ'
-          );
-          const shuffled = nonSabProducts.sort(() => 0.5 - Math.random());
+          console.log('⚠️ No fashion products found! Showing all products');
+          const shuffled = allProducts.sort(() => 0.5 - Math.random());
           setFeaturedProducts(shuffled.slice(0, 60));
           setProductsLoading(false);
           return;
@@ -124,7 +123,7 @@ export default function HomeScreen() {
         // اختيار أول 60 منتج
         const selectedProducts = shuffled.slice(0, 60);
         
-        console.log('🎯 Fashion Products to display:', selectedProducts.length);
+        console.log('🎯 Products to display (including SAB Market):', selectedProducts.length);
         setFeaturedProducts(selectedProducts);
       } catch (error) {
         console.error('❌ Error loading fashion products:', error);

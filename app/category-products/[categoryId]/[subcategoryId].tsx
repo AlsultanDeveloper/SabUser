@@ -8,7 +8,7 @@ import {
   StatusBar,
   RefreshControl,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useApp } from '@/contexts/AppContext';
@@ -108,35 +108,97 @@ export default function CategoryProductsScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <StatusBar barStyle="dark-content" backgroundColor="white" />
-        
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity 
-            style={styles.backButton} 
-            onPress={handleGoBack}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Feather 
-              name={language === 'ar' ? 'chevron-right' : 'chevron-left'} 
-              size={24} 
-              color="#0F172A" 
-            />
-          </TouchableOpacity>
+      <>
+        <Stack.Screen 
+          options={{ 
+            title: pageTitle,
+            headerShown: false 
+          }} 
+        />
+        <View style={[styles.container, { paddingTop: insets.top }]}>
+          <StatusBar barStyle="dark-content" backgroundColor="white" />
           
-          <Text style={styles.headerTitle}>{pageTitle}</Text>
-          
-          <View style={styles.placeholder} />
-        </View>
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity 
+              style={styles.backButton} 
+              onPress={handleGoBack}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Feather 
+                name={language === 'ar' ? 'chevron-right' : 'chevron-left'} 
+                size={24} 
+                color="#0F172A" 
+              />
+            </TouchableOpacity>
+            
+            <Text style={styles.headerTitle}>{pageTitle}</Text>
+            
+            <View style={styles.placeholder} />
+          </View>
 
-        {renderLoadingSkeleton()}
-      </View>
+          {renderLoadingSkeleton()}
+        </View>
+      </>
     );
   }
 
   if (error) {
     return (
+      <>
+        <Stack.Screen 
+          options={{ 
+            title: pageTitle,
+            headerShown: false 
+          }} 
+        />
+        <View style={[styles.container, { paddingTop: insets.top }]}>
+          <StatusBar barStyle="dark-content" backgroundColor="white" />
+          
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity 
+              style={styles.backButton} 
+              onPress={handleGoBack}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Feather 
+                name={language === 'ar' ? 'chevron-right' : 'chevron-left'} 
+                size={24} 
+                color="#0F172A" 
+              />
+            </TouchableOpacity>
+            
+            <Text style={styles.headerTitle}>{pageTitle}</Text>
+            
+            <View style={styles.placeholder} />
+          </View>
+
+          <View style={styles.errorContainer}>
+            <Feather name="alert-circle" size={64} color="#DC2626" />
+            <Text style={styles.errorTitle}>
+              {language === 'ar' ? 'حدث خطأ' : 'Something went wrong'}
+            </Text>
+            <Text style={styles.errorMessage}>{error}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
+              <Text style={styles.retryButtonText}>
+                {language === 'ar' ? 'إعادة المحاولة' : 'Try Again'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Stack.Screen 
+        options={{ 
+          title: pageTitle,
+          headerShown: false 
+        }} 
+      />
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <StatusBar barStyle="dark-content" backgroundColor="white" />
         
@@ -158,45 +220,6 @@ export default function CategoryProductsScreen() {
           
           <View style={styles.placeholder} />
         </View>
-
-        <View style={styles.errorContainer}>
-          <Feather name="alert-circle" size={64} color="#DC2626" />
-          <Text style={styles.errorTitle}>
-            {language === 'ar' ? 'حدث خطأ' : 'Something went wrong'}
-          </Text>
-          <Text style={styles.errorMessage}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
-            <Text style={styles.retryButtonText}>
-              {language === 'ar' ? 'إعادة المحاولة' : 'Try Again'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-
-  return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" backgroundColor="white" />
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={handleGoBack}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Feather 
-            name={language === 'ar' ? 'chevron-right' : 'chevron-left'} 
-            size={24} 
-            color="#0F172A" 
-          />
-        </TouchableOpacity>
-        
-        <Text style={styles.headerTitle}>{pageTitle}</Text>
-        
-        <View style={styles.placeholder} />
-      </View>
 
       {/* Products Count */}
       <View style={styles.countContainer}>
@@ -226,14 +249,13 @@ export default function CategoryProductsScreen() {
             />
           }
         />
-      ) : (
-        renderEmptyState()
-      )}
-    </View>
+        ) : (
+          renderEmptyState()
+        )}
+      </View>
+    </>
   );
-}
-
-const styles = StyleSheet.create({
+}const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8F9FA',
