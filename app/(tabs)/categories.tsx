@@ -21,9 +21,13 @@ interface CategoryCardProps {
 }
 
 const CategoryCard: React.FC<CategoryCardProps> = ({ category, language, onPress }) => {
-  const categoryName = typeof category.name === 'object' 
-    ? (language === 'ar' ? category.name.ar : category.name.en)
-    : category.name;
+  // Keep "Sab Market" in English always
+  const categoryName = (typeof category.name === 'object' && (category.name.en === 'Sab Market' || category.name.ar === 'ساب ماركت'))
+    ? 'Sab Market'
+    : (typeof category.name === 'object' 
+      ? (language === 'ar' ? category.name.ar : category.name.en)
+      : category.name
+    );
 
   const subcategoryCount = category.subcategories?.length || 0;
 
@@ -68,9 +72,13 @@ export default function Categories() {
 
   const filteredCategories = searchQuery 
     ? categories.filter(category => {
-        const name = typeof category.name === 'object' 
-          ? (language === 'ar' ? category.name.ar : category.name.en)
-          : category.name;
+        // Keep "Sab Market" in English always
+        const name = (typeof category.name === 'object' && (category.name.en === 'Sab Market' || category.name.ar === 'ساب ماركت'))
+          ? 'Sab Market'
+          : (typeof category.name === 'object' 
+            ? (language === 'ar' ? category.name.ar : category.name.en)
+            : category.name
+          );
         return name.toLowerCase().includes(searchQuery.toLowerCase());
       })
     : categories;
@@ -238,14 +246,14 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 32,
   },
-  // Amazon Grid Style - 3 columns exactly
+  // Amazon Grid Style - 2 columns for consistency
   categoriesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
   categoryCard: {
-    width: '31.5%', // 3 columns with small gaps
+    width: '48%', // 2 columns with gap
     marginBottom: 16,
     borderRadius: 8,
     backgroundColor: '#FFFFFF',
@@ -263,7 +271,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   categoryImageContainer: {
-    height: 90,
+    height: 120, // Same height as subcategories
     backgroundColor: '#E8F4FD', // Light blue like Amazon
     justifyContent: 'center',
     alignItems: 'center',
@@ -273,14 +281,14 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   categoryContent: {
-    padding: 8,
+    padding: 12,
   },
   categoryTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500',
     color: '#000',
-    textAlign: 'left',
-    lineHeight: 16,
+    textAlign: 'center',
+    lineHeight: 18,
   },
   subcategoryCount: {
     fontSize: 11,

@@ -70,9 +70,13 @@ export default function EditProfileScreen() {
         ? 'apple'
         : 'email';
 
+      // Check if email is Apple Private Relay
+      const email = userDoc?.email || user.email || null;
+      const isPrivateEmail = email?.includes('privaterelay.appleid.com');
+
       setProfile({
         displayName: userDoc?.displayName || user.displayName || '',
-        email: userDoc?.email || user.email || null,
+        email: isPrivateEmail ? 'Private Email 🔒' : email,
         phoneNumber: userDoc?.phoneNumber || user.phoneNumber || null,
         signInMethod,
       });
@@ -129,6 +133,7 @@ export default function EditProfileScreen() {
 
       await updateUserProfile(user.uid, {
         displayName: profile.displayName,
+        fullName: profile.displayName, // Save to fullName as well
         email: profile.email,
         phoneNumber: profile.phoneNumber,
       });

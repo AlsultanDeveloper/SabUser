@@ -156,7 +156,29 @@ export async function createUserProfile(userId: string, data: any) {
 }
 
 export async function updateUserProfile(userId: string, data: any) {
-  return updateDocument(collections.users, userId, data);
+  try {
+    // Check if user document exists first
+    const userDoc = await getDocument(collections.users, userId);
+    
+    if (!userDoc) {
+      // If user document doesn't exist, create it with the new data
+      console.log('📝 User document not found, creating new one for:', userId);
+      return createDocument(collections.users, {
+        ...data,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }, userId);
+    }
+    
+    // If document exists, update it
+    return updateDocument(collections.users, userId, {
+      ...data,
+      updatedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Error in updateUserProfile:', error);
+    throw error;
+  }
 }
 
 export async function getUserOrders(userId: string) {

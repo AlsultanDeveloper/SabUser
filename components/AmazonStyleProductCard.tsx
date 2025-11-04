@@ -32,6 +32,17 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
   isInWishlist = false,
 }: AmazonStyleProductCardProps) {
   
+  // Early return if product is invalid
+  if (!product || typeof product !== 'object') {
+    console.warn('Invalid product data:', product);
+    return null;
+  }
+  
+  // Debug log to see what's in the product
+  console.log('Product data keys:', Object.keys(product));
+  console.log('Product name:', product.name);
+  console.log('Product brand:', product.brand, 'brandName:', product.brandName);
+  
   const handleWishlistPress = () => {
     if (Platform.OS === 'ios') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -48,6 +59,8 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
 
   // استخراج اسم المنتج حسب اللغة
   const getProductName = () => {
+    if (!product) return 'Product Name';
+    
     if (typeof product.name === 'object' && product.name !== null) {
       // البنية الجديدة: {en: "...", ar: "..."}
       const nameByLanguage = language === 'ar' ? product.name.ar : product.name.en;
@@ -60,8 +73,15 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
   };
 
   // حساب السعر بعد الخصم
-  const hasDiscount = product.discount && product.discount > 0 && typeof product.discount === 'number';
-  const basePrice = typeof product.price === 'number' && !isNaN(product.price) && product.price > 0 ? product.price : 0;
+  const hasDiscount = product?.discount && 
+    typeof product.discount === 'number' && 
+    !isNaN(product.discount) && 
+    product.discount > 0;
+    
+  const basePrice = typeof product?.price === 'number' && 
+    !isNaN(product.price) && 
+    product.price > 0 ? product.price : 0;
+    
   const discountedPrice = hasDiscount 
     ? basePrice * (1 - product.discount / 100) 
     : basePrice;
@@ -82,7 +102,9 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
 
   // عرض النجوم
   const renderStars = () => {
-    const rating = typeof product.rating === 'number' && !isNaN(product.rating) ? product.rating : 0;
+    const rating = typeof product?.rating === 'number' && 
+      !isNaN(product.rating) && 
+      product.rating >= 0 ? product.rating : 0;
     const stars = [];
     for (let i = 1; i <= 5; i++) {
       stars.push(
@@ -101,7 +123,6 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
   return (
     <View style={styles.container}>
       <TouchableOpacity onPress={handlePress} activeOpacity={0.95}>
-        {/* قسم الصورة */}
         <View style={styles.imageContainer}>
           <SafeImage 
             uri={product.image || 'https://picsum.photos/400/400'} 
@@ -112,15 +133,13 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
             resizeMode="cover"
           />
           
-          {/* شارة الخصم */}
-          {hasDiscount && (
+          {(hasDiscount && typeof product?.discount === 'number') ? (
             <View style={styles.discountBadge}>
-              <Text style={styles.discountText}>{`-${product.discount}%`}</Text>
+              <Text style={styles.discountText}>{`-${Math.round(product.discount)}%`}</Text>
             </View>
-          )}
+          ) : null}
 
-          {/* زر المفضلة */}
-          {onToggleWishlist && (
+          {onToggleWishlist ? (
             <TouchableOpacity
               style={styles.wishlistButton}
               onPress={handleWishlistPress}
@@ -133,36 +152,31 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
                 style={{ opacity: isInWishlist ? 1 : 0.7 }}
               />
             </TouchableOpacity>
-          )}
+          ) : null}
 
-          {/* شارة العلامة التجارية */}
-          {((product.brandName && typeof product.brandName === 'string') || 
-            (product.brand && typeof product.brand === 'string')) && (
+          {((product?.brandName && typeof product.brandName === 'string' && product.brandName.trim()) || 
+            (product?.brand && typeof product.brand === 'string' && product.brand.trim())) ? (
             <View style={styles.brandBadge}>
               <Text style={styles.brandBadgeText} numberOfLines={1}>
-                {product.brandName || product.brand}
+                {(product.brandName && product.brandName.trim()) || (product.brand && product.brand.trim()) || ''}
               </Text>
             </View>
-          )}
+          ) : null}
         </View>
 
-        {/* معلومات المنتج */}
         <View style={styles.productInfo}>
-          {/* اسم العلامة التجارية */}
-          {((product.brandName && typeof product.brandName === 'string') || 
-            (product.brand && typeof product.brand === 'string')) && (
+          {((product?.brandName && typeof product.brandName === 'string' && product.brandName.trim()) || 
+            (product?.brand && typeof product.brand === 'string' && product.brand.trim())) ? (
             <Text style={styles.brandText} numberOfLines={1}>
-              {product.brandName || product.brand}
+              {(product.brandName && product.brandName.trim()) || (product.brand && product.brand.trim()) || ''}
             </Text>
-          )}
+          ) : null}
 
-          {/* اسم المنتج */}
           <Text style={styles.productName} numberOfLines={2}>
             {getProductName()}
           </Text>
 
-          {/* التقييم والمراجعات */}
-          {product.rating && typeof product.rating === 'number' && product.rating > 0 && (
+          {(product?.rating && typeof product.rating === 'number' && !isNaN(product.rating) && product.rating > 0) ? (
             <View style={styles.ratingContainer}>
               <View style={styles.starsContainer}>
                 {renderStars()}
@@ -180,30 +194,28 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
                 </Text>
               )}
             </View>
-          )}
+          ) : null}
 
-          {/* قسم الأسعار */}
           <View style={styles.priceSection}>
             <View style={styles.priceRow}>
-              {hasDiscount && (
+              {hasDiscount ? (
                 <Text style={styles.originalPrice}>
                   {safeFormatPrice(basePrice)}
                 </Text>
-              )}
+              ) : null}
               <Text style={styles.currentPrice}>
                 {safeFormatPrice(discountedPrice)}
               </Text>
-              {savings > 0 && (
+              {(savings > 0) ? (
                 <View style={styles.savingsBadge}>
                   <Text style={styles.savingsText}>
                     {`${language === 'ar' ? 'وفر' : 'Save'} ${safeFormatPrice(savings)}`}
                   </Text>
                 </View>
-              )}
+              ) : null}
             </View>
           </View>
 
-          {/* معلومات الشحن */}
           <View style={styles.shippingContainer}>
             <Feather name="truck" size={12} color="#007185" />
             <Text style={styles.shippingText}>

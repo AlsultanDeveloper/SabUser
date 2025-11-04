@@ -16,14 +16,14 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Colors, Spacing, BorderRadius, FontSizes, Shadows, FontWeights } from '@/constants/theme';
 import { useCategories } from '@/hooks/useFirestore';
-import { getDocuments, collections, where } from '@/constants/firestore';
+import { getDocuments, collections, where, getUserProfile } from '@/constants/firestore';
 import SafeImage from '@/components/SafeImage';
 import { CategoryCardSkeleton } from '@/components/SkeletonLoader';
 import AmazonStyleProductCard from '@/components/AmazonStyleProductCard';
@@ -61,13 +61,42 @@ export default function HomeScreen() {
   const router = useRouter();
   const { categories, loading: categoriesLoading, refetch: refetchCategories } = useCategories();
   
+  // State للبروفايل
+  const [userProfile, setUserProfile] = useState<any>(null);
+  
   // State للمنتجات المتنوعة
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
   
-  // جلب منتجات متنوعة تشمل SAB Market - 60 منتج
+  // تحميل بيانات المستخدم من Firestore
   useEffect(() => {
-    const fetchFashionProducts = async () => {
+    if (user?.uid) {
+      loadUserProfile();
+    }
+  }, [user?.uid]);
+
+  // إعادة تحميل البروفايل عند العودة للشاشة
+  useFocusEffect(
+    useCallback(() => {
+      if (user?.uid) {
+        loadUserProfile();
+      }
+    }, [user?.uid])
+  );
+
+  const loadUserProfile = async () => {
+    if (!user?.uid) return;
+    try {
+      const profile = await getUserProfile(user.uid);
+      setUserProfile(profile);
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    }
+  };
+  
+  // جلب منتجات متنوعة تشمل SAB Market + Fashion - 60 منتج
+  useEffect(() => {
+    const fetchAllProducts = async () => {
       try {
         setProductsLoading(true);
         
@@ -76,41 +105,33 @@ export default function HomeScreen() {
         
         console.log('📦 Total products fetched:', allProducts.length);
         
-        // فلترة المنتجات: Fashion فقط + SAB Market
-        const fashionKeywords = [
-          'fashion', 'clothing', 'ملابس', 'أزياء', 'ازياء',
-          'shoes', 'أحذية', 'bags', 'حقائب', 'accessories', 
-          'إكسسوارات', 'اكسسوارات', 'dress', 'فستان', 'shirt', 
-          'قميص', 'pants', 'بنطال', 'kids', 'أطفال', 'اطفال',
-          'men', 'رجالي', 'women', 'نسائي', 'baby', 'طفل',
-          'sab', 'ساب', 'market', 'ماركت', 'grocery', 'بقالة'
-        ];
-        
-        const fashionProducts = allProducts.filter((product: any) => {
-          // فحص إذا كان المنتج من SAB MARKET
+        // Get SAB Market products (categoryId: cwt28D5gjoLno8SFqoxQ)
+        const sabMarketProducts = allProducts.filter((product: any) => {
           if (product.categoryId === 'cwt28D5gjoLno8SFqoxQ') {
-            console.log('✅ SAB Market product:', product.id, '- Category:', product.categoryName);
-            return true; // إظهار منتجات SAB MARKET
+            return true;
           }
-          
-          // البحث في categoryName
-          const categoryName = (product.categoryName || '').toLowerCase();
-          const isFashion = fashionKeywords.some(keyword => 
-            categoryName.includes(keyword.toLowerCase())
-          );
-          
-          if (isFashion) {
-            console.log('✅ Fashion product:', product.id, '- Category:', product.categoryName);
-          }
-          
-          return isFashion;
+          return false;
         });
         
-        console.log('✅ Fashion products found:', fashionProducts.length);
+        // Get Fashion products (categoryId: GXakfwzrVqoStlGav7gR)
+        const fashionProducts = allProducts.filter((product: any) => {
+          if (product.categoryId === 'GXakfwzrVqoStlGav7gR') {
+            return true;
+          }
+          return false;
+        });
         
-        // إذا لم يجد منتجات موضة، اعرض كل المنتجات
-        if (fashionProducts.length === 0) {
-          console.log('⚠️ No fashion products found! Showing all products');
+        console.log('✅ SAB Market products:', sabMarketProducts.length);
+        console.log('✅ Fashion products:', fashionProducts.length);
+        
+        // Combine both categories
+        const combinedProducts = [...sabMarketProducts, ...fashionProducts];
+        
+        console.log('📊 Combined products:', combinedProducts.length);
+        
+        // إذا لم يجد منتجات، اعرض كل المنتجات
+        if (combinedProducts.length === 0) {
+          console.log('⚠️ No products found! Showing all products');
           const shuffled = allProducts.sort(() => 0.5 - Math.random());
           setFeaturedProducts(shuffled.slice(0, 60));
           setProductsLoading(false);
@@ -118,22 +139,22 @@ export default function HomeScreen() {
         }
         
         // خلط المنتجات عشوائياً
-        const shuffled = fashionProducts.sort(() => 0.5 - Math.random());
+        const shuffled = combinedProducts.sort(() => 0.5 - Math.random());
         
         // اختيار أول 60 منتج
         const selectedProducts = shuffled.slice(0, 60);
         
-        console.log('🎯 Products to display (including SAB Market):', selectedProducts.length);
+        console.log('🎯 Products to display (SAB Market + Fashion):', selectedProducts.length);
         setFeaturedProducts(selectedProducts);
       } catch (error) {
-        console.error('❌ Error loading fashion products:', error);
+        console.error('❌ Error loading products:', error);
         setFeaturedProducts([]);
       } finally {
         setProductsLoading(false);
       }
     };
     
-    fetchFashionProducts();
+    fetchAllProducts();
   }, []);
 
   // دالة تنسيق السعر الآمنة
@@ -292,8 +313,20 @@ export default function HomeScreen() {
       >
         <View style={styles.headerContent}>
           <View style={styles.welcomeSection}>
-            <Text style={styles.welcomeText}>{language === 'ar' ? 'مرحباً بك' : 'Welcome'}</Text>
-            <Text style={styles.storeTitle}>{language === 'ar' ? 'متجر سب' : 'Sab Store'}</Text>
+            {user && (
+              <Text style={styles.welcomeText}>
+                {language === 'ar' 
+                  ? `مرحباً بك${(userProfile?.fullName || userProfile?.displayName || user?.displayName || '').trim() ? ' ' + (userProfile?.fullName || userProfile?.displayName || user?.displayName || '').trim() : ''}` 
+                  : `Welcome${(userProfile?.fullName || userProfile?.displayName || user?.displayName || '').trim() ? ' ' + (userProfile?.fullName || userProfile?.displayName || user?.displayName || '').trim() : ''}`
+                }
+              </Text>
+            )}
+            {!user && (
+              <Text style={styles.welcomeText}>
+                {language === 'ar' ? 'مرحباً بك' : 'Welcome'}
+              </Text>
+            )}
+            <Text style={styles.storeTitle}>Sab Store</Text>
             <Text style={styles.storeSubtitle}>{language === 'ar' ? 'تسوق منتجات عالية الجودة' : 'Shop premium quality products'}</Text>
           </View>
           <View style={styles.headerButtons}>
@@ -477,7 +510,14 @@ export default function HomeScreen() {
                   />
                 </View>
                 <Text style={styles.categoryName} numberOfLines={2}>
-                  {typeof category.name === 'string' ? category.name : (category.name?.[language] || category.name?.en || 'Category')}
+                  {/* Keep "Sab Market" in English always */}
+                  {(typeof category.name === 'object' && (category.name.en === 'Sab Market' || category.name.ar === 'ساب ماركت'))
+                    ? 'Sab Market'
+                    : (typeof category.name === 'object'
+                      ? (language === 'ar' ? category.name.ar : category.name.en)
+                      : category.name || 'Category'
+                    )
+                  }
                 </Text>
               </TouchableOpacity>
               ))}

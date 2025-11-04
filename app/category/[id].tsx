@@ -60,6 +60,10 @@ export default function CategoryDetails() {
   const categoryName: string = (() => {
     if (!category?.name) return 'Category';
     if (typeof category.name === 'string') return category.name;
+    // Keep "Sab Market" in English always
+    if (category.name.en === 'Sab Market' || category.name.ar === 'ساب ماركت') {
+      return 'Sab Market';
+    }
     return language === 'ar' ? category.name.ar : category.name.en;
   })();
 

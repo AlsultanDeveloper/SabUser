@@ -14,7 +14,8 @@ import {
   updateProfile,
 } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, isConfigured } from '@/constants/firebase';
+import { auth, isConfigured, db } from '@/constants/firebase';
+import { getUserProfile, createUserProfile } from '@/constants/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { Platform } from 'react-native';
@@ -392,11 +393,81 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             AppleAuthentication.AppleAuthenticationScope.EMAIL,
           ],
         });
-        const { identityToken } = credential;
+        const { identityToken, fullName } = credential;
         if (identityToken) {
           const provider = new OAuthProvider('apple.com');
           const firebaseCredential = provider.credential({ idToken: identityToken });
           const result = await signInWithCredential(auth, firebaseCredential);
+          console.log('✅ Apple sign-in successful');
+          
+          // Check if user document exists, create if not
+          const userDocRef = doc(db, 'users', result.user.uid);
+          const userDocSnap = await getDoc(userDocRef);
+          
+          if (!userDocSnap.exists()) {
+            console.log('📝 Creating user document for Apple sign-in user');
+            const displayName = fullName 
+              ? `${fullName.givenName || ''} ${fullName.familyName || ''}`.trim()
+              : result.user.displayName || 'Apple User';
+            
+            // Create complete user document structure for OAuth
+            const userData: Partial<AppUser> = {
+              uid: result.user.uid,
+              email: result.user.email || '',
+              emailVerified: result.user.emailVerified || false,
+              displayName: displayName,
+              fullName: displayName,
+              phoneNumber: result.user.phoneNumber || '',
+              photoURL: result.user.photoURL || '',
+              signInMethod: 'apple',
+              phoneVerified: false,
+              
+              preferences: {
+                language: 'en',
+                currency: 'USD',
+                notifications: {
+                  push: true,
+                  email: true,
+                  sms: false,
+                  orders: true,
+                  promotions: true,
+                },
+                theme: 'auto',
+              },
+              
+              stats: {
+                totalOrders: 0,
+                totalSpent: 0,
+                wishlistCount: 0,
+                loyaltyPoints: 0,
+                membershipLevel: 'bronze',
+              },
+              
+              status: {
+                isActive: true,
+                isVerified: false,
+                isBlocked: false,
+                twoFactorEnabled: false,
+              },
+              
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              lastLoginAt: new Date().toISOString(),
+              
+              metadata: {
+                registrationSource: 'ios' as any,
+                deviceInfo: {
+                  platform: 'ios',
+                  version: Platform.Version.toString(),
+                },
+              },
+            };
+            
+            // Use setDoc with complete data structure
+            await setDoc(userDocRef, userData);
+            console.log('✅ User document created successfully');
+          }
+          
           return { success: true, user: result.user };
         }
         return { success: false, error: 'No identity token' };
@@ -405,12 +476,80 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         provider.addScope('email');
         provider.addScope('name');
         const result = await signInWithPopup(auth, provider);
+        
+        // Check if user document exists, create if not
+        const userDocRef = doc(db, 'users', result.user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        
+        if (!userDocSnap.exists()) {
+          console.log('📝 Creating user document for Apple sign-in user');
+          
+          const userData: Partial<AppUser> = {
+            uid: result.user.uid,
+            email: result.user.email || '',
+            emailVerified: result.user.emailVerified || false,
+            displayName: result.user.displayName || 'Apple User',
+            fullName: result.user.displayName || 'Apple User',
+            phoneNumber: result.user.phoneNumber || '',
+            photoURL: result.user.photoURL || '',
+            signInMethod: 'apple',
+            phoneVerified: false,
+            
+            preferences: {
+              language: 'en',
+              currency: 'USD',
+              notifications: {
+                push: true,
+                email: true,
+                sms: false,
+                orders: true,
+                promotions: true,
+              },
+              theme: 'auto',
+            },
+            
+            stats: {
+              totalOrders: 0,
+              totalSpent: 0,
+              wishlistCount: 0,
+              loyaltyPoints: 0,
+              membershipLevel: 'bronze',
+            },
+            
+            status: {
+              isActive: true,
+              isVerified: false,
+              isBlocked: false,
+              twoFactorEnabled: false,
+            },
+            
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            lastLoginAt: new Date().toISOString(),
+            
+            metadata: {
+              registrationSource: 'web' as any,
+              deviceInfo: {
+                platform: 'web',
+                version: '1.0',
+              },
+            },
+          };
+          
+          await setDoc(userDocRef, userData);
+          console.log('✅ User document created successfully');
+        }
+        
         return { success: true, user: result.user };
       } else {
         return { success: false, error: 'Apple sign-in not available on Android' };
       }
     } catch (error: any) {
       console.error('Apple sign in error:', error);
+      // Check if user cancelled
+      if (error.code === 'ERR_REQUEST_CANCELED' || error.message?.includes('canceled')) {
+        return { success: false, cancelled: true };
+      }
       return { success: false, error: error.message };
     }
   }, []);

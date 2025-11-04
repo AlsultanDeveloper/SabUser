@@ -264,12 +264,17 @@ async function fetchProducts(options: UseProductsOptions = {}): Promise<Product[
     const data = docSnap.data();
     
     // Filter by subcategory if specified (يدعم كلاً من subcategoryId و subcategoryName)
-    if (options.subcategoryId && data.subcategoryId !== options.subcategoryId) {
-      return; // Skip products that don't match the subcategory ID
+    if (options.subcategoryId) {
+      if (!data.subcategoryId || data.subcategoryId !== options.subcategoryId) {
+        console.log(`⏭️  Skipping product ${docSnap.id}: subcategoryId mismatch (expected: ${options.subcategoryId}, got: ${data.subcategoryId})`);
+        return; // Skip products that don't match the subcategory ID
+      }
     }
     
-    if (options.subcategoryName && data.subcategoryName !== options.subcategoryName) {
-      return; // Skip products that don't match the subcategory name
+    if (options.subcategoryName) {
+      if (!data.subcategoryName || data.subcategoryName !== options.subcategoryName) {
+        return; // Skip products that don't match the subcategory name
+      }
     }
     
     const imageUrl = data.image && typeof data.image === 'string' && data.image.trim() ? data.image.trim() : undefined;
