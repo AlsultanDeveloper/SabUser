@@ -84,6 +84,7 @@ export interface Category {
   icon: string;
   image: string;
   subcategories?: Subcategory[];
+  order?: number;
 }
 
 export interface CartItem {

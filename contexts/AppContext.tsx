@@ -226,9 +226,14 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
   const cartTotal = useMemo(() => {
     return cart.reduce((total, item) => {
-      const itemPrice = item.product.discount 
-        ? item.product.price * (1 - item.product.discount / 100)
-        : item.product.price;
+      // Use finalPrice if available (for weight/piece-based products)
+      let itemPrice = item.product.finalPrice || item.product.price;
+      
+      // Apply discount if no finalPrice is set
+      if (!item.product.finalPrice && item.product.discount) {
+        itemPrice = item.product.price * (1 - item.product.discount / 100);
+      }
+      
       return total + itemPrice * item.quantity;
     }, 0);
   }, [cart]);

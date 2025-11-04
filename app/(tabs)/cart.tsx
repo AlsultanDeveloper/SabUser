@@ -109,17 +109,31 @@ export default function NewCartScreen() {
               />
               
               <View style={styles.itemDetails}>
-                <Text style={styles.productName} numberOfLines={1}>
-                  {typeof item.product.name === 'object' && item.product.name !== null
-                    ? (language === 'ar' ? item.product.name.ar : item.product.name.en)
-                    : 'Product'
-                  }
+                <Text style={styles.productName} numberOfLines={2}>
+                  {item.product.displayName || (
+                    typeof item.product.name === 'object' && item.product.name !== null
+                      ? (language === 'ar' ? item.product.name.ar : item.product.name.en)
+                      : typeof item.product.name === 'string' 
+                        ? item.product.name
+                        : 'Product'
+                  )}
                 </Text>
                 
                 <View style={styles.priceContainer}>
                   <Text style={styles.currentPrice}>
-                    {formatPrice(item.product.price)}
+                    {formatPrice(item.product.finalPrice || item.product.price)}
                   </Text>
+                  {/* Show weight or pieces info */}
+                  {item.product.selectedWeight && (
+                    <Text style={styles.unitInfo}>
+                      {item.product.selectedWeight} {language === 'ar' ? 'كغ' : 'kg'}
+                    </Text>
+                  )}
+                  {item.product.selectedPieces && (
+                    <Text style={styles.unitInfo}>
+                      {item.product.selectedPieces} {language === 'ar' ? 'قطعة' : 'pcs'}
+                    </Text>
+                  )}
                 </View>
 
                 {/* Quantity Controls */}
@@ -332,6 +346,18 @@ const styles = StyleSheet.create({
   },
   priceContainer: {
     marginBottom: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  unitInfo: {
+    fontSize: 11,
+    color: '#6B7280',
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    fontWeight: '500',
   },
   discountPriceContainer: {
     flexDirection: 'row',

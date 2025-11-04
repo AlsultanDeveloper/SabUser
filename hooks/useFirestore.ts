@@ -25,8 +25,11 @@ async function fetchCategories(): Promise<Category[]> {
   try {
       
     const categoriesRef = collection(db, 'categories');
-    const q = query(categoriesRef, orderBy('order', 'asc'));
+    // Temporarily remove orderBy to get all categories
+    const q = query(categoriesRef);
     const querySnapshot = await getDocs(q);
+    
+    console.log(`📦 Raw categories count from Firebase: ${querySnapshot.size}`);
     
     const loadedCategories: Category[] = [];
       
@@ -77,7 +80,19 @@ async function fetchCategories(): Promise<Category[]> {
       });
       
       const imageUrl = data.image && typeof data.image === 'string' && data.image.trim() ? data.image.trim() : '';
-      const categoryName = data.name || { en: '', ar: '' };
+      
+      // Handle category name - can be object {en, ar} or separate fields name & nameAr
+      let categoryName;
+      if (typeof data.name === 'object' && data.name !== null && (data.name.en || data.name.ar)) {
+        categoryName = data.name;
+      } else if (data.name || data.nameAr) {
+        categoryName = {
+          en: data.name || '',
+          ar: data.nameAr || data.name || ''
+        };
+      } else {
+        categoryName = { en: '', ar: '' };
+      }
       
       loadedCategories.push({
         id: docSnap.id,
@@ -85,8 +100,27 @@ async function fetchCategories(): Promise<Category[]> {
         icon: data.icon || 'Package',
         image: imageUrl,
         subcategories: subcategories,
+        order: data.order || 999, // Default high order for categories without order field
       });
     }
+
+    // Sort categories by order field (ascending)
+    loadedCategories.sort((a, b) => (a.order || 999) - (b.order || 999));
+    
+    // Optional: Custom ordering - define priority categories here
+    const priorityOrder: { [key: string]: number } = {
+      'GXakfwzrVqoStlGav7gR': 1,  // Sab Market - always first
+      'naEr1ac0oX0jV5GkMLLP': 2,  // Kitchen - second
+      // Add more category IDs here to customize order
+      // 'categoryId': orderNumber
+    };
+    
+    // Apply custom priority ordering if defined
+    loadedCategories.sort((a, b) => {
+      const priorityA = priorityOrder[a.id] || (a.order || 999);
+      const priorityB = priorityOrder[b.id] || (b.order || 999);
+      return priorityA - priorityB;
+    });
 
     console.log('✅ Categories loaded from Firestore:', loadedCategories.length);
     return loadedCategories;

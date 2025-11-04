@@ -26,13 +26,33 @@ export default function ProductDetailsScreen() {
   
   // Quantity state
   const [quantity, setQuantity] = useState(1);
+  
+  // Weight state for vegetables/fruits (in kg)
+  const [selectedWeight, setSelectedWeight] = useState(0.5);
+  
+  // Piece count state for items sold by piece
+  const [selectedPieces, setSelectedPieces] = useState(1);
+  
+  // Common weight options - only 0.5 and 1 kg
+  const weightOptions = [0.5, 1];
+  
+  // Common piece options
+  const pieceOptions = [1, 2, 3, 4, 5, 6];
 
   const getProductName = () => {
     if (!product) return '';
+    
+    // إذا الاسم object (bilingual)
     if (typeof product.name === 'object' && product.name !== null) {
       const nameByLanguage = language === 'ar' ? product.name.ar : product.name.en;
       return typeof nameByLanguage === 'string' && nameByLanguage.trim() ? nameByLanguage : 'Product';
     }
+    
+    // إذا الاسم string عادي
+    if (typeof product.name === 'string' && product.name.trim()) {
+      return product.name;
+    }
+    
     return 'Product';
   };
 
@@ -42,7 +62,90 @@ export default function ProductDetailsScreen() {
       const descByLanguage = language === 'ar' ? product.description.ar : product.description.en;
       return typeof descByLanguage === 'string' && descByLanguage.trim() ? descByLanguage : '';
     }
-    return language === 'ar' ? 'لا يوجد وصف متاح' : 'No description available';
+    if (typeof product.description === 'string' && product.description.trim()) {
+      return product.description;
+    }
+    return '';
+  };
+
+  // Check if product is vegetable/fruit (needs weight selection)
+  const isWeightBasedProduct = () => {
+    if (!product) return false;
+    
+    // Check category name
+    const categoryName = typeof product.categoryName === 'string' 
+      ? product.categoryName.toLowerCase() 
+      : '';
+    
+    // Check subcategory name
+    const subcategoryName = typeof product.subcategoryName === 'string'
+      ? product.subcategoryName.toLowerCase()
+      : '';
+    
+    // Keywords to check - vegetables, fruits, dairy, eggs
+    const keywords = [
+      'vegetable', 'fruit', 'vegetables', 'fruits',
+      'خضار', 'فواكه', 'خضروات',
+      'dairy', 'cheese', 'yogurt', 'butter',
+      'ألبان', 'جبن', 'لبن', 'زبدة',
+      'egg', 'eggs', 'بيض'
+    ];
+    
+    // Check if any keyword exists in category or subcategory
+    return keywords.some(keyword => 
+      categoryName.includes(keyword) || subcategoryName.includes(keyword)
+    );
+  };
+
+  // Check if product is sold by piece (pc)
+  const isPieceBasedProduct = () => {
+    if (!product) return false;
+    
+    // Don't show pieces if it's weight-based
+    if (isWeightBasedProduct()) return false;
+    
+    // Check unit field
+    const unit = typeof product.unit === 'string' 
+      ? product.unit.toLowerCase() 
+      : '';
+    
+    // Check if unit is "pc", "piece", "قطعة", "pcs"
+    if (unit === 'pc' || unit === 'piece' || unit === 'قطعة' || unit === 'pcs') {
+      return true;
+    }
+    
+    // Check category/subcategory for items typically sold by piece
+    const categoryName = typeof product.categoryName === 'string' 
+      ? product.categoryName.toLowerCase() 
+      : '';
+    const subcategoryName = typeof product.subcategoryName === 'string'
+      ? product.subcategoryName.toLowerCase()
+      : '';
+    
+    // Items typically sold by piece - drinks, snacks, candies
+    const pieceKeywords = [
+      'drink', 'beverage', 'soda', 'juice', 'water', 'cola', 'pepsi', 'milk',
+      'مشروب', 'مشروبات', 'عصير', 'ماء', 'حليب', 'كولا',
+      'candy', 'chocolate', 'snack', 'chips', 'biscuit', 'cookie',
+      'حلوى', 'شوكولا', 'شوكولاتة', 'بسكويت', 'شيبس'
+    ];
+    
+    return pieceKeywords.some(keyword => 
+      categoryName.includes(keyword) || subcategoryName.includes(keyword)
+    );
+  };
+
+  // Calculate final price based on weight or pieces
+  const getFinalPrice = () => {
+    const pricePerUnit = hasDiscount ? discountedPrice : basePrice;
+    
+    if (isWeightBasedProduct()) {
+      return pricePerUnit * selectedWeight;
+    } else if (isPieceBasedProduct()) {
+      return pricePerUnit * selectedPieces;
+    }
+    
+    return pricePerUnit;
   };
 
   if (loading) {
@@ -124,12 +227,12 @@ export default function ProductDetailsScreen() {
         {/* Product Info */}
         <View style={styles.productInfo}>
           {/* Brand */}
-          {((typeof product.brandName === 'string' && product.brandName) || 
-            (typeof product.brand === 'string' && product.brand)) && (
+          {(typeof product.brandName === 'string' && product.brandName) || 
+           (typeof product.brand === 'string' && product.brand) ? (
             <Text style={styles.brandText}>
               {product.brandName || product.brand}
             </Text>
-          )}
+          ) : null}
 
           {/* Product Name */}
           <Text style={styles.productTitle}>
@@ -164,14 +267,98 @@ export default function ProductDetailsScreen() {
           {/* Price */}
           <View style={styles.priceContainer}>
             <Text style={styles.currentPrice}>
-              {formatPrice(discountedPrice)}
+              {formatPrice(getFinalPrice())}
+              {isWeightBasedProduct() && (
+                <Text style={styles.priceUnit}>
+                  {language === 'ar' ? ' للكيلو' : ' /kg'}
+                </Text>
+              )}
+              {isPieceBasedProduct() && (
+                <Text style={styles.priceUnit}>
+                  {language === 'ar' ? ' للقطعة' : ' /pc'}
+                </Text>
+              )}
             </Text>
             {hasDiscount && (
               <Text style={styles.originalPrice}>
-                {formatPrice(basePrice)}
+                {formatPrice(
+                  isWeightBasedProduct() 
+                    ? basePrice * selectedWeight 
+                    : isPieceBasedProduct()
+                      ? basePrice * selectedPieces
+                      : basePrice
+                )}
               </Text>
             )}
           </View>
+
+          {/* Weight Selection for Vegetables/Fruits */}
+          {isWeightBasedProduct() && (
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>
+                {language === 'ar' ? 'اختر الوزن' : 'Select Weight'}
+              </Text>
+              <View style={styles.weightContainer}>
+                {weightOptions.map((weight) => (
+                  <TouchableOpacity
+                    key={weight}
+                    style={[
+                      styles.weightOption,
+                      selectedWeight === weight && styles.weightOptionSelected
+                    ]}
+                    onPress={() => setSelectedWeight(weight)}
+                  >
+                    <Text style={[
+                      styles.weightText,
+                      selectedWeight === weight && styles.weightTextSelected
+                    ]}>
+                      {weight} {language === 'ar' ? 'كغ' : 'kg'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text style={styles.totalWeightPrice}>
+                {language === 'ar' ? 'السعر الإجمالي: ' : 'Total Price: '}
+                <Text style={styles.totalWeightPriceAmount}>
+                  {formatPrice(getFinalPrice())}
+                </Text>
+              </Text>
+            </View>
+          )}
+
+          {/* Piece Selection for items sold by piece */}
+          {isPieceBasedProduct() && (
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>
+                {language === 'ar' ? 'اختر عدد القطع' : 'Select Pieces'}
+              </Text>
+              <View style={styles.weightContainer}>
+                {pieceOptions.map((pieces) => (
+                  <TouchableOpacity
+                    key={pieces}
+                    style={[
+                      styles.weightOption,
+                      selectedPieces === pieces && styles.weightOptionSelected
+                    ]}
+                    onPress={() => setSelectedPieces(pieces)}
+                  >
+                    <Text style={[
+                      styles.weightText,
+                      selectedPieces === pieces && styles.weightTextSelected
+                    ]}>
+                      {pieces} {language === 'ar' ? 'قطعة' : 'pc'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text style={styles.totalWeightPrice}>
+                {language === 'ar' ? 'السعر الإجمالي: ' : 'Total Price: '}
+                <Text style={styles.totalWeightPriceAmount}>
+                  {formatPrice(getFinalPrice())}
+                </Text>
+              </Text>
+            </View>
+          )}
 
           {/* Stock Status */}
           <View style={styles.stockContainer}>
@@ -208,14 +395,16 @@ export default function ProductDetailsScreen() {
           )}
 
           {/* Description */}
-          <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>
-              {language === 'ar' ? 'الوصف' : 'Description'}
-            </Text>
-            <Text style={styles.descriptionText}>
-              {getProductDescription()}
-            </Text>
-          </View>
+          {getProductDescription() && (
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>
+                {language === 'ar' ? 'الوصف' : 'Description'}
+              </Text>
+              <Text style={styles.descriptionText}>
+                {getProductDescription()}
+              </Text>
+            </View>
+          )}
 
           {/* Colors */}
           {product.colors && product.colors.length > 0 && (
@@ -463,7 +652,28 @@ export default function ProductDetailsScreen() {
           ]}
           onPress={() => {
             if (product.inStock !== false) {
-              addToCart(product, quantity);
+              // Create product with weight/piece info if applicable
+              let productToAdd = product;
+              
+              if (isWeightBasedProduct()) {
+                productToAdd = {
+                  ...product,
+                  selectedWeight,
+                  pricePerKg: hasDiscount ? discountedPrice : basePrice,
+                  finalPrice: getFinalPrice(),
+                  displayName: `${getProductName()} (${selectedWeight} ${language === 'ar' ? 'كغ' : 'kg'})`
+                };
+              } else if (isPieceBasedProduct()) {
+                productToAdd = {
+                  ...product,
+                  selectedPieces,
+                  pricePerPiece: hasDiscount ? discountedPrice : basePrice,
+                  finalPrice: getFinalPrice(),
+                  displayName: `${getProductName()} (${selectedPieces} ${language === 'ar' ? 'قطعة' : 'pcs'})`
+                };
+              }
+              
+              addToCart(productToAdd, quantity);
               router.back();
             }
           }}
@@ -669,6 +879,49 @@ const styles = StyleSheet.create({
   colorText: {
     fontSize: FontSizes.xs,
     color: Colors.text.secondary,
+  },
+  weightContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  weightOption: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 2,
+    borderColor: Colors.border.light,
+    backgroundColor: Colors.white,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  weightOptionSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary + '10',
+  },
+  weightText: {
+    fontSize: FontSizes.md,
+    color: Colors.text.secondary,
+    fontWeight: '600',
+  },
+  weightTextSelected: {
+    color: Colors.primary,
+    fontWeight: '700',
+  },
+  totalWeightPrice: {
+    fontSize: FontSizes.md,
+    color: Colors.text.secondary,
+    marginTop: Spacing.md,
+  },
+  totalWeightPriceAmount: {
+    fontSize: FontSizes.lg,
+    color: Colors.primary,
+    fontWeight: '700',
+  },
+  priceUnit: {
+    fontSize: FontSizes.sm,
+    color: Colors.text.secondary,
+    fontWeight: '400',
   },
   sizesContainer: {
     flexDirection: 'row',

@@ -79,16 +79,24 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       webClientId: GOOGLE_WEB_CLIENT_ID,
     };
     
-    // استخدام Expo Auth Proxy على Mobile بدلاً من Custom URI Scheme
-    if (Platform.OS !== 'web') {
-      config.redirectUri = 'https://auth.expo.io/@alsultandeveloper/sab-store';
-      console.log('🔧 Using Expo Auth Proxy redirect URI:', config.redirectUri);
-    }
+    // Don't set redirectUri - let expo-auth-session generate it automatically
+    // It will use: https://auth.expo.io/@owner/slug
+    console.log('🔧 Using automatic Expo AuthSession redirect URI');
     
     return config;
   }, [GOOGLE_ANDROID_CLIENT_ID, GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID]);
 
   const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest(googleConfig);
+
+  // ---- Debug: Log the actual redirect URI being used ----
+  useEffect(() => {
+    if (googleRequest) {
+      console.log('📍 Google Request Details:');
+      console.log('  Redirect URI:', googleRequest.redirectUri);
+      console.log('  Client ID being used:', googleRequest.clientId);
+      console.log('  Response Type:', googleRequest.responseType);
+    }
+  }, [googleRequest]);
 
   // ---- Handle Google OAuth response ----
   useEffect(() => {
