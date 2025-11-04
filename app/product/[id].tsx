@@ -15,6 +15,7 @@ import { useApp } from '@/contexts/AppContext';
 import { Colors, Spacing, BorderRadius, FontSizes } from '@/constants/theme';
 import { useProduct } from '@/hooks/useFirestore';
 import SafeImage from '@/components/SafeImage';
+import { getProductImageUrl } from '@/utils/imageHelper';
 
 export default function ProductDetailsScreen() {
   const { id } = useLocalSearchParams();
@@ -106,7 +107,7 @@ export default function ProductDetailsScreen() {
         {/* Product Image */}
         <View style={styles.imageContainer}>
           <SafeImage 
-            uri={product.image || 'https://picsum.photos/800/800'} 
+            uri={getProductImageUrl(product, 800)} 
             style={styles.productImage}
             fallbackIconSize={100}
             fallbackIconName="image"

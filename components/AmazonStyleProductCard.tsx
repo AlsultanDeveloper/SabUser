@@ -10,6 +10,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import SafeImage from './SafeImage';
+import { getProductImageUrl } from '@/utils/imageHelper';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2; // 16px margin on each side + 16px gap
@@ -38,10 +39,16 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
     return null;
   }
   
-  // Debug log to see what's in the product
-  console.log('Product data keys:', Object.keys(product));
-  console.log('Product name:', product.name);
-  console.log('Product brand:', product.brand, 'brandName:', product.brandName);
+  // Debug log to see what's in the product - only log once per render
+  if (Math.random() < 0.05) { // Log 5% of products to avoid spam
+    console.log('\n🔍 Product Image Debug:');
+    console.log('  Product ID:', product.id);
+    console.log('  Product name:', product.name);
+    console.log('  product.image:', product.image);
+    console.log('  product.images:', product.images);
+    console.log('  product.imageUrl:', product.imageUrl);
+    console.log('  Final URL:', getProductImageUrl(product, 400));
+  }
   
   const handleWishlistPress = () => {
     if (Platform.OS === 'ios') {
@@ -125,7 +132,7 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
       <TouchableOpacity onPress={handlePress} activeOpacity={0.95}>
         <View style={styles.imageContainer}>
           <SafeImage 
-            uri={product.image || 'https://picsum.photos/400/400'} 
+            uri={getProductImageUrl(product, 400)} 
             style={styles.productImage}
             fallbackIconSize={60}
             fallbackIconName="image"

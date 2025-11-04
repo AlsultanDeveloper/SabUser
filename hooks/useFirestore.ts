@@ -277,10 +277,43 @@ async function fetchProducts(options: UseProductsOptions = {}): Promise<Product[
       }
     }
     
-    const imageUrl = data.image && typeof data.image === 'string' && data.image.trim() ? data.image.trim() : undefined;
-    const images = Array.isArray(data.images) 
-      ? data.images.filter((img: any) => img && typeof img === 'string' && img.trim())
-      : imageUrl ? [imageUrl] : [];
+    const imageUrl = data.image && typeof data.image === 'string' && data.image.trim() && data.image !== 'undefined' ? data.image.trim() : undefined;
+    
+    // Handle images array - it can contain objects {url, order, path} or strings
+    let images: string[] = [];
+    if (Array.isArray(data.images) && data.images.length > 0) {
+      images = data.images
+        .map((img: any) => {
+          // If it's an object with url property
+          if (img && typeof img === 'object' && img.url && typeof img.url === 'string') {
+            return img.url.trim();
+          }
+          // If it's a plain string
+          if (img && typeof img === 'string') {
+            return img.trim();
+          }
+          return '';
+        })
+        .filter((url: string) => url && url !== 'undefined');
+    } else if (imageUrl) {
+      // Fallback: if no images array but has imageUrl, use that
+      images = [imageUrl];
+    } else if (data.imageUrl && typeof data.imageUrl === 'string' && data.imageUrl.trim()) {
+      // Also check imageUrl field
+      images = [data.imageUrl.trim()];
+    }
+    
+    // Debug: log first few products to see image data
+    if (loadedProducts.length < 3) {
+      console.log(`\n📸 Product Image Debug #${loadedProducts.length + 1}:`);
+      console.log(`   Name: ${typeof data.name === 'object' ? data.name.en : data.name}`);
+      console.log(`   data.image:`, data.image);
+      console.log(`   data.images:`, data.images);
+      console.log(`   data.imageUrl:`, data.imageUrl);
+      console.log(`   data.mainImage:`, data.mainImage);
+      console.log(`   Computed imageUrl:`, imageUrl);
+      console.log(`   Computed images array:`, images);
+    }
     
     loadedProducts.push({
       id: docSnap.id,

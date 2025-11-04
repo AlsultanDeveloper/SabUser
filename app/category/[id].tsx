@@ -6,11 +6,11 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
-  Image,
 } from 'react-native';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useCategory } from '@/hooks/useFirestore';
+import SafeImage from '@/components/SafeImage';
 import type { Subcategory } from '@/types';
 
 interface SubcategoryCardProps {
@@ -27,9 +27,12 @@ const SubcategoryCard: React.FC<SubcategoryCardProps> = ({ subcategory, language
   return (
     <TouchableOpacity style={styles.subcategoryCard} onPress={onPress} activeOpacity={0.8}>
       <View style={styles.subcategoryImageContainer}>
-        <Image 
-          source={{ uri: subcategory.image || 'https://via.placeholder.com/150/E8F4FD/333?text=No+Image' }} 
+        <SafeImage 
+          uri={subcategory.image} 
           style={styles.subcategoryImage}
+          fallbackIconSize={40}
+          fallbackIconName="image"
+          showLoader={true}
           resizeMode="cover"
         />
       </View>

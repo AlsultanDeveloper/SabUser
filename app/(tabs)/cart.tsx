@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import SafeImage from '@/components/SafeImage';
+import { getProductImageUrl } from '@/utils/imageHelper';
 
 export default function NewCartScreen() {
   const router = useRouter();
@@ -99,7 +100,7 @@ export default function NewCartScreen() {
             <View key={item.product.id} style={styles.cartItem}>
               {/* Product Image */}
               <SafeImage
-                uri={item.product.image || 'https://picsum.photos/200/200'}
+                uri={getProductImageUrl(item.product, 200)}
                 style={styles.productImage}
                 fallbackIconSize={30}
                 fallbackIconName="image"
