@@ -23,7 +23,7 @@ import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Colors, Spacing, BorderRadius, FontSizes, Shadows, FontWeights } from '@/constants/theme';
 import { useCategories } from '@/hooks/useFirestore';
-import { getDocuments, collections, where } from '@/constants/firestore';
+import { getDocuments, collections, where, limit as firestoreLimit } from '@/constants/firestore';
 import SafeImage from '@/components/SafeImage';
 import { CategoryCardSkeleton } from '@/components/SkeletonLoader';
 import AmazonStyleProductCard from '@/components/AmazonStyleProductCard';
@@ -65,75 +65,31 @@ export default function HomeScreen() {
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
   
-  // جلب منتجات متنوعة تشمل SAB Market - 60 منتج
+  // جلب منتجات محدودة بسرعة - 20 منتج فقط للأداء
   useEffect(() => {
-    const fetchFashionProducts = async () => {
+    const fetchFeaturedProducts = async () => {
       try {
         setProductsLoading(true);
         
-        // جلب جميع المنتجات من Firebase
+        // جلب 20 منتج فقط بدلاً من كل المنتجات (بدون limit للحصول على تنوع)
         const allProducts = await getDocuments(collections.products);
         
-        console.log('📦 Total products fetched:', allProducts.length);
+        console.log('📦 Products fetched:', allProducts.length);
         
-        // فلترة المنتجات: Fashion فقط + SAB Market
-        const fashionKeywords = [
-          'fashion', 'clothing', 'ملابس', 'أزياء', 'ازياء',
-          'shoes', 'أحذية', 'bags', 'حقائب', 'accessories', 
-          'إكسسوارات', 'اكسسوارات', 'dress', 'فستان', 'shirt', 
-          'قميص', 'pants', 'بنطال', 'kids', 'أطفال', 'اطفال',
-          'men', 'رجالي', 'women', 'نسائي', 'baby', 'طفل',
-          'sab', 'ساب', 'market', 'ماركت', 'grocery', 'بقالة'
-        ];
+        // خلط المنتجات عشوائياً واختيار 20 فقط
+        const shuffled = allProducts.sort(() => 0.5 - Math.random());
+        const selectedProducts = shuffled.slice(0, 20);
         
-        const fashionProducts = allProducts.filter((product: any) => {
-          // فحص إذا كان المنتج من SAB MARKET
-          if (product.categoryId === 'cwt28D5gjoLno8SFqoxQ') {
-            console.log('✅ SAB Market product:', product.id, '- Category:', product.categoryName);
-            return true; // إظهار منتجات SAB MARKET
-          }
-          
-          // البحث في categoryName
-          const categoryName = (product.categoryName || '').toLowerCase();
-          const isFashion = fashionKeywords.some(keyword => 
-            categoryName.includes(keyword.toLowerCase())
-          );
-          
-          if (isFashion) {
-            console.log('✅ Fashion product:', product.id, '- Category:', product.categoryName);
-          }
-          
-          return isFashion;
-        });
-        
-        console.log('✅ Fashion products found:', fashionProducts.length);
-        
-        // إذا لم يجد منتجات موضة، اعرض كل المنتجات
-        if (fashionProducts.length === 0) {
-          console.log('⚠️ No fashion products found! Showing all products');
-          const shuffled = allProducts.sort(() => 0.5 - Math.random());
-          setFeaturedProducts(shuffled.slice(0, 60));
-          setProductsLoading(false);
-          return;
-        }
-        
-        // خلط المنتجات عشوائياً
-        const shuffled = fashionProducts.sort(() => 0.5 - Math.random());
-        
-        // اختيار أول 60 منتج
-        const selectedProducts = shuffled.slice(0, 60);
-        
-        console.log('🎯 Products to display (including SAB Market):', selectedProducts.length);
         setFeaturedProducts(selectedProducts);
       } catch (error) {
-        console.error('❌ Error loading fashion products:', error);
+        console.error('❌ Error loading products:', error);
         setFeaturedProducts([]);
       } finally {
         setProductsLoading(false);
       }
     };
     
-    fetchFashionProducts();
+    fetchFeaturedProducts();
   }, []);
 
   // دالة تنسيق السعر الآمنة
@@ -501,8 +457,8 @@ export default function HomeScreen() {
           {/* Amazon Products Grid - المنتجات المميزة من Firebase */}
           <View style={styles.productsGrid}>
             {productsLoading ? (
-              // عرض skeleton loading أثناء التحميل
-              Array(5).fill(null).map((_, rowIndex) => (
+              // عرض skeleton loading أثناء التحميل - 3 صفوف فقط للسرعة
+              Array(3).fill(null).map((_, rowIndex) => (
                 <View key={`skeleton-row-${rowIndex}`} style={styles.productsRow}>
                   {Array(2).fill(null).map((_, colIndex) => (
                     <View key={`skeleton-${rowIndex}-${colIndex}`} style={styles.productCardSkeleton}>
