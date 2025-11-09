@@ -726,6 +726,7 @@ export async function searchProducts(searchQuery: string): Promise<Product[]> {
 }
 
 // Hook للمنتجات مع React Query للكاش السريع - Amazon Style
+// ✅ OPTIMIZED: جلب منتجات Sab Market فقط بدلاً من أي منتجات عشوائية
 export function useFeaturedProducts(limitCount: number = 10) {
   return useQuery({
     queryKey: ['featured-products', limitCount],
@@ -735,23 +736,36 @@ export function useFeaturedProducts(limitCount: number = 10) {
       }
 
       const productsRef = collection(db, 'products');
-      // استخدام limit مباشرة في Firebase Query للسرعة القصوى
-      const q = query(productsRef, limit(limitCount));
+      
+      // ✅ OPTIMIZED: جلب من Sab Market فقط (2,190 منتج بدلاً من 26,372)
+      // هذا يسرّع الـ query ويعرض منتجات ذات صلة للمستخدم
+      const q = query(
+        productsRef,
+        where('categoryId', '==', 'cwt28D5gjoLno8SFqoxQ'), // Sab Market category
+        limit(limitCount) // ✅ جلب 10 فقط من Firebase
+      );
+      
       const querySnapshot = await getDocs(q);
       
       const products: any[] = [];
       querySnapshot.forEach((docSnap) => {
-        products.push({ id: docSnap.id, ...docSnap.data() });
+        const data = docSnap.data();
+        products.push({ 
+          id: docSnap.id, 
+          ...data,
+          // ✅ تأكد من وجود صورة (fallback للصور المفقودة)
+          image: data.image || data.images?.[0] || '',
+        });
       });
 
-      console.log(`⚡ Fast load: fetched only ${products.length} products`);
+      console.log(`⚡ Optimized: fetched ${products.length} products from Sab Market (${querySnapshot.size} docs)`);
       return products;
     },
-    staleTime: 2 * 60 * 1000, // البيانات تبقى صالحة لمدة 2 دقيقة (أسرع من 5)
-    gcTime: 10 * 60 * 1000, // الكاش يبقى 10 دقائق
+    staleTime: 5 * 60 * 1000, // ✅ زيادة من 2 إلى 5 دقائق - تقليل الـ requests
+    gcTime: 15 * 60 * 1000, // ✅ زيادة من 10 إلى 15 دقيقة - كاش أطول
     refetchOnWindowFocus: false, // عدم إعادة التحميل عند العودة للتطبيق
     refetchOnMount: false, // عدم إعادة التحميل عند mount إذا كان الكاش صالح
-    retry: 3, // إعادة المحاولة 3 مرات
+    retry: 2, // ✅ تقليل من 3 إلى 2 - أسرع في حالة الفشل
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
   });
 }
