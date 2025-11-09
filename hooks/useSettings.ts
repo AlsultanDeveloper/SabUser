@@ -114,8 +114,9 @@ export function useSettings() {
         setError(null);
       },
       (err) => {
-        console.error('❌ Error loading settings:', err);
-        setError(err.message);
+        // Silently fall back to default settings on permission errors
+        console.warn('⚠️ Could not load settings from Firebase, using defaults:', err.message);
+        setError(null); // Don't show error to user
         setSettings(DEFAULT_SETTINGS);
         setLoading(false);
       }

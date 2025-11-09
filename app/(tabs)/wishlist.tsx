@@ -1,5 +1,5 @@
 // wishlist.tsx - dummy content
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import Toast from 'react-native-toast-message';
@@ -29,62 +29,74 @@ interface WishlistItem {
 }
 
 export default function WishlistScreen() {
-  const { t, language, formatPrice } = useApp();
+  const { t, language, formatPrice, addToCart } = useApp();
   const { user } = useAuth();
   const router = useRouter();
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
   const [wishlistProducts, setWishlistProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch wishlist from Firestore
-  useEffect(() => {
-    const fetchWishlist = async () => {
-      if (!user?.uid) {
-        setLoading(false);
-        return;
-      }
+  // Fetch wishlist function
+  const fetchWishlist = useCallback(async () => {
+    if (!user?.uid) {
+      setWishlistItems([]);
+      setWishlistProducts([]);
+      setLoading(false);
+      return;
+    }
 
-      try {
-        setLoading(true);
-        // Get wishlist items
-        const items = await getDocuments(collections.wishlists, [
-          where('userId', '==', user.uid),
-        ]);
+    try {
+      setLoading(true);
+      console.log('🔄 Fetching wishlist for user:', user.uid);
+      
+      // Get wishlist items
+      const items = await getDocuments(collections.wishlists, [
+        where('userId', '==', user.uid),
+      ]);
 
-        setWishlistItems(items as WishlistItem[]);
+      console.log('📦 Wishlist items found:', items.length);
+      setWishlistItems(items as WishlistItem[]);
 
-        // Fetch product details for each wishlist item
-        const productsPromises = items.map((item: any) => 
-          getDocument(collections.products, item.productId)
-        );
-        const products = await Promise.all(productsPromises);
-        const validProducts = products.filter(p => p !== null);
-        
-        console.log('📦 Wishlist products loaded:', validProducts.length);
-        validProducts.forEach((p: any, i: number) => {
-          const firstImage = p.images?.[0];
-          console.log(`Product ${i + 1}:`, {
-            id: p.id,
-            name: p.name,
-            hasImages: !!p.images,
-            imagesLength: p.images?.length || 0,
-            firstImageType: typeof firstImage,
-            firstImagePreview: typeof firstImage === 'string' 
-              ? firstImage.substring(0, 50) + '...' 
-              : 'Not a string',
-          });
+      // Fetch product details for each wishlist item
+      const productsPromises = items.map((item: any) => 
+        getDocument(collections.products, item.productId)
+      );
+      const products = await Promise.all(productsPromises);
+      const validProducts = products.filter(p => p !== null);
+      
+      console.log('📦 Wishlist products loaded:', validProducts.length);
+      validProducts.forEach((p: any, i: number) => {
+        const firstImage = p.images?.[0];
+        console.log(`Product ${i + 1}:`, {
+          id: p.id,
+          name: p.name,
+          hasImages: !!p.images,
+          imagesLength: p.images?.length || 0,
+          firstImageType: typeof firstImage,
+          firstImagePreview: typeof firstImage === 'string' 
+            ? firstImage.substring(0, 50) + '...' 
+            : 'Not a string',
         });
-        
-        setWishlistProducts(validProducts);
-      } catch (error) {
-        console.error('Error fetching wishlist:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchWishlist();
+      });
+      
+      setWishlistProducts(validProducts);
+    } catch (error) {
+      // Silently handle permission errors
+      console.warn('Could not fetch wishlist:', error);
+      setWishlistItems([]);
+      setWishlistProducts([]);
+    } finally {
+      setLoading(false);
+    }
   }, [user]);
+
+  // Reload wishlist when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('👀 Wishlist screen focused - reloading data');
+      fetchWishlist();
+    }, [fetchWishlist])
+  );
 
   const handleRemoveFromWishlist = async (itemId: string, productName: string) => {
     if (Platform.OS !== 'web') {
@@ -113,6 +125,35 @@ export default function WishlistScreen() {
         type: 'error',
         text1: t('common.error') || 'Error',
         text2: 'Failed to remove item',
+        position: 'bottom',
+        visibilityTime: 2000,
+        bottomOffset: 100,
+      });
+    }
+  };
+
+  const handleAddToCart = async (product: any, productName: string) => {
+    if (Platform.OS !== 'web') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+
+    try {
+      await addToCart(product, 1);
+      
+      Toast.show({
+        type: 'success',
+        text1: '🛒 ' + (language === 'ar' ? 'تمت الإضافة للسلة' : 'Added to Cart'),
+        text2: productName,
+        position: 'bottom',
+        visibilityTime: 2000,
+        bottomOffset: 100,
+      });
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      Toast.show({
+        type: 'error',
+        text1: t('common.error') || 'Error',
+        text2: language === 'ar' ? 'فشل إضافة المنتج للسلة' : 'Failed to add product to cart',
         position: 'bottom',
         visibilityTime: 2000,
         bottomOffset: 100,
@@ -258,6 +299,7 @@ export default function WishlistScreen() {
 
                 {/* Product Actions */}
                 <View style={styles.productActions}>
+                  {/* Remove Button */}
                   <TouchableOpacity
                     style={styles.removeButton}
                     onPress={(e) => {
@@ -266,21 +308,34 @@ export default function WishlistScreen() {
                     }}
                     activeOpacity={0.7}
                   >
-                    <Feather name="trash-2" size={20} color={Colors.error} />
+                    <Feather name="trash-2" size={18} color={Colors.error} />
                   </TouchableOpacity>
                   
+                  {/* Add to Cart Button */}
                   <TouchableOpacity
                     style={styles.addToCartButton}
                     onPress={(e) => {
                       e.stopPropagation();
-                      router.push(`/product/${product.id}` as any);
+                      handleAddToCart(product, productName);
                     }}
                     activeOpacity={0.8}
                   >
-                    <Feather name="shopping-cart" size={18} color={Colors.white} />
+                    <Feather name="plus" size={18} color={Colors.white} />
                     <Text style={styles.addToCartText}>
                       {language === 'ar' ? 'أضف للسلة' : 'Add to Cart'}
                     </Text>
+                  </TouchableOpacity>
+                  
+                  {/* View Product Button */}
+                  <TouchableOpacity
+                    style={styles.viewButton}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      router.push(`/product/${product.id}` as any);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Feather name="eye" size={18} color={Colors.primary} />
                   </TouchableOpacity>
                 </View>
               </TouchableOpacity>
@@ -361,30 +416,31 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
   },
   itemsCount: {
-    fontSize: FontSizes.md,
+    fontSize: 14,
     fontWeight: '600' as const,
     color: Colors.text.secondary,
-    marginBottom: Spacing.md,
+    marginBottom: 12,
+    paddingLeft: 2,
   },
   productCard: {
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.md,
+    borderRadius: 12,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: Colors.gray[200],
     overflow: 'hidden',
   },
   productContent: {
     flexDirection: 'row',
-    padding: Spacing.md,
+    padding: 12,
   },
   imageContainer: {
-    marginRight: Spacing.md,
+    marginRight: 12,
   },
   productImage: {
-    width: 100,
-    height: 100,
-    borderRadius: BorderRadius.md,
+    width: 80,
+    height: 80,
+    borderRadius: 8,
     backgroundColor: Colors.gray[100],
   },
   placeholderImage: {
@@ -396,97 +452,108 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   productName: {
-    fontSize: FontSizes.md,
+    fontSize: 15,
     fontWeight: '600' as const,
     color: Colors.text.primary,
     marginBottom: 4,
+    lineHeight: 20,
   },
   productBrand: {
-    fontSize: FontSizes.sm,
+    fontSize: 13,
     color: Colors.text.secondary,
-    marginBottom: Spacing.xs,
+    marginBottom: 4,
   },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: Spacing.xs,
+    marginTop: 4,
   },
   productPrice: {
-    fontSize: FontSizes.lg,
+    fontSize: 17,
     fontWeight: 'bold' as const,
     color: Colors.primary,
-    marginRight: Spacing.sm,
+    marginRight: 8,
   },
   originalPrice: {
-    fontSize: FontSizes.sm,
+    fontSize: 13,
     color: Colors.text.secondary,
     textDecorationLine: 'line-through',
     marginTop: 2,
   },
   discountBadge: {
     backgroundColor: Colors.accent,
-    paddingHorizontal: Spacing.sm,
+    paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: BorderRadius.sm,
+    borderRadius: 4,
     alignSelf: 'flex-start',
-    marginBottom: Spacing.xs,
+    marginBottom: 4,
   },
   discountText: {
-    color: Colors.white,
-    fontSize: FontSizes.xs,
+    fontSize: 11,
     fontWeight: 'bold' as const,
+    color: Colors.white,
   },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: Spacing.xs,
+    marginTop: 4,
   },
   ratingText: {
-    fontSize: FontSizes.sm,
+    fontSize: 13,
+    fontWeight: '600' as const,
     color: Colors.text.primary,
     marginLeft: 4,
-    fontWeight: '600' as const,
   },
   reviewsText: {
-    fontSize: FontSizes.sm,
+    fontSize: 12,
     color: Colors.text.secondary,
     marginLeft: 4,
   },
   productActions: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+    paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: Colors.gray[200],
-    padding: Spacing.sm,
-    gap: Spacing.sm,
+    borderTopColor: Colors.gray[100],
+    gap: 8,
   },
   removeButton: {
-    width: 44,
-    height: 44,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1.5,
-    borderColor: Colors.error,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+    backgroundColor: '#FEF2F2',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FEE',
   },
   addToCartButton: {
     flex: 1,
-    backgroundColor: '#8B5CF6',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: BorderRadius.md,
-    gap: Spacing.xs,
-    shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: Colors.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
   },
   addToCartText: {
     color: Colors.white,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600' as const,
+    marginLeft: 6,
+  },
+  viewButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.gray[300],
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

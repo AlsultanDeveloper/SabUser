@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   Platform,
   ActivityIndicator,
-  Image,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -20,7 +20,7 @@ import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Colors, Spacing, BorderRadius, FontSizes } from '@/constants/theme';
 import { getDocuments, collections, where, deleteDocument, getDocument } from '@/constants/firestore';
-import SafeImage from '@/components/SafeImage';
+import AmazonStyleProductCard from '@/components/AmazonStyleProductCard';
 
 interface WishlistItem {
   id: string;
@@ -70,18 +70,19 @@ export default function WishlistScreen() {
     fetchWishlist();
   }, [user]);
 
-  const handleRemoveFromWishlist = async (itemId: string, productName: string) => {
+  const handleRemoveFromWishlist = async (productId: string, productName: string) => {
     if (Platform.OS !== 'web') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     }
 
     try {
-      await deleteDocument(collections.wishlists, itemId);
-      setWishlistItems(prev => prev.filter(item => item.id !== itemId));
-      setWishlistProducts(prev => prev.filter(p => {
-        const item = wishlistItems.find(i => i.id === itemId);
-        return p.id !== item?.productId;
-      }));
+      // Find wishlist item by productId
+      const itemToRemove = wishlistItems.find(item => item.productId === productId);
+      if (!itemToRemove) return;
+
+      await deleteDocument(collections.wishlists, itemToRemove.id);
+      setWishlistItems(prev => prev.filter(item => item.productId !== productId));
+      setWishlistProducts(prev => prev.filter(p => p.id !== productId));
 
       Toast.show({
         type: 'info',
@@ -104,13 +105,17 @@ export default function WishlistScreen() {
     }
   };
 
+  const handleProductPress = (productId: string) => {
+    router.push(`/product/${productId}` as any);
+  };
+
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
       
       {/* Gradient Header */}
       <LinearGradient
-        colors={['#8B5CF6', '#6366F1']}
+        colors={[Colors.gradient.start, Colors.gradient.ocean]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradientHeader}
@@ -153,114 +158,40 @@ export default function WishlistScreen() {
           </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <View style={styles.listContainer}>
           <Text style={styles.itemsCount}>
             {`${wishlistProducts.length} ${wishlistProducts.length === 1 ? 'item' : 'items'}`}
           </Text>
-          {wishlistProducts.map((product, index) => {
-            if (!product) return null;
-            const wishlistItem = wishlistItems[index];
-            
-            // Get product name based on language
-            const productName = typeof product.name === 'string'
-              ? product.name
-              : (product.name?.[language] || product.name?.en || product.name?.ar || t('wishlist.savedItem'));
-            
-            const finalPrice = product.discount
-              ? product.price * (1 - product.discount / 100)
-              : product.price;
+          <FlatList
+            data={wishlistProducts}
+            renderItem={({ item: product }) => {
+              if (!product) return null;
+              
+              // Get product name based on language
+              const productName = typeof product.name === 'string'
+                ? product.name
+                : (product.name?.[language] || product.name?.en || product.name?.ar || t('wishlist.savedItem'));
 
-            return (
-              <TouchableOpacity
-                key={wishlistItem.id}
-                style={styles.productCard}
-                onPress={() => router.push(`/product/${product.id}` as any)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.productContent}>
-                  {/* Product Image */}
-                  <View style={styles.imageContainer}>
-                    {product.images && product.images.length > 0 ? (
-                      <SafeImage
-                        uri={product.images[0]}
-                        style={styles.productImage}
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <View style={[styles.productImage, styles.placeholderImage]}>
-                        <Feather name="image" size={32} color={Colors.gray[300]} />
-                      </View>
-                    )}
-                  </View>
-
-                  {/* Product Info */}
-                  <View style={styles.productInfo}>
-                    <Text style={styles.productName} numberOfLines={2}>
-                      {productName}
-                    </Text>
-                    
-                    {/* Discount Badge */}
-                    {product.discount > 0 && (
-                      <View style={styles.discountBadge}>
-                        <Text style={styles.discountText}>-{product.discount}%</Text>
-                      </View>
-                    )}
-                    
-                    <View style={styles.priceRow}>
-                      <Text style={styles.productPrice}>
-                        {formatPrice(finalPrice)}
-                      </Text>
-                      {product.discount > 0 && (
-                        <Text style={styles.originalPrice}>
-                          {formatPrice(product.price)}
-                        </Text>
-                      )}
-                    </View>
-                    
-                    {/* Rating */}
-                    {product.rating && (
-                      <View style={styles.ratingRow}>
-                        <Feather name="star" size={14} color="#FFB800" fill="#FFB800" />
-                        <Text style={styles.ratingText}>{product.rating.toFixed(1)}</Text>
-                        {product.reviews && (
-                          <Text style={styles.reviewsText}>({product.reviews})</Text>
-                        )}
-                      </View>
-                    )}
-                  </View>
+              return (
+                <View style={styles.cardWrapper}>
+                  <AmazonStyleProductCard
+                    product={product}
+                    onPress={() => handleProductPress(product.id)}
+                    formatPrice={formatPrice}
+                    language={language}
+                    onToggleWishlist={(productId: string) => handleRemoveFromWishlist(productId, productName)}
+                    isInWishlist={true}
+                  />
                 </View>
-
-                {/* Product Actions */}
-                <View style={styles.productActions}>
-                  <TouchableOpacity
-                    style={styles.removeButton}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      handleRemoveFromWishlist(wishlistItem.id, productName);
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <Feather name="trash-2" size={20} color={Colors.error} />
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity
-                    style={styles.addToCartButton}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      router.push(`/product/${product.id}` as any);
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <Feather name="shopping-cart" size={18} color={Colors.white} />
-                    <Text style={styles.addToCartText}>
-                      {language === 'ar' ? 'أضف للسلة' : 'Add to Cart'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+              );
+            }}
+            keyExtractor={(item) => item.id}
+            numColumns={2}
+            columnWrapperStyle={styles.row}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
+          />
+        </View>
       )}
     </View>
   );
@@ -314,12 +245,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   shopButton: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: Colors.primary,
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 14,
     marginTop: 24,
-    shadowColor: '#8B5CF6',
+    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -330,137 +261,27 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     fontWeight: 'bold' as const,
   },
-  scrollView: {
+  listContainer: {
     flex: 1,
-    padding: Spacing.md,
+    paddingHorizontal: Spacing.md,
   },
   itemsCount: {
     fontSize: FontSizes.md,
     fontWeight: '600' as const,
     color: Colors.text.secondary,
-    marginBottom: Spacing.md,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
+    paddingHorizontal: 4,
   },
-  productCard: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.gray[200],
-    overflow: 'hidden',
+  listContent: {
+    paddingBottom: Spacing.xl,
   },
-  productContent: {
-    flexDirection: 'row',
-    padding: Spacing.md,
-  },
-  imageContainer: {
-    marginRight: Spacing.md,
-  },
-  productImage: {
-    width: 100,
-    height: 100,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.gray[100],
-  },
-  placeholderImage: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  productInfo: {
-    flex: 1,
+  row: {
     justifyContent: 'space-between',
+    marginBottom: 0,
   },
-  productName: {
-    fontSize: FontSizes.md,
-    fontWeight: '600' as const,
-    color: Colors.text.primary,
-    marginBottom: 4,
-  },
-  productBrand: {
-    fontSize: FontSizes.sm,
-    color: Colors.text.secondary,
-    marginBottom: Spacing.xs,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: Spacing.xs,
-  },
-  productPrice: {
-    fontSize: FontSizes.lg,
-    fontWeight: 'bold' as const,
-    color: Colors.primary,
-    marginRight: Spacing.sm,
-  },
-  originalPrice: {
-    fontSize: FontSizes.sm,
-    color: Colors.text.secondary,
-    textDecorationLine: 'line-through',
-    marginTop: 2,
-  },
-  discountBadge: {
-    backgroundColor: Colors.accent,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.sm,
-    alignSelf: 'flex-start',
-    marginBottom: Spacing.xs,
-  },
-  discountText: {
-    color: Colors.white,
-    fontSize: FontSizes.xs,
-    fontWeight: 'bold' as const,
-  },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: Spacing.xs,
-  },
-  ratingText: {
-    fontSize: FontSizes.sm,
-    color: Colors.text.primary,
-    marginLeft: 4,
-    fontWeight: '600' as const,
-  },
-  reviewsText: {
-    fontSize: FontSizes.sm,
-    color: Colors.text.secondary,
-    marginLeft: 4,
-  },
-  productActions: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: Colors.gray[200],
-    padding: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  removeButton: {
-    width: 44,
-    height: 44,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1.5,
-    borderColor: Colors.error,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FEE',
-  },
-  addToCartButton: {
-    flex: 1,
-    backgroundColor: '#8B5CF6',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: BorderRadius.md,
-    gap: Spacing.xs,
-    shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  addToCartText: {
-    color: Colors.white,
-    fontSize: 15,
-    fontWeight: '600' as const,
+  cardWrapper: {
+    width: '48%',
+    marginBottom: Spacing.md,
   },
 });

@@ -100,14 +100,14 @@ export default SafeImage;
 
 const styles = StyleSheet.create({
   fallback: {
-    backgroundColor: Colors.gray[100],
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     width: '100%',
     height: '100%',
   },
   loader: {
-    backgroundColor: 'rgba(249, 250, 251, 0.9)',
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
   },

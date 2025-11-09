@@ -22,6 +22,7 @@ interface AmazonStyleProductCardProps {
   language?: string;
   onToggleWishlist?: (productId: string) => void;
   isInWishlist?: boolean;
+  onAddToCart?: (product: any) => void;
 }
 
 const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
@@ -31,6 +32,7 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
   language = 'en',
   onToggleWishlist,
   isInWishlist = false,
+  onAddToCart,
 }: AmazonStyleProductCardProps) {
   
   // Early return if product is invalid
@@ -55,6 +57,13 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     onToggleWishlist?.(product.id);
+  };
+
+  const handleAddToCart = () => {
+    if (Platform.OS === 'ios') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    onAddToCart?.(product);
   };
 
   const handlePress = () => {
@@ -160,15 +169,6 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
               />
             </TouchableOpacity>
           ) : null}
-
-          {((product?.brandName && typeof product.brandName === 'string' && product.brandName.trim()) || 
-            (product?.brand && typeof product.brand === 'string' && product.brand.trim())) ? (
-            <View style={styles.brandBadge}>
-              <Text style={styles.brandBadgeText} numberOfLines={1}>
-                {(product.brandName && product.brandName.trim()) || (product.brand && product.brand.trim()) || ''}
-              </Text>
-            </View>
-          ) : null}
         </View>
 
         <View style={styles.productInfo}>
@@ -221,13 +221,29 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
                 </View>
               ) : null}
             </View>
-          </View>
 
-          <View style={styles.shippingContainer}>
-            <Feather name="truck" size={12} color="#007185" />
-            <Text style={styles.shippingText}>
-              {language === 'ar' ? 'شحن مجاني' : 'FREE Shipping'}
-            </Text>
+            <View style={styles.shippingRow}>
+              <View style={styles.shippingContainer}>
+                <Feather name="truck" size={12} color="#007185" />
+                <Text style={styles.shippingText}>
+                  {language === 'ar' ? 'شحن مجاني' : 'FREE Shipping'}
+                </Text>
+              </View>
+              
+              {/* Add to Cart Button */}
+              {onAddToCart && (
+                <TouchableOpacity
+                  style={styles.addToCartButton}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    onAddToCart(product);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Feather name="shopping-cart" size={16} color="#000" />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </View>
       </TouchableOpacity>
@@ -254,7 +270,7 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     position: 'relative',
-    backgroundColor: '#F8F8F8',
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 8,
     borderTopRightRadius: 8,
     overflow: 'hidden',
@@ -295,21 +311,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
-  },
-  brandBadge: {
-    position: 'absolute',
-    bottom: 8,
-    left: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 3,
-    maxWidth: CARD_WIDTH * 0.6,
-  },
-  brandBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 9,
-    fontWeight: '500',
   },
   productInfo: {
     padding: 8,
@@ -381,6 +382,11 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '600',
   },
+  shippingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   shippingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -390,6 +396,17 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '500',
     marginLeft: 3,
+  },
+  addToCartButton: {
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    borderRadius: 4,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#D5D9D9',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

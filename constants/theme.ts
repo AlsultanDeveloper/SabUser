@@ -1,39 +1,51 @@
 // theme.ts - dummy content
 export const Colors = {
-  primary: '#7C3AED',
-  primaryDark: '#6D28D9',
-  secondary: '#2563EB',
-  secondaryDark: '#1D4ED8',
-  accent: '#DC2626',
-  accentLight: '#EF4444',
+  // Sky Blue & Ocean Theme - جذاب وعصري
+  primary: '#0EA5E9',        // Sky Blue - سماوي فاتح
+  primaryDark: '#0284C7',    // Darker Sky Blue
+  primaryLight: '#38BDF8',   // Light Sky Blue
+  secondary: '#06B6D4',      // Cyan - سماوي مخضر
+  secondaryDark: '#0891B2',  // Darker Cyan
+  secondaryLight: '#22D3EE', // Light Cyan
+  accent: '#F43F5E',         // Rose - لون مميز للتفاعلات
+  accentLight: '#FB7185',    // Light Rose
   orange: '#F97316',
   orangeGradient: '#FB923C',
   white: '#FFFFFF',
   black: '#000000',
+  
+  // Gradient Colors for modern UI
+  gradient: {
+    start: '#0EA5E9',    // Sky Blue
+    middle: '#38BDF8',   // Light Sky
+    end: '#7DD3FC',      // Very Light Sky
+    ocean: '#06B6D4',    // Cyan
+  },
+  
   gray: {
-    50: '#F9FAFB',
-    100: '#F3F4F6',
-    200: '#E5E7EB',
-    300: '#D1D5DB',
-    400: '#9CA3AF',
-    500: '#6B7280',
-    600: '#4B5563',
-    700: '#374151',
-    800: '#1F2937',
-    900: '#111827',
+    50: '#F8FAFC',
+    100: '#F1F5F9',
+    200: '#E2E8F0',
+    300: '#CBD5E1',
+    400: '#94A3B8',
+    500: '#64748B',
+    600: '#475569',
+    700: '#334155',
+    800: '#1E293B',
+    900: '#0F172A',
   },
   success: '#10B981',
   successLight: '#34D399',
   warning: '#F59E0B',
   warningLight: '#FBBF24',
-  error: '#DC2626',
-  errorLight: '#EF4444',
-  background: '#F8F9FA',
+  error: '#EF4444',
+  errorLight: '#FCA5A5',
+  background: '#F8FAFC',
   surface: '#FFFFFF',
   surfaceElevated: '#FFFFFF',
   text: {
     primary: '#0F172A',
-    secondary: '#64748B',
+    secondary: '#475569',
     tertiary: '#94A3B8',
     inverse: '#FFFFFF',
   },

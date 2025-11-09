@@ -50,9 +50,14 @@ export async function getDocument<T = DocumentData>(
       return { id: docSnap.id, ...docSnap.data() } as T;
     }
     return null;
-  } catch (error) {
+  } catch (error: any) {
+    // Silently handle permission errors
+    if (error?.code === 'permission-denied' || error?.message?.includes('permissions')) {
+      console.warn(`⚠️ Permission denied accessing document ${docId} in ${collectionName}`);
+      return null;
+    }
     console.error('Error getting document:', error);
-    throw error;
+    return null;
   }
 }
 
@@ -73,9 +78,15 @@ export async function getDocuments<T = DocumentData>(
       id: doc.id,
       ...doc.data(),
     })) as T[];
-  } catch (error) {
+  } catch (error: any) {
+    // Silently handle permission errors - return empty array instead of throwing
+    if (error?.code === 'permission-denied' || error?.message?.includes('permissions')) {
+      console.warn(`⚠️ Permission denied accessing ${collectionName}, returning empty array`);
+      return [];
+    }
     console.error('Error getting documents:', error);
-    throw error;
+    // Return empty array instead of throwing to prevent app crashes
+    return [];
   }
 }
 
@@ -88,6 +99,33 @@ export async function createDocument<T extends WithFieldValue<DocumentData>>(
     if (!db || !isConfigValid) {
       throw new Error('Firebase is not configured. Please check your .env file.');
     }
+    
+    // Check if user is authenticated (for collections that require auth)
+    const authRequiredCollections = ['wishlists', 'orders', 'addresses', 'reviews', 'userNotifications'];
+    if (authRequiredCollections.includes(collectionName)) {
+      const { auth } = await import('./firebase');
+      const currentUser = auth?.currentUser;
+      
+      if (!currentUser) {
+        console.warn(`⚠️ Attempted to create ${collectionName} document without authentication`);
+        console.warn(`⚠️ auth.currentUser is null - user may need to re-authenticate`);
+        throw new Error('You must be logged in to perform this action');
+      }
+      
+      // Verify token is valid by attempting to refresh it
+      try {
+        const newToken = await currentUser.getIdToken(true);
+        console.log('✅ Token refreshed for Firestore operation');
+        console.log('✅ Token length:', newToken?.length || 0);
+        
+        // Small delay to ensure token propagates to Firestore
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (tokenError) {
+        console.error('❌ Token verification failed:', tokenError);
+        throw new Error('You must be logged in to perform this action');
+      }
+    }
+    
     if (docId) {
       const docRef = doc(db, collectionName, docId);
       await setDoc(docRef, {
@@ -105,7 +143,16 @@ export async function createDocument<T extends WithFieldValue<DocumentData>>(
       });
       return docRef.id;
     }
-  } catch (error) {
+  } catch (error: any) {
+    // Better error handling for permission errors
+    if (error?.code === 'permission-denied' || error?.message?.includes('permissions')) {
+      console.warn(`⚠️ Permission denied creating document in ${collectionName}`);
+      throw new Error('You must be logged in to perform this action');
+    }
+    // Re-throw authentication errors
+    if (error?.message?.includes('logged in')) {
+      throw error;
+    }
     console.error('Error creating document:', error);
     throw error;
   }
@@ -139,9 +186,31 @@ export async function deleteDocument(
     if (!db || !isConfigValid) {
       throw new Error('Firebase is not configured. Please check your .env file.');
     }
+    
+    // Check if user is authenticated (for collections that require auth)
+    const authRequiredCollections = ['wishlists', 'orders', 'addresses', 'reviews', 'userNotifications'];
+    if (authRequiredCollections.includes(collectionName)) {
+      const { auth } = await import('./firebase');
+      const currentUser = auth?.currentUser;
+      
+      if (!currentUser) {
+        console.warn(`⚠️ Attempted to delete ${collectionName} document without authentication`);
+        throw new Error('You must be logged in to perform this action');
+      }
+    }
+    
     const docRef = doc(db, collectionName, docId);
     await deleteDoc(docRef);
-  } catch (error) {
+  } catch (error: any) {
+    // Better error handling for permission errors
+    if (error?.code === 'permission-denied' || error?.message?.includes('permissions')) {
+      console.warn(`⚠️ Permission denied deleting document ${docId} from ${collectionName}`);
+      throw new Error('You must be logged in to perform this action');
+    }
+    // Re-throw authentication errors
+    if (error?.message?.includes('logged in')) {
+      throw error;
+    }
     console.error('Error deleting document:', error);
     throw error;
   }

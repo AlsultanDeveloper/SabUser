@@ -125,8 +125,9 @@ async function fetchCategories(): Promise<Category[]> {
     console.log('✅ Categories loaded from Firestore:', loadedCategories.length);
     return loadedCategories;
   } catch (err) {
-    console.error('❌ Error loading categories:', err);
-    throw err;
+    console.warn('⚠️ Could not load categories from Firebase, using empty array:', err);
+    // Return empty array instead of throwing to prevent app crashes
+    return [];
   }
 }
 
@@ -138,8 +139,8 @@ export function useCategories() {
     gcTime: 15 * 60 * 1000, // 15 دقيقة للكاش
     refetchOnWindowFocus: false, // لا تعيد التحميل عند العودة للتطبيق
     refetchOnMount: false, // استخدم الكاش إذا كان صالح
-    retry: 3, // إعادة المحاولة 3 مرات عند الفشل
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+    retry: 1, // تقليل المحاولات لتجنب أخطاء متكررة
+    retryDelay: 1000, // تأخير قصير
   });
 
   return { 
@@ -369,6 +370,19 @@ async function fetchProducts(options: UseProductsOptions = {}): Promise<Product[
   console.log(`✅ تم تحميل ${loadedProducts.length} منتج بنجاح من Firebase`);
   
   return loadedProducts;
+}
+
+async function safeQueryWithAuth<T>(queryFn: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await queryFn();
+  } catch (error: any) {
+    // Check if it's a permission error
+    if (error?.code === 'permission-denied' || error?.message?.includes('permissions')) {
+      console.warn('⚠️ Permission denied, using fallback data');
+      return fallback;
+    }
+    throw error;
+  }
 }
 
 export function useProducts(options: UseProductsOptions = {}) {
@@ -732,40 +746,51 @@ export function useFeaturedProducts(limitCount: number = 10) {
     queryKey: ['featured-products', limitCount],
     queryFn: async () => {
       if (!isConfigured || !db) {
-        throw new Error('Firebase not configured');
+        console.warn('⚠️ Firebase not configured, returning empty products');
+        return [];
       }
 
-      const productsRef = collection(db, 'products');
-      
-      // ✅ OPTIMIZED: جلب من Sab Market فقط (2,190 منتج بدلاً من 26,372)
-      // هذا يسرّع الـ query ويعرض منتجات ذات صلة للمستخدم
-      const q = query(
-        productsRef,
-        where('categoryId', '==', 'cwt28D5gjoLno8SFqoxQ'), // Sab Market category
-        limit(limitCount) // ✅ جلب 10 فقط من Firebase
-      );
-      
-      const querySnapshot = await getDocs(q);
-      
-      const products: any[] = [];
-      querySnapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        products.push({ 
-          id: docSnap.id, 
-          ...data,
-          // ✅ تأكد من وجود صورة (fallback للصور المفقودة)
-          image: data.image || data.images?.[0] || '',
+      try {
+        const productsRef = collection(db, 'products');
+        
+        // ✅ OPTIMIZED: جلب من Sab Market فقط (2,190 منتج بدلاً من 26,372)
+        // هذا يسرّع الـ query ويعرض منتجات ذات صلة للمستخدم
+        const q = query(
+          productsRef,
+          where('categoryId', '==', 'cwt28D5gjoLno8SFqoxQ'), // Sab Market category
+          limit(limitCount) // ✅ جلب 10 فقط من Firebase
+        );
+        
+        const querySnapshot = await getDocs(q);
+        
+        const products: any[] = [];
+        querySnapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          products.push({ 
+            id: docSnap.id, 
+            ...data,
+            // ✅ تأكد من وجود صورة (fallback للصور المفقودة)
+            image: data.image || data.images?.[0] || '',
+          });
         });
-      });
 
-      console.log(`⚡ Optimized: fetched ${products.length} products from Sab Market (${querySnapshot.size} docs)`);
-      return products;
+        console.log(`⚡ Optimized: fetched ${products.length} products from Sab Market (${querySnapshot.size} docs)`);
+        return products;
+      } catch (error: any) {
+        // Silently handle permission errors
+        if (error?.code === 'permission-denied' || error?.message?.includes('permissions')) {
+          console.warn('⚠️ Permission denied fetching products, returning empty array');
+          return [];
+        }
+        console.error('❌ Error fetching products:', error);
+        return [];
+      }
     },
     staleTime: 5 * 60 * 1000, // ✅ زيادة من 2 إلى 5 دقائق - تقليل الـ requests
     gcTime: 15 * 60 * 1000, // ✅ زيادة من 10 إلى 15 دقيقة - كاش أطول
     refetchOnWindowFocus: false, // عدم إعادة التحميل عند العودة للتطبيق
     refetchOnMount: false, // عدم إعادة التحميل عند mount إذا كان الكاش صالح
-    retry: 2, // ✅ تقليل من 3 إلى 2 - أسرع في حالة الفشل
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+    retry: 1, // ✅ تقليل من 2 إلى 1 - أسرع في حالة الفشل
+    retryDelay: 1000, // تأخير قصير 1 ثانية
   });
 }

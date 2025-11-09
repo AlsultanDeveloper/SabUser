@@ -69,8 +69,13 @@ export default function Categories() {
   const [language] = useState('en');
   const { categories, loading, error, refetch } = useCategories();
 
-  // Filter categories by search - removed as search now navigates to search page
-  const filteredCategories = categories;
+  // Filter out "Sab Market" category since we have a dedicated floating button for it
+  const filteredCategories = categories.filter(category => {
+    const categoryNameEn = typeof category.name === 'object' ? category.name.en : category.name;
+    const categoryNameAr = typeof category.name === 'object' ? category.name.ar : category.name;
+    // Exclude Sab Market
+    return categoryNameEn !== 'Sab Market' && categoryNameAr !== 'ساب ماركت';
+  });
 
   const handleCategoryPress = (category: Category) => {
     console.log('Category pressed:', category.name);

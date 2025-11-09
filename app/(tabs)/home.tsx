@@ -33,24 +33,85 @@ const BANNER_WIDTH = width - Spacing.md * 2;
 
 // بيانات المنتجات التجريبية - 10 منتجات متنوعة
 // كومبونت لعرض بطاقة Amazon فقط
-const ProductCardDisplay = ({ product, language, formatPrice, router, user, wishlistItems, onWishlistUpdate }: any) => {
+const ProductCardDisplay = ({ product, language, formatPrice, router, user, wishlistItems, onWishlistUpdate, addToCart }: any) => {
   const handlePress = () => {
     console.log('Product pressed:', product.id);
     router.push(`/product/${product.id}`);
   };
 
+  const handleAddToCart = async (product: any) => {
+    if (Platform.OS !== 'web') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+
+    try {
+      await addToCart(product, 1);
+      console.log('✅ Added to cart:', product.id);
+    } catch (error) {
+      console.error('❌ Error adding to cart:', error);
+    }
+  };
+
   const handleWishlist = async (productId: string) => {
+    // Check if user is authenticated
     if (!user?.uid) {
       Alert.alert(
         language === 'ar' ? 'تسجيل الدخول مطلوب' : 'Login Required',
-        language === 'ar' ? 'يرجى تسجيل الدخول لإضافة المنتجات إلى قائمة الأمنيات' : 'Please log in to add products to your wishlist'
+        language === 'ar' ? 'يرجى تسجيل الدخول لإضافة المنتجات إلى قائمة الأمنيات' : 'Please log in to add products to your wishlist',
+        [
+          { text: language === 'ar' ? 'إلغاء' : 'Cancel', style: 'cancel' },
+          { text: language === 'ar' ? 'تسجيل الدخول' : 'Login', onPress: () => router.push('/auth/login') }
+        ]
       );
       return;
     }
 
     try {
+      // استيراد Firebase Auth للتحقق من الجلسة
+      const { auth } = await import('@/constants/firebase');
+      const currentUser = auth?.currentUser;
+      
+      // التحقق من وجود المستخدم في Firebase Auth
+      if (!currentUser) {
+        console.warn('⚠️ Firebase Auth currentUser is null, but context has user');
+        Alert.alert(
+          language === 'ar' ? 'انتهت الجلسة' : 'Session Expired',
+          language === 'ar' ? 'يرجى إعادة تسجيل الدخول للمتابعة' : 'Please log in again to continue',
+          [
+            { text: language === 'ar' ? 'إلغاء' : 'Cancel', style: 'cancel' },
+            { 
+              text: language === 'ar' ? 'تسجيل الدخول' : 'Login', 
+              onPress: () => router.push('/auth/login') 
+            }
+          ]
+        );
+        return;
+      }
+      
+      // محاولة تحديث الـ token
+      try {
+        await currentUser.getIdToken(true);
+        console.log('✅ Token refreshed successfully');
+      } catch (tokenError) {
+        console.error('❌ Failed to refresh token:', tokenError);
+        Alert.alert(
+          language === 'ar' ? 'انتهت الجلسة' : 'Session Expired',
+          language === 'ar' ? 'يرجى إعادة تسجيل الدخول للمتابعة' : 'Please log in again to continue',
+          [
+            { text: language === 'ar' ? 'إلغاء' : 'Cancel', style: 'cancel' },
+            { 
+              text: language === 'ar' ? 'تسجيل الدخول' : 'Login', 
+              onPress: () => router.push('/auth/login') 
+            }
+          ]
+        );
+        return;
+      }
+      
       // استيراد الدوال من firestore
       const { createDocument, deleteDocument, getDocuments, collections, where } = await import('@/constants/firestore');
+      
+      console.log('🔍 Wishlist operation for user:', user.uid, 'product:', productId);
       
       // تحقق إذا كان المنتج موجود في wishlist
       const existingItems = await getDocuments(collections.wishlists, [
@@ -82,8 +143,33 @@ const ProductCardDisplay = ({ product, language, formatPrice, router, user, wish
 
       // تحديث القائمة
       onWishlistUpdate?.();
-    } catch (error) {
-      console.error('Error toggling wishlist:', error);
+    } catch (error: any) {
+      console.error('❌ Wishlist error:', error);
+      console.error('❌ Error code:', error?.code);
+      console.error('❌ Error message:', error?.message);
+      
+      // Handle authentication errors
+      if (error?.message?.includes('must be logged in') || 
+          error?.message?.includes('logged in to perform') ||
+          error?.code === 'permission-denied' || 
+          error?.message?.includes('permissions') || 
+          error?.message?.includes('Missing or insufficient permissions')) {
+        console.warn('⚠️ Wishlist operation requires valid authentication');
+        Alert.alert(
+          language === 'ar' ? 'انتهت الجلسة' : 'Session Expired',
+          language === 'ar' ? 'يرجى إعادة تسجيل الدخول للمتابعة' : 'Please log in again to continue',
+          [
+            { text: language === 'ar' ? 'إلغاء' : 'Cancel', style: 'cancel' },
+            { 
+              text: language === 'ar' ? 'تسجيل الدخول' : 'Login', 
+              onPress: () => router.push('/auth/login') 
+            }
+          ]
+        );
+        return;
+      }
+      
+      // Show generic error for other cases
       Alert.alert(
         language === 'ar' ? 'خطأ' : 'Error',
         language === 'ar' ? 'حدث خطأ أثناء تحديث قائمة الأمنيات' : 'Error updating wishlist'
@@ -101,12 +187,13 @@ const ProductCardDisplay = ({ product, language, formatPrice, router, user, wish
       language={language}
       onToggleWishlist={handleWishlist}
       isInWishlist={isInWishlist}
+      onAddToCart={handleAddToCart}
     />
   );
 };
 
 export default function HomeScreen() {
-  const { language, changeLanguage, formatPrice: appFormatPrice } = useApp();
+  const { language, changeLanguage, formatPrice: appFormatPrice, cartItemsCount, addToCart } = useApp();
   const { user } = useAuth();
   const { usdToLbp } = useSettings(); // سعر الصرف الديناميكي
   const router = useRouter();
@@ -137,7 +224,7 @@ export default function HomeScreen() {
   const hardcodedBanners = useMemo(() => [
     {
       id: 'YByfRqFBV1qfqzN5M4PG',
-      image: 'https://firebasestorage.googleapis.com/v0/b/sab-store-9b947.firebasestorage.app/o/Banners%2Fnew%20banner%20(1).jpg?alt=media',
+      image: 'https://firebasestorage.googleapis.com/v0/b/sab-store-9b947.firebasestorage.app/o/Banners%2FSAB%20MARKET%20LOGO.jpg?alt=media&t=' + Date.now(),
       title: { ar: 'ساب ماركت', en: 'Sab Market' },
       subtitle: { ar: 'تسوق الآن', en: 'Shop Now' },
       link: { type: 'category', id: 'cwt28D5gjoLno8SFqoxQ' },
@@ -199,7 +286,9 @@ export default function HomeScreen() {
         ]);
         setWishlistItems(items);
       } catch (error) {
-        console.error('Error fetching wishlist:', error);
+        // Silently handle permission errors - user might not be fully authenticated yet
+        console.warn('Could not fetch wishlist:', error);
+        setWishlistItems([]);
       }
     };
 
@@ -305,7 +394,7 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#7C3AED', '#A78BFA', '#C4B5FD']}
+        colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.headerGradient, { paddingTop: insets.top + Spacing.sm, paddingBottom: Spacing.sm }]}
@@ -344,6 +433,26 @@ export default function HomeScreen() {
             </TouchableOpacity>
             
             <TouchableOpacity 
+              style={styles.cartButton}
+              activeOpacity={0.7}
+              onPress={() => {
+                if (Platform.OS !== 'web') {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }
+                router.push('/(tabs)/cart');
+              }}
+            >
+              <Feather name="shopping-cart" size={20} color={Colors.white} />
+              {cartItemsCount > 0 && (
+                <View style={styles.cartDot}>
+                  <Text style={styles.cartDotText}>
+                    {cartItemsCount > 9 ? '9+' : cartItemsCount}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
               style={styles.notificationButton}
               activeOpacity={0.7}
               onPress={() => {
@@ -366,7 +475,12 @@ export default function HomeScreen() {
         </View>
 
         {/* Exchange Rate Display */}
-        <View style={styles.exchangeRateContainer}>
+        <LinearGradient
+          colors={['#7C3AED', '#3B82F6', '#0EA5E9']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.exchangeRateContainer}
+        >
           <Feather name="info" size={14} color="#FFF" />
           <Text style={styles.exchangeRateText}>
             {language === 'ar' 
@@ -374,7 +488,7 @@ export default function HomeScreen() {
               : `You Can Pay In LBP - 1.00 $ = ${usdToLbp.toLocaleString('en-US')} LBP`
             }
           </Text>
-        </View>
+        </LinearGradient>
 
         <View style={styles.searchBarContainer}>
           <TouchableOpacity 
@@ -487,7 +601,14 @@ export default function HomeScreen() {
               scrollEventThrottle={16}
               decelerationRate="fast"
             >
-              {categories.map((category) => (
+              {categories
+                .filter(category => {
+                  // Filter out Sab Market since we have a dedicated floating button
+                  const categoryNameEn = typeof category.name === 'object' ? category.name.en : category.name;
+                  const categoryNameAr = typeof category.name === 'object' ? category.name.ar : category.name;
+                  return categoryNameEn !== 'Sab Market' && categoryNameAr !== 'ساب ماركت';
+                })
+                .map((category) => (
               <TouchableOpacity
                 key={category.id}
                 style={styles.categoryItem}
@@ -565,6 +686,7 @@ export default function HomeScreen() {
                       user={user}
                       wishlistItems={wishlistItems}
                       onWishlistUpdate={handleWishlistUpdate}
+                      addToCart={addToCart}
                     />
                   ))}
                 </View>
@@ -688,6 +810,35 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     fontWeight: FontWeights.bold,
   },
+  cartButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  cartDot: {
+    position: 'absolute',
+    top: 6,
+    right: 8,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: Colors.accent,
+    borderWidth: 2,
+    borderColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  cartDotText: {
+    color: Colors.white,
+    fontSize: 10,
+    fontWeight: 'bold' as const,
+    textAlign: 'center' as const,
+  },
   notificationButton: {
     width: 36,
     height: 36,
@@ -721,13 +872,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderRadius: 20,
     marginHorizontal: Spacing.md,
     marginTop: 8,
     gap: 6,
+    shadowColor: '#7C3AED',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
   },
   exchangeRateText: {
     color: Colors.white,

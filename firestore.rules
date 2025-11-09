@@ -2,21 +2,24 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ⚠️ TEMPORARY: Allow all reads for testing Cloud Functions
-    match /{document=**} {
-      allow read: if true;
-    }
-
     // Helper: Check if user is admin (reads from admins collection)
     function isUserAdmin() {
       return request.auth != null &&
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.isAdmin == true;
     }
 
-    // Admins collection
+    // Admins collection - authenticated users can read admin status
     match /admins/{adminId} {
+      // Allow read for authenticated users to check admin status
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == adminId;
+
+      // Allow write for existing admins
+      allow write: if request.auth != null && isUserAdmin();
+      
+      // TEMPORARY: Allow specific user to create their own admin document
+      allow create: if request.auth != null && 
+        request.auth.uid == 'KATVNw7VXXPAwZauqsWh5Slubu42';
     }
 
     // Users collection - CRITICAL FOR OAUTH
@@ -44,32 +47,34 @@ service cloud.firestore {
       }
     }
 
-    // Push tokens
+    // Push tokens - users can write their own token
     match /pushTokens/{userId} {
       allow read, write, delete: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Products - read for all, write for admins
+    // Products collection - read for all, write for admins only
     match /products/{productId} {
       allow read: if true;
       allow write: if request.auth != null && isUserAdmin();
     }
 
-    // Brands - read for all, write for admins
+    // Brands collection - read for all, write for admins only
     match /brands/{brandId} {
       allow read: if true;
       allow write: if request.auth != null && isUserAdmin();
     }
 
-    // Categories - read for all, write for admins
+    // Categories collection - read for all, write for admins only
     match /categories/{categoryId} {
       allow read: if true;
       allow write: if request.auth != null && isUserAdmin();
 
+      // Subcategories - read for all, write for admins only
       match /subcategory/{subcategoryId} {
         allow read: if true;
         allow write: if request.auth != null && isUserAdmin();
         
+        // Nested subcategories
         match /subcategory/{nestedSubcategoryId} {
           allow read: if true;
           allow write: if request.auth != null && isUserAdmin();
@@ -77,7 +82,7 @@ service cloud.firestore {
       }
     }
 
-    // Customers
+    // Customers collection - read for admins, users can read their own data
     match /customers/{customerId} {
       allow read: if request.auth != null && 
         (request.auth.uid == customerId || isUserAdmin());
@@ -86,7 +91,7 @@ service cloud.firestore {
         (request.auth.uid == customerId || isUserAdmin());
     }
 
-    // Orders - users manage own, admins manage all
+    // Orders collection - users manage own, admins manage all
     match /orders/{orderId} {
       allow read: if request.auth != null && 
         (resource.data.userId == request.auth.uid || isUserAdmin());
@@ -97,31 +102,46 @@ service cloud.firestore {
       allow delete: if request.auth != null && isUserAdmin();
     }
 
-    // Addresses
+    // Addresses collection
     match /addresses/{addressId} {
-      allow read, write: if request.auth != null && 
+      allow read: if request.auth != null && 
+        (resource.data.userId == request.auth.uid || isUserAdmin());
+      allow write: if request.auth != null && 
         (resource.data.userId == request.auth.uid || isUserAdmin());
       allow create: if request.auth != null && 
         request.resource.data.userId == request.auth.uid;
     }
 
-    // Cart
+    // Cart collection
     match /carts/{userId} {
       allow read, write: if request.auth != null && 
         (request.auth.uid == userId || isUserAdmin());
     }
 
-    // Wishlist
-    match /wishlists/{wishlistItemId} {
-      allow read, delete: if request.auth != null && 
-        (resource.data.userId == request.auth.uid || isUserAdmin());
+    // Wishlist collection - FIXED: Support both document ID structures
+    // Structure 1: /wishlists/{userId} - simple user-based wishlist
+    // Structure 2: /wishlists/{wishlistItemId} - individual wishlist items
+    match /wishlists/{documentId} {
+      // Allow read if authenticated
+      allow read: if request.auth != null;
+      
+      // Allow create if authenticated and userId matches (for item-based structure)
       allow create: if request.auth != null && 
         request.resource.data.userId == request.auth.uid;
+      
+      // Allow update if authenticated and owns the item
       allow update: if request.auth != null && 
         (resource.data.userId == request.auth.uid || isUserAdmin());
+      
+      // Allow delete if authenticated and owns the item or is admin
+      allow delete: if request.auth != null && 
+        (resource.data.userId == request.auth.uid || isUserAdmin());
+      
+      // Also support user-based structure (documentId == userId)
+      allow read, write: if request.auth != null && request.auth.uid == documentId;
     }
 
-    // Reviews - read for all
+    // Reviews collection - read for all
     match /reviews/{reviewId} {
       allow read: if true;
       allow create: if request.auth != null && 
@@ -130,48 +150,125 @@ service cloud.firestore {
         (resource.data.userId == request.auth.uid || isUserAdmin());
     }
 
-    // Notifications - admins + Cloud Functions
+    // Admin Notifications collection - allow all for Cloud Functions
     match /notifications/{notificationId} {
-      allow read, write: if request.auth != null && isUserAdmin();
-      allow create, write: if request.auth == null; // Cloud Functions
+      allow read, write, create, update, delete: if true;
     }
 
-    // User Notifications
+    // User Notifications collection - allow all for Cloud Functions
     match /userNotifications/{notificationId} {
       allow read: if request.auth != null && 
         (resource.data.userId == request.auth.uid || isUserAdmin());
       allow update: if request.auth != null && 
         resource.data.userId == request.auth.uid;
-      allow create, write: if request.auth == null; // Cloud Functions
+      allow create, write: if true; // Cloud Functions
       allow write: if request.auth != null && isUserAdmin();
     }
 
-    // Activity Log - admins only
+    // Activity Log collection - only admins
     match /activityLog/{logId} {
       allow read, write, create: if request.auth != null && isUserAdmin();
     }
 
-    // Daily Stats - admins only
+    // Daily Stats collection - only admins
     match /dailyStats/{statsId} {
       allow read, write, create: if request.auth != null && isUserAdmin();
     }
 
-    // Support Messages
+    // Support Messages collection
     match /supportMessages/{messageId} {
+      // Any user can create a support message
       allow create: if true;
+      
+      // Only admins can read, update, delete
       allow read, update, delete: if request.auth != null && isUserAdmin();
     }
 
-    // Banners
+    // Banners collection - read for all, write for admins
     match /banners/{bannerId} {
       allow read: if true;
       allow write: if request.auth != null && isUserAdmin();
     }
 
-    // Settings
+    // Settings collection - read for all, write for admins
     match /settings/{document} {
       allow read: if true;
       allow write: if request.auth != null && isUserAdmin();
+    }
+
+    // Suppliers/Vendors collection - read for all, write for admins only
+    match /suppliers/{supplierId} {
+      allow read: if true;
+      allow write: if request.auth != null && isUserAdmin();
+    }
+
+    // ============================================
+    // HR SYSTEM COLLECTIONS - نظام الموارد البشرية
+    // ============================================
+
+    // Employees collection - HR and Admins can read/write
+    match /employees/{employeeId} {
+      // Admins can read/write all employees
+      allow read, write: if request.auth != null && isUserAdmin();
+      
+      // Allow public read for PIN-based employee system
+      allow read: if true;
+    }
+
+    // Payrolls collection - HR and Admins can read/write, employees can read their own
+    match /payrolls/{payrollId} {
+      // Admins can read all payrolls
+      allow read: if request.auth != null && isUserAdmin();
+      
+      // Employees can read their own payroll records
+      allow read: if request.auth != null && 
+        resource.data.employeeId == request.auth.uid;
+      
+      // Only admins can write
+      allow write: if request.auth != null && isUserAdmin();
+    }
+
+    // Attendance collection - HR and Admins can read/write, employees can self-record
+    match /attendance/{attendanceId} {
+      // Admins can read/write all attendance records
+      allow read, write: if request.auth != null && isUserAdmin();
+      
+      // Allow public read/write for employee self check-in/out
+      allow read, write: if true;
+    }
+
+    // Leaves collection - HR and Admins can read/write, employees can read/write their own
+    match /leaves/{leaveId} {
+      // Admins can read all leave requests
+      allow read: if request.auth != null && isUserAdmin();
+      
+      // Employees can read their own leave requests
+      allow read: if request.auth != null && 
+        resource.data.employeeId == request.auth.uid;
+      
+      // Admins can write (approve, reject, etc.)
+      allow write: if request.auth != null && isUserAdmin();
+      
+      // Employees can create their own leave requests
+      allow create: if request.auth != null && 
+        request.resource.data.employeeId == request.auth.uid &&
+        request.resource.data.status == 'pending';
+    }
+
+    // ============================================
+    // PETTY CASH SYSTEM - نظام السلفة المالية
+    // ============================================
+
+    // Petty Cash collection - Employees can view their own, HR can manage all
+    match /pettyCash/{cashId} {
+      // Admins can read/write all records
+      allow read, write: if request.auth != null && isUserAdmin();
+      
+      // Employees can read their own records (public read for PIN-based access)
+      allow read: if true;
+      
+      // Employees can create their own requests
+      allow create: if request.resource.data.status == 'pending';
     }
   }
 }

@@ -69,7 +69,7 @@ export default function AccountScreen() {
         
         {/* Gradient Header */}
         <LinearGradient
-          colors={['#8B5CF6', '#6366F1']}
+          colors={[Colors.gradient.start, Colors.gradient.ocean]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.loginRequiredHeader}
@@ -87,7 +87,7 @@ export default function AccountScreen() {
           <View style={styles.notAuthenticatedContent}>
             {/* SAB STORE Logo with Gradient */}
             <LinearGradient
-              colors={['#8B5CF6', '#6366F1']}
+              colors={[Colors.gradient.start, Colors.gradient.ocean]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.logoContainer}
@@ -106,7 +106,7 @@ export default function AccountScreen() {
               activeOpacity={0.8}
             >
               <LinearGradient
-                colors={['#8B5CF6', '#6366F1']}
+                colors={[Colors.gradient.start, Colors.gradient.ocean]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.loginRequiredButton}
@@ -127,7 +127,7 @@ export default function AccountScreen() {
       
       {/* Gradient Header */}
       <LinearGradient
-        colors={['#8B5CF6', '#6366F1']}
+        colors={[Colors.gradient.start, Colors.gradient.ocean]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradientHeader}
@@ -148,7 +148,7 @@ export default function AccountScreen() {
               onPress={() => router.push('/profile/edit' as any)}
               activeOpacity={0.8}
             >
-              <Feather name="edit-2" size={14} color="#8B5CF6" />
+              <Feather name="edit-2" size={14} color={Colors.primary} />
               <Text style={styles.editProfileButtonText}>{t('profile.editProfile')}</Text>
             </TouchableOpacity>
           </View>
@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   editProfileButtonText: {
-    color: '#8B5CF6',
+    color: Colors.primary,
     fontSize: 12,
     fontWeight: '600' as const,
   },
@@ -635,7 +635,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.xl,
     marginBottom: Spacing.xl,
-    shadowColor: '#8B5CF6',
+    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -673,7 +673,7 @@ const styles = StyleSheet.create({
   loginRequiredButtonWrapper: {
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
-    shadowColor: '#8B5CF6',
+    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,

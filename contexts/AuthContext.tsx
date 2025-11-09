@@ -20,7 +20,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import Constants from 'expo-constants';
 import type { SignUpData, User as AppUser } from '@/types';
 
@@ -94,12 +94,16 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         return;
       }
       
-      console.log('🔧 Configuring GoogleSignin with Web Client ID:', GOOGLE_WEB_CLIENT_ID);
+      console.log('🔧 Configuring GoogleSignin for Android');
+      console.log('📱 Web Client ID (for Android):', GOOGLE_WEB_CLIENT_ID);
+      console.log('📱 Android Client ID:', GOOGLE_ANDROID_CLIENT_ID);
       
+      // IMPORTANT: For Android native sign-in, we MUST use the Web Client ID from Firebase Console
+      // NOT the Android Client ID! This is a common mistake.
       GoogleSignin.configure({
-        webClientId: GOOGLE_WEB_CLIENT_ID,
-        offlineAccess: false,
-        forceCodeForRefreshToken: false,
+        webClientId: GOOGLE_WEB_CLIENT_ID, // ✅ Correct: Use Web Client ID
+        offlineAccess: true, // Get refresh token
+        forceCodeForRefreshToken: true,
       });
       
       console.log('✅ GoogleSignin configured successfully');
@@ -149,52 +153,88 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       if (Platform.OS === 'android') {
         console.log('🤖 Using Native Google Sign-In for Android');
         
-        // Check if Google Play services are available
-        await GoogleSignin.hasPlayServices();
-        
-        // Sign in
-        const userInfo = await GoogleSignin.signIn();
-        console.log('✅ Google Sign-In successful:', userInfo.data?.user.email);
-        
-        // Get ID token
-        const idToken = userInfo.data?.idToken;
-        
-        if (!idToken) {
-          throw new Error('No ID token received');
+        try {
+          // Check if Google Play services are available
+          await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+          console.log('✅ Google Play Services available');
+          
+          console.log('🔐 Initiating Google Sign-In...');
+          
+          // Sign in
+          const userInfo = await GoogleSignin.signIn();
+          console.log('✅ Google Sign-In successful');
+          console.log('📧 User email:', userInfo.data?.user.email);
+          console.log('👤 User name:', userInfo.data?.user.name);
+          
+          // Get ID token
+          const idToken = userInfo.data?.idToken;
+          
+          if (!idToken) {
+            console.error('❌ No ID token received from Google Sign-In');
+            console.error('📦 User info received:', JSON.stringify(userInfo, null, 2));
+            throw new Error('No ID token received. Please try again.');
+          }
+          
+          console.log('🔑 ID Token received (length:', idToken.length, ')');
+          console.log('🔐 Signing in to Firebase...');
+          
+          // Create Firebase credential
+          const credential = GoogleAuthProvider.credential(idToken);
+          
+          // Sign in to Firebase
+          const result = await signInWithCredential(auth, credential);
+          console.log('✅ Firebase sign-in successful:', result.user.uid);
+          console.log('📧 Firebase user email:', result.user.email);
+          
+          // Create/update user document
+          const userDocRef = doc(db, 'users', result.user.uid);
+          const docSnap = await getDoc(userDocRef);
+          
+          if (!docSnap.exists()) {
+            await setDoc(userDocRef, {
+              uid: result.user.uid,
+              email: result.user.email,
+              displayName: result.user.displayName || '',
+              photoURL: result.user.photoURL || '',
+              phoneNumber: result.user.phoneNumber || null,
+              authProvider: 'google',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            });
+            console.log('✅ User document created');
+          } else {
+            await setDoc(userDocRef, {
+              updatedAt: new Date().toISOString(),
+              lastLoginAt: new Date().toISOString(),
+            }, { merge: true });
+            console.log('✅ User document updated');
+          }
+          
+          return { success: true, user: result.user };
+          
+        } catch (androidError: any) {
+          console.error('❌ Android Google Sign-In Error:', androidError);
+          console.error('Error code:', androidError.code);
+          console.error('Error message:', androidError.message);
+          
+          // Handle specific error codes
+          if (androidError.code === statusCodes.SIGN_IN_CANCELLED) {
+            console.log('ℹ️ User cancelled sign-in');
+            return { success: false, cancelled: true };
+          } else if (androidError.code === statusCodes.IN_PROGRESS) {
+            console.log('⏳ Sign-in already in progress');
+            return { success: false, error: 'Sign-in already in progress. Please wait.' };
+          } else if (androidError.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+            console.error('❌ Google Play Services not available');
+            return { success: false, error: 'Google Play Services is not available. Please update Google Play Services.' };
+          } else {
+            // Generic error
+            return { 
+              success: false, 
+              error: androidError.message || 'Google sign-in failed. Please try again.' 
+            };
+          }
         }
-        
-        // Create Firebase credential
-        const credential = GoogleAuthProvider.credential(idToken);
-        
-        // Sign in to Firebase
-        const result = await signInWithCredential(auth, credential);
-        console.log('✅ Firebase sign-in successful:', result.user.uid);
-        
-        // Create/update user document
-        const userDocRef = doc(db, 'users', result.user.uid);
-        const docSnap = await getDoc(userDocRef);
-        
-        if (!docSnap.exists()) {
-          await setDoc(userDocRef, {
-            uid: result.user.uid,
-            email: result.user.email,
-            displayName: result.user.displayName || '',
-            photoURL: result.user.photoURL || '',
-            phoneNumber: result.user.phoneNumber || null,
-            authProvider: 'google',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          });
-          console.log('✅ User document created');
-        } else {
-          await setDoc(userDocRef, {
-            updatedAt: new Date().toISOString(),
-            lastLoginAt: new Date().toISOString(),
-          }, { merge: true });
-          console.log('✅ User document updated');
-        }
-        
-        return { success: true, user: result.user };
       }
       
       // For iOS - use expo-auth-session (existing code)
