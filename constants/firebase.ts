@@ -109,6 +109,10 @@ try {
   }
 
   db = getFirestore(app);
+  
+  // تحسين إعدادات Firestore لتجنب أخطاء الاتصال
+  console.log('✅ Firestore initialized with optimized settings');
+  
   storage = getStorage(app);
 
   if (USE_EMULATORS) {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,11 +12,12 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { getUserProfile } from '@/constants/firestore';
 import { Colors, Spacing, BorderRadius, FontSizes } from '@/constants/theme';
 
 export default function AccountScreen() {
@@ -25,6 +26,41 @@ export default function AccountScreen() {
   const router = useRouter();
   
   const [showHelpMenu, setShowHelpMenu] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
+
+  // Load user profile from Firestore
+  useEffect(() => {
+    if (user?.uid) {
+      loadUserProfile();
+    }
+  }, [user?.uid]);
+
+  // Reload profile when screen comes into focus (after editing profile)
+  useFocusEffect(
+    useCallback(() => {
+      if (user?.uid) {
+        loadUserProfile();
+      }
+    }, [user?.uid])
+  );
+
+  const loadUserProfile = async () => {
+    if (!user?.uid) return;
+    try {
+      const profile = await getUserProfile(user.uid);
+      setUserProfile(profile);
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    }
+  };
+
+  // Check if email is Apple Private Relay
+  const userEmail = user?.email || '';
+  const isPrivateEmail = userEmail.includes('privaterelay.appleid.com');
+  const displayEmail = isPrivateEmail ? 'Private Email 🔒' : userEmail;
+  
+  // Get display name from Firestore profile first, then Firebase Auth, then default
+  const displayName = userProfile?.fullName || userProfile?.displayName || user?.displayName || 'User';
 
   if (!isAuthenticated) {
     return (
@@ -105,8 +141,8 @@ export default function AccountScreen() {
           
           {/* Profile Section inside gradient */}
           <View style={styles.profileSection}>
-            <Text style={styles.userName}>{user?.displayName || 'User'}</Text>
-            <Text style={styles.userEmail}>{user?.email}</Text>
+            <Text style={styles.userName}>{displayName}</Text>
+            <Text style={styles.userEmail}>{displayEmail}</Text>
             <TouchableOpacity
               style={styles.editProfileButton}
               onPress={() => router.push('/profile/edit' as any)}
@@ -151,7 +187,7 @@ export default function AccountScreen() {
           <TouchableOpacity 
             style={styles.menuItem} 
             activeOpacity={0.7}
-            onPress={() => router.push('/wishlist' as any)}
+            onPress={() => router.push('/(tabs)/wishlist' as any)}
           >
             <View style={styles.menuItemLeft}>
               <Feather name="heart" size={22} color="#111827" />

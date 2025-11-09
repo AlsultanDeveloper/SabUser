@@ -4,12 +4,11 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
   ScrollView,
-  SafeAreaView,
   Image,
 } from 'react-native';
-import { Feather, MaterialIcons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useCategories } from '@/hooks/useFirestore';
 import type { Category } from '@/types';
@@ -21,11 +20,13 @@ interface CategoryCardProps {
 }
 
 const CategoryCard: React.FC<CategoryCardProps> = ({ category, language, onPress }) => {
-  const categoryName = typeof category.name === 'object' 
-    ? (language === 'ar' ? category.name.ar : category.name.en)
-    : category.name;
-
-  const subcategoryCount = category.subcategories?.length || 0;
+  // Keep "Sab Market" in English always
+  const categoryName = (typeof category.name === 'object' && (category.name.en === 'Sab Market' || category.name.ar === 'ساب ماركت'))
+    ? 'Sab Market'
+    : (typeof category.name === 'object' 
+      ? (language === 'ar' ? category.name.ar : category.name.en)
+      : category.name
+    );
 
   return (
     <TouchableOpacity style={styles.categoryCard} onPress={onPress} activeOpacity={0.8}>
@@ -40,11 +41,6 @@ const CategoryCard: React.FC<CategoryCardProps> = ({ category, language, onPress
         <Text style={styles.categoryTitle} numberOfLines={2}>
           {categoryName}
         </Text>
-        {subcategoryCount > 0 && (
-          <Text style={styles.subcategoryCount}>
-            {subcategoryCount} {language === 'ar' ? 'فئة فرعية' : 'subcategories'}
-          </Text>
-        )}
       </View>
     </TouchableOpacity>
   );
@@ -61,57 +57,46 @@ const CategorySkeleton = () => (
   </View>
 );
 
+// Categories that should show products directly (no subcategories)
+const CATEGORIES_WITHOUT_SUBCATEGORIES = [
+  'Bags & Luggage',
+  'Toys & Dolls',
+  'Office & School Supplies',
+  'Cleaning & Household'
+];
+
 export default function Categories() {
-  const [language, setLanguage] = useState('ar');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [language] = useState('en');
   const { categories, loading, error, refetch } = useCategories();
 
-  const filteredCategories = searchQuery 
-    ? categories.filter(category => {
-        const name = typeof category.name === 'object' 
-          ? (language === 'ar' ? category.name.ar : category.name.en)
-          : category.name;
-        return name.toLowerCase().includes(searchQuery.toLowerCase());
-      })
-    : categories;
+  // Filter categories by search - removed as search now navigates to search page
+  const filteredCategories = categories;
 
   const handleCategoryPress = (category: Category) => {
     console.log('Category pressed:', category.name);
-    // Navigate to category subcategories page
-    router.push(`/category/${category.id}`);
+    
+    // Check if this category should show products directly
+    const categoryNameEn = typeof category.name === 'object' ? category.name.en : category.name;
+    const shouldShowProductsDirectly = CATEGORIES_WITHOUT_SUBCATEGORIES.includes(categoryNameEn);
+    
+    if (shouldShowProductsDirectly) {
+      // Navigate directly to products page
+      console.log('📦 Navigating directly to products for:', categoryNameEn);
+      router.push({
+        pathname: '/category-products/[categoryId]/[subcategoryId]',
+        params: {
+          categoryId: category.id,
+          subcategoryId: 'all',
+        },
+      });
+    } else {
+      // Navigate to category subcategories page
+      router.push(`/category/${category.id}`);
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Search Bar - Amazon Style */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <Feather name="search" size={20} color="#666" style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder={language === 'ar' ? 'ابحث في SABSTORE' : 'Search SABSTORE'}
-            placeholderTextColor="#666"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          <TouchableOpacity style={styles.cameraButton}>
-            <MaterialIcons name="camera-alt" size={20} color="#666" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Header with Language Toggle */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>
-          {language === 'ar' ? 'تسوق حسب الفئة' : 'Shop by category'}
-        </Text>
-        <TouchableOpacity onPress={() => setLanguage(prev => prev === 'ar' ? 'en' : 'ar')}>
-          <Text style={styles.langButton}>
-            {language === 'ar' ? 'EN' : 'عربي'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
       {/* Content */}
       <ScrollView 
         style={styles.scrollContainer}
@@ -156,7 +141,7 @@ export default function Categories() {
             
             {filteredCategories.length === 0 && (
               <View style={styles.emptyContainer}>
-                <Feather name="search" size={64} color="#ccc" />
+                <Feather name="inbox" size={64} color="#ccc" />
                 <Text style={styles.emptyText}>
                   {language === 'ar' ? 'لا توجد فئات' : 'No categories found'}
                 </Text>
@@ -174,78 +159,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  // Amazon Search Bar Style
-  searchContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8F8F8',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#333',
-    paddingVertical: 0,
-  },
-  cameraButton: {
-    padding: 6,
-    borderRadius: 4,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#000',
-  },
-  langButton: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#007185',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 4,
-    backgroundColor: '#E3F2FD',
-  },
   scrollContainer: {
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
   scrollContent: {
     padding: 16,
+    paddingTop: 8,
     paddingBottom: 32,
   },
-  // Amazon Grid Style - 3 columns exactly
+  // Amazon Grid Style - 2 columns for consistency
   categoriesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
   categoryCard: {
-    width: '31.5%', // 3 columns with small gaps
+    width: '48%', // 2 columns with gap
     marginBottom: 16,
     borderRadius: 8,
     backgroundColor: '#FFFFFF',
@@ -263,7 +193,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   categoryImageContainer: {
-    height: 90,
+    height: 160, // ارتفاع 160
     backgroundColor: '#E8F4FD', // Light blue like Amazon
     justifyContent: 'center',
     alignItems: 'center',
@@ -273,19 +203,14 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   categoryContent: {
-    padding: 8,
+    padding: 12,
   },
   categoryTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500',
     color: '#000',
-    textAlign: 'left',
-    lineHeight: 16,
-  },
-  subcategoryCount: {
-    fontSize: 11,
-    color: '#666',
-    marginTop: 2,
+    textAlign: 'center',
+    lineHeight: 18,
   },
   // Loading skeleton styles
   skeletonImage: {
@@ -342,5 +267,62 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     marginTop: 16,
+  },
+  // Search results styles
+  searchSection: {
+    width: '100%',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 12,
+    width: '100%',
+  },
+  productsGrid: {
+    width: '100%',
+    gap: 12,
+  },
+  productCard: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    padding: 12,
+    marginBottom: 12,
+    // Shadow
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  productImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 6,
+    backgroundColor: '#E8F4FD',
+  },
+  productInfo: {
+    flex: 1,
+    marginLeft: 12,
+    justifyContent: 'center',
+  },
+  productName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#000',
+    marginBottom: 6,
+    lineHeight: 18,
+  },
+  productPrice: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#B12704', // Amazon red for price
   },
 });

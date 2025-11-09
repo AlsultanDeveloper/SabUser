@@ -25,8 +25,11 @@ async function fetchCategories(): Promise<Category[]> {
   try {
       
     const categoriesRef = collection(db, 'categories');
-    const q = query(categoriesRef, orderBy('order', 'asc'));
+    // Temporarily remove orderBy to get all categories
+    const q = query(categoriesRef);
     const querySnapshot = await getDocs(q);
+    
+    console.log(`📦 Raw categories count from Firebase: ${querySnapshot.size}`);
     
     const loadedCategories: Category[] = [];
       
@@ -77,7 +80,19 @@ async function fetchCategories(): Promise<Category[]> {
       });
       
       const imageUrl = data.image && typeof data.image === 'string' && data.image.trim() ? data.image.trim() : '';
-      const categoryName = data.name || { en: '', ar: '' };
+      
+      // Handle category name - can be object {en, ar} or separate fields name & nameAr
+      let categoryName;
+      if (typeof data.name === 'object' && data.name !== null && (data.name.en || data.name.ar)) {
+        categoryName = data.name;
+      } else if (data.name || data.nameAr) {
+        categoryName = {
+          en: data.name || '',
+          ar: data.nameAr || data.name || ''
+        };
+      } else {
+        categoryName = { en: '', ar: '' };
+      }
       
       loadedCategories.push({
         id: docSnap.id,
@@ -85,8 +100,27 @@ async function fetchCategories(): Promise<Category[]> {
         icon: data.icon || 'Package',
         image: imageUrl,
         subcategories: subcategories,
+        order: data.order || 999, // Default high order for categories without order field
       });
     }
+
+    // Sort categories by order field (ascending)
+    loadedCategories.sort((a, b) => (a.order || 999) - (b.order || 999));
+    
+    // Optional: Custom ordering - define priority categories here
+    const priorityOrder: { [key: string]: number } = {
+      'GXakfwzrVqoStlGav7gR': 1,  // Sab Market - always first
+      'naEr1ac0oX0jV5GkMLLP': 2,  // Kitchen - second
+      // Add more category IDs here to customize order
+      // 'categoryId': orderNumber
+    };
+    
+    // Apply custom priority ordering if defined
+    loadedCategories.sort((a, b) => {
+      const priorityA = priorityOrder[a.id] || (a.order || 999);
+      const priorityB = priorityOrder[b.id] || (b.order || 999);
+      return priorityA - priorityB;
+    });
 
     console.log('✅ Categories loaded from Firestore:', loadedCategories.length);
     return loadedCategories;
@@ -100,8 +134,12 @@ export function useCategories() {
   const { data: categories = [], isLoading: loading, error, refetch } = useQuery({
     queryKey: ['categories'],
     queryFn: fetchCategories,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 دقائق
+    gcTime: 15 * 60 * 1000, // 15 دقيقة للكاش
+    refetchOnWindowFocus: false, // لا تعيد التحميل عند العودة للتطبيق
+    refetchOnMount: false, // استخدم الكاش إذا كان صالح
+    retry: 3, // إعادة المحاولة 3 مرات عند الفشل
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
   });
 
   return { 
@@ -112,110 +150,93 @@ export function useCategories() {
   };
 }
 
-export function useCategory(categoryId: string) {
-  const [category, setCategory] = useState<Category | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+// Fetch single category with subcategories
+async function fetchCategory(categoryId: string): Promise<Category> {
+  if (!categoryId) {
+    throw new Error('Category ID is required');
+  }
 
-  const loadCategory = useCallback(async () => {
-    if (!categoryId) return;
+  if (!isConfigured || !db) {
+    throw new Error('Firebase not configured');
+  }
 
-    if (!isConfigured || !db) {
-      console.error('❌ Firebase not configured');
-      setError('Firebase not configured');
-      setLoading(false);
-      return;
+  const categoryRef = doc(db, 'categories', categoryId);
+  const categoryDoc = await getDoc(categoryRef);
+  
+  if (!categoryDoc.exists()) {
+    throw new Error('Category not found');
+  }
+
+  const data = categoryDoc.data();
+  
+  // Fetch subcategories
+  const subcategoriesRef = collection(db, 'categories', categoryId, 'subcategory');
+  const subcategoriesSnapshot = await getDocs(subcategoriesRef);
+  
+  const subcategories = subcategoriesSnapshot.docs.map((subDoc) => {
+    const subData = subDoc.data();
+    const subImageUrl = subData.image && typeof subData.image === 'string' && subData.image.trim() ? subData.image.trim() : '';
+    
+    // Support all name formats
+    let subName;
+    if (typeof subData.name === 'object' && subData.name !== null && (subData.name.en || subData.name.ar)) {
+      subName = subData.name;
+    } else if (subData.subcategoryEn || subData.subcategoryAr) {
+      subName = { 
+        en: subData.subcategoryEn || subData.subcategoryName || '', 
+        ar: subData.subcategoryAr || subData.subcategoryNameAr || '' 
+      };
+    } else if (subData.subcategoryName || subData.subcategoryNameAr) {
+      subName = { 
+        en: subData.subcategoryName || '', 
+        ar: subData.subcategoryNameAr || '' 
+      };
+    } else if (typeof subData.name === 'string') {
+      subName = { en: subData.name, ar: subData.name };
+    } else {
+      subName = { en: 'Unknown', ar: 'غير معروف' };
     }
-
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const categoryRef = doc(db, 'categories', categoryId);
-      const categoryDoc = await getDoc(categoryRef);
-      
-      if (categoryDoc.exists()) {
-        const data = categoryDoc.data();
-        
-        const subcategoriesRef = collection(db, 'categories', categoryId, 'subcategory');
-        // إزالة orderBy مؤقتاً لتجنب مشاكل الفهرسة
-        // const subcategoriesQuery = query(subcategoriesRef, orderBy('order', 'asc'));
-        const subcategoriesSnapshot = await getDocs(subcategoriesRef);
-        
-        const subcategories = subcategoriesSnapshot.docs.map((subDoc) => {
-          const subData = subDoc.data();
-          // console.log تم تعطيله لتجنب الأخطاء
-          
-          const subImageUrl = subData.image && typeof subData.image === 'string' && subData.image.trim() ? subData.image.trim() : '';
-          
-          // دعم جميع تنسيقات الأسماء الممكنة
-          let subName;
-          if (typeof subData.name === 'object' && subData.name !== null && (subData.name.en || subData.name.ar)) {
-            // التنسيق: name: { en: "...", ar: "..." }
-            subName = subData.name;
-          } else if (subData.subcategoryEn || subData.subcategoryAr) {
-            // التنسيق: subcategoryEn, subcategoryAr
-            subName = { 
-              en: subData.subcategoryEn || subData.subcategoryName || '', 
-              ar: subData.subcategoryAr || subData.subcategoryNameAr || '' 
-            };
-          } else if (subData.subcategoryName || subData.subcategoryNameAr) {
-            // التنسيق: subcategoryName, subcategoryNameAr
-            subName = { 
-              en: subData.subcategoryName || '', 
-              ar: subData.subcategoryNameAr || '' 
-            };
-          } else if (typeof subData.name === 'string') {
-            // التنسيق: name كنص واحد
-            subName = { en: subData.name, ar: subData.name };
-          } else {
-            // لا يوجد اسم
-            subName = { en: 'Unknown', ar: 'غير معروف' };
-          }
-          
-          // console.log تم تعطيله لتجنب الأخطاء
-          
-          return {
-            id: subDoc.id,
-            name: subName,
-            image: subImageUrl,
-          };
-        });
-        
-        const imageUrl = data.image && typeof data.image === 'string' && data.image.trim() ? data.image.trim() : '';
-        
-        if (!imageUrl) {
-          console.warn('⚠️ Category missing image:', categoryDoc.id, data.name);
-        }
-        
-        setCategory({
-          id: categoryDoc.id,
-          name: data.name || { en: '', ar: '' },
-          icon: data.icon || 'Package',
-          image: imageUrl,
-          subcategories: subcategories,
-        });
-        console.log('✅ Category loaded from Firestore:', categoryDoc.id);
-      } else {
-        console.error('❌ Category not found:', categoryId);
-        setError('Category not found');
-      }
-    } catch (err) {
-      console.error('❌ Error loading category:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load category');
-    } finally {
-      setLoading(false);
-    }
-  }, [categoryId]);
-
-  useEffect(() => {
-    loadCategory();
-  }, [loadCategory]);
-
-  const refetch = loadCategory;
-
-  return { category, loading, error, refetch };
+    
+    return {
+      id: subDoc.id,
+      name: subName,
+      image: subImageUrl,
+    };
+  });
+  
+  const imageUrl = data.image && typeof data.image === 'string' && data.image.trim() ? data.image.trim() : '';
+  
+  return {
+    id: categoryDoc.id,
+    name: data.name || { en: '', ar: '' },
+    icon: data.icon || 'Package',
+    image: imageUrl,
+    subcategories: subcategories,
+  };
 }
+
+export function useCategory(categoryId: string) {
+  const { data: category, isLoading, error, refetch } = useQuery<Category, Error>({
+    queryKey: ['category', categoryId],
+    queryFn: () => fetchCategory(categoryId),
+    enabled: !!categoryId,
+    staleTime: 5 * 60 * 1000, // 5 minutes - Categories don't change often
+    gcTime: 15 * 60 * 1000, // 15 minutes cache
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
+
+  return { 
+    category: category || null, 
+    loading: isLoading, 
+    error: error?.message || null, 
+    refetch 
+  };
+}
+
+// Old implementation removed - now using React Query above
 
 interface UseProductsOptions {
   categoryId?: string;
@@ -264,18 +285,56 @@ async function fetchProducts(options: UseProductsOptions = {}): Promise<Product[
     const data = docSnap.data();
     
     // Filter by subcategory if specified (يدعم كلاً من subcategoryId و subcategoryName)
-    if (options.subcategoryId && data.subcategoryId !== options.subcategoryId) {
-      return; // Skip products that don't match the subcategory ID
+    if (options.subcategoryId && options.subcategoryId !== 'all') {
+      if (!data.subcategoryId || data.subcategoryId !== options.subcategoryId) {
+        console.log(`⏭️  Skipping product ${docSnap.id}: subcategoryId mismatch (expected: ${options.subcategoryId}, got: ${data.subcategoryId})`);
+        return; // Skip products that don't match the subcategory ID
+      }
     }
     
-    if (options.subcategoryName && data.subcategoryName !== options.subcategoryName) {
-      return; // Skip products that don't match the subcategory name
+    if (options.subcategoryName && options.subcategoryName !== 'all') {
+      if (!data.subcategoryName || data.subcategoryName !== options.subcategoryName) {
+        return; // Skip products that don't match the subcategory name
+      }
     }
     
-    const imageUrl = data.image && typeof data.image === 'string' && data.image.trim() ? data.image.trim() : undefined;
-    const images = Array.isArray(data.images) 
-      ? data.images.filter((img: any) => img && typeof img === 'string' && img.trim())
-      : imageUrl ? [imageUrl] : [];
+    const imageUrl = data.image && typeof data.image === 'string' && data.image.trim() && data.image !== 'undefined' ? data.image.trim() : undefined;
+    
+    // Handle images array - it can contain objects {url, order, path} or strings
+    let images: string[] = [];
+    if (Array.isArray(data.images) && data.images.length > 0) {
+      images = data.images
+        .map((img: any) => {
+          // If it's an object with url property
+          if (img && typeof img === 'object' && img.url && typeof img.url === 'string') {
+            return img.url.trim();
+          }
+          // If it's a plain string
+          if (img && typeof img === 'string') {
+            return img.trim();
+          }
+          return '';
+        })
+        .filter((url: string) => url && url !== 'undefined');
+    } else if (imageUrl) {
+      // Fallback: if no images array but has imageUrl, use that
+      images = [imageUrl];
+    } else if (data.imageUrl && typeof data.imageUrl === 'string' && data.imageUrl.trim()) {
+      // Also check imageUrl field
+      images = [data.imageUrl.trim()];
+    }
+    
+    // Debug: log first few products to see image data
+    if (loadedProducts.length < 3) {
+      console.log(`\n📸 Product Image Debug #${loadedProducts.length + 1}:`);
+      console.log(`   Name: ${typeof data.name === 'object' ? data.name.en : data.name}`);
+      console.log(`   data.image:`, data.image);
+      console.log(`   data.images:`, data.images);
+      console.log(`   data.imageUrl:`, data.imageUrl);
+      console.log(`   data.mainImage:`, data.mainImage);
+      console.log(`   Computed imageUrl:`, imageUrl);
+      console.log(`   Computed images array:`, images);
+    }
     
     loadedProducts.push({
       id: docSnap.id,
@@ -664,4 +723,35 @@ export async function searchProducts(searchQuery: string): Promise<Product[]> {
     console.error('❌ Error searching products:', error);
     return [];
   }
+}
+
+// Hook للمنتجات مع React Query للكاش السريع - Amazon Style
+export function useFeaturedProducts(limitCount: number = 10) {
+  return useQuery({
+    queryKey: ['featured-products', limitCount],
+    queryFn: async () => {
+      if (!isConfigured || !db) {
+        throw new Error('Firebase not configured');
+      }
+
+      const productsRef = collection(db, 'products');
+      // استخدام limit مباشرة في Firebase Query للسرعة القصوى
+      const q = query(productsRef, limit(limitCount));
+      const querySnapshot = await getDocs(q);
+      
+      const products: any[] = [];
+      querySnapshot.forEach((docSnap) => {
+        products.push({ id: docSnap.id, ...docSnap.data() });
+      });
+
+      console.log(`⚡ Fast load: fetched only ${products.length} products`);
+      return products;
+    },
+    staleTime: 2 * 60 * 1000, // البيانات تبقى صالحة لمدة 2 دقيقة (أسرع من 5)
+    gcTime: 10 * 60 * 1000, // الكاش يبقى 10 دقائق
+    refetchOnWindowFocus: false, // عدم إعادة التحميل عند العودة للتطبيق
+    refetchOnMount: false, // عدم إعادة التحميل عند mount إذا كان الكاش صالح
+    retry: 3, // إعادة المحاولة 3 مرات
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+  });
 }

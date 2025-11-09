@@ -1,14 +1,17 @@
 import React, { useState, useCallback, memo } from 'react';
-import { Image, ImageProps, View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { Image, ImageContentFit } from 'expo-image';
 import { Feather } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
 
-interface SafeImageProps extends Omit<ImageProps, 'source'> {
+interface SafeImageProps {
   uri?: string;
+  style?: any;
   fallbackIconSize?: number;
   fallbackIconName?: keyof typeof Feather.glyphMap;
   showLoader?: boolean;
   resizeMode?: 'cover' | 'contain' | 'stretch' | 'repeat' | 'center';
+  contentFit?: ImageContentFit;
 }
 
 const SafeImage = memo(function SafeImage({
@@ -18,7 +21,7 @@ const SafeImage = memo(function SafeImage({
   fallbackIconName = 'image',
   showLoader = true,
   resizeMode = 'cover',
-  ...props
+  contentFit,
 }: SafeImageProps) {
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,28 +64,25 @@ const SafeImage = memo(function SafeImage({
     return renderFallback();
   }
 
+  // Map resizeMode to contentFit
+  const fit: ImageContentFit = contentFit || (resizeMode as ImageContentFit);
+
   return (
     <View style={style}>
       <Image
-        {...props}
-        source={{ 
-          uri: trimmedUri,
-          cache: 'force-cache',
-          headers: {
-            'Accept': 'image/*',
-          }
-        }}
+        source={{ uri: trimmedUri }}
         style={{
           width: '100%',
           height: '100%',
-          resizeMode: resizeMode,
         }}
+        contentFit={fit}
         onError={handleError}
         onLoad={handleLoad}
         onLoadStart={handleLoadStart}
-        fadeDuration={200}
-        progressiveRenderingEnabled={true}
-        resizeMethod="resize"
+        transition={150}
+        cachePolicy="memory-disk"
+        recyclingKey={trimmedUri}
+        priority="high"
       />
       {isLoading && showLoader && (
         <View style={[styles.loader, StyleSheet.absoluteFillObject]}>
@@ -107,8 +107,9 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   loader: {
-    backgroundColor: Colors.gray[100],
+    backgroundColor: 'rgba(249, 250, 251, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
   },
 });
+

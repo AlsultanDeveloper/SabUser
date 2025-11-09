@@ -20,6 +20,7 @@ export interface ShippingSettings {
 export interface CurrencySettings {
   default: string;
   supported: string[];
+  usdToLbp?: number; // سعر صرف الدولار مقابل الليرة اللبنانية
 }
 
 export interface TaxSettings {
@@ -58,6 +59,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   currency: {
     default: 'SAR',
     supported: ['SAR', 'USD', 'AED'],
+    usdToLbp: 89700, // السعر الافتراضي: 1 USD = 89,700 LBP
   },
   tax: {
     enabled: false,
@@ -132,5 +134,6 @@ export function useSettings() {
     freeShippingThreshold: settings.shipping.freeShippingThreshold,
     isShippingEnabled: settings.shipping.enabled,
     currency: settings.shipping.currency,
+    usdToLbp: settings.currency?.usdToLbp || 89700, // سعر الصرف
   };
 }

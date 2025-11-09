@@ -53,6 +53,7 @@ export interface Product {
   gender?: 'Boy' | 'Girl' | 'Unisex-Kids' | 'Men' | 'Women' | 'Unisex';
   season?: 'Summer' | 'Winter' | 'All-Season';
   deliveryTime?: string;
+  shippingCost?: number; // سعر التوصيل للمنتج (يتم تحديده من لوحة التحكم)
   stock?: number;
   available?: boolean;
   
@@ -84,6 +85,7 @@ export interface Category {
   icon: string;
   image: string;
   subcategories?: Subcategory[];
+  order?: number;
 }
 
 export interface CartItem {

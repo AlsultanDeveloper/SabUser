@@ -5,12 +5,12 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
-  Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useCategory } from '@/hooks/useFirestore';
+import SafeImage from '@/components/SafeImage';
 import type { Subcategory } from '@/types';
 
 interface SubcategoryCardProps {
@@ -27,9 +27,12 @@ const SubcategoryCard: React.FC<SubcategoryCardProps> = ({ subcategory, language
   return (
     <TouchableOpacity style={styles.subcategoryCard} onPress={onPress} activeOpacity={0.8}>
       <View style={styles.subcategoryImageContainer}>
-        <Image 
-          source={{ uri: subcategory.image || 'https://via.placeholder.com/150/E8F4FD/333?text=No+Image' }} 
+        <SafeImage 
+          uri={subcategory.image} 
           style={styles.subcategoryImage}
+          fallbackIconSize={40}
+          fallbackIconName="image"
+          showLoader={true}
           resizeMode="cover"
         />
       </View>
@@ -52,16 +55,51 @@ const SubcategorySkeleton = () => (
   </View>
 );
 
+// Categories that should show products directly (no subcategories)
+const CATEGORIES_WITHOUT_SUBCATEGORIES = [
+  'Bags & Luggage',
+  'Toys & Dolls',
+  'Office & School Supplies',
+  'Cleaning & Household'
+];
+
 export default function CategoryDetails() {
-  const [language, setLanguage] = useState('ar');
+  const [language] = useState('en'); // ثابت على الإنجليزية
   const { id } = useLocalSearchParams<{ id: string }>();
   const { category, loading, error, refetch } = useCategory(id || '');
 
-  const categoryName: string = (() => {
-    if (!category?.name) return 'Category';
+  // Get category name with fallback
+  const categoryName: string = React.useMemo(() => {
+    if (!category?.name) return '';
     if (typeof category.name === 'string') return category.name;
+    // Keep "Sab Market" in English always
+    if (category.name.en === 'Sab Market' || category.name.ar === 'ساب ماركت') {
+      return 'Sab Market';
+    }
     return language === 'ar' ? category.name.ar : category.name.en;
-  })();
+  }, [category, language]);
+
+  // Check if current category should show products directly
+  const shouldShowProductsDirectly = React.useMemo(() => {
+    if (!category?.name) return false;
+    const nameEn = typeof category.name === 'object' ? category.name.en : category.name;
+    return CATEGORIES_WITHOUT_SUBCATEGORIES.includes(nameEn);
+  }, [category]);
+
+  // If category should show products directly, navigate to products page immediately
+  React.useEffect(() => {
+    if (!loading && category && shouldShowProductsDirectly) {
+      console.log('📦 Redirecting to products for category:', categoryName);
+      // Navigate immediately
+      router.replace({
+        pathname: '/category-products/[categoryId]/[subcategoryId]',
+        params: {
+          categoryId: id,
+          subcategoryId: 'all', // عرض جميع منتجات الفئة
+        },
+      });
+    }
+  }, [loading, category, shouldShowProductsDirectly, id, categoryName]);
 
   const handleSubcategoryPress = (subcategory: Subcategory) => {
     console.log('Subcategory pressed:', subcategory.name);
@@ -88,14 +126,16 @@ export default function CategoryDetails() {
         <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
           <Feather name="arrow-left" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {categoryName || 'Category'}
-        </Text>
-        <TouchableOpacity onPress={() => setLanguage(prev => prev === 'ar' ? 'en' : 'ar')}>
-          <Text style={styles.langButton}>
-            {language === 'ar' ? 'EN' : 'عربي'}
+        {loading ? (
+          <View style={styles.headerTitleContainer}>
+            <View style={styles.skeletonHeaderText} />
+          </View>
+        ) : (
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            {categoryName}
           </Text>
-        </TouchableOpacity>
+        )}
+        <View style={styles.headerSpacer} />
       </View>
 
       {/* Content */}
@@ -189,14 +229,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginHorizontal: 16,
   },
-  langButton: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#007185',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 16,
+  },
+  skeletonHeaderText: {
+    width: 120,
+    height: 20,
+    backgroundColor: '#E0E0E0',
     borderRadius: 4,
-    backgroundColor: '#E3F2FD',
+  },
+  headerSpacer: {
+    width: 40, // نفس عرض زر الرجوع للتوازن
   },
   scrollContainer: {
     flex: 1,
@@ -237,7 +283,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   subcategoryImageContainer: {
-    height: 120, // Taller than main categories
+    height: 160, // ارتفاع 160
     backgroundColor: '#E8F4FD',
     justifyContent: 'center',
     alignItems: 'center',

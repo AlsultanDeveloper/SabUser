@@ -20,6 +20,11 @@ import {
 LogBox.ignoreLogs([
   '@firebase/firestore: Firestore',
   'WebChannelConnection',
+  'transport errored',
+  'RPC',
+  'stream',
+  'Firestore (12.4.0): WebChannelConnection',
+  'Unable to activate keep awake', // خطأ تطويري فقط - لا يؤثر على التطبيق
 ]);
 
 SplashScreen.preventAutoHideAsync();
@@ -70,13 +75,6 @@ function RootLayoutNav() {
       />
       <Stack.Screen
         name="addresses"
-        options={{
-          presentation: 'card',
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
-        name="wishlist"
         options={{
           presentation: 'card',
           headerShown: false,

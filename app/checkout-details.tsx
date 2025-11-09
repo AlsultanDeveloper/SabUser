@@ -1,7 +1,7 @@
 // 🛍️ Checkout Details - Address & Payment
 // Modern checkout flow inspired by Amazon & SHEIN
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,17 +18,16 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSettings } from '@/hooks/useSettings';
 import * as Location from 'expo-location';
 import MapPicker from '@/components/MapPicker';
 import { useOrders } from '@/contexts/OrderContext';
-import type { OrderItem } from '@/types';
+import type { OrderItem, SavedAddress } from '@/types';
+import { getUserAddresses } from '@/constants/firestore';
 
 export default function CheckoutDetailsScreen() {
   const router = useRouter();
   const { cart, cartTotal, formatPrice, clearCart, language } = useApp();
   const { user } = useAuth();
-  const { shippingCost, freeShippingThreshold } = useSettings();
   const { createOrder } = useOrders();
 
   // Shipping Address State
@@ -40,16 +39,57 @@ export default function CheckoutDetailsScreen() {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
 
+  // Saved Addresses
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [loadingSavedAddresses, setLoadingSavedAddresses] = useState(false);
+  const [showSavedAddresses, setShowSavedAddresses] = useState(false);
+  const [selectedSavedAddress, setSelectedSavedAddress] = useState<SavedAddress | null>(null);
+
   // Payment Method State
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'omt' | 'whish'>('cash');
   
   // Map Picker State
   const [showMapPicker, setShowMapPicker] = useState(false);
 
-  // Calculate totals
-  const remainingForFreeShipping = Math.max(freeShippingThreshold - cartTotal, 0);
-  const finalShippingCost = remainingForFreeShipping > 0 ? shippingCost : 0;
+  // Calculate shipping cost from products
+  // Each product has its own shippingCost defined in admin panel
+  const calculateShippingFromProducts = () => {
+    if (cart.length === 0) return 0;
+    
+    // Get the maximum shipping cost from all products in cart
+    const maxShipping = Math.max(
+      ...cart.map(item => item.product.shippingCost || 0)
+    );
+    
+    return maxShipping;
+  };
+
+  const finalShippingCost = calculateShippingFromProducts();
   const finalTotal = cartTotal + finalShippingCost;
+
+  // Load saved addresses on mount
+  useEffect(() => {
+    const loadSavedAddresses = async () => {
+      if (!user?.uid) return;
+      
+      try {
+        setLoadingSavedAddresses(true);
+        const addresses = await getUserAddresses(user.uid);
+        setSavedAddresses(addresses as SavedAddress[]);
+        
+        // Auto-show saved addresses if available
+        if (addresses.length > 0) {
+          setShowSavedAddresses(true);
+        }
+      } catch (error) {
+        console.error('Error loading saved addresses:', error);
+      } finally {
+        setLoadingSavedAddresses(false);
+      }
+    };
+
+    loadSavedAddresses();
+  }, [user?.uid]);
 
   // Get Current Location
   const handleGetCurrentLocation = async () => {
@@ -87,6 +127,20 @@ export default function CheckoutDetailsScreen() {
       console.error('Error getting location:', error);
       Alert.alert('Error', 'Could not get your current location');
     }
+  };
+
+  // Select a saved address
+  const handleSelectSavedAddress = (savedAddress: SavedAddress) => {
+    setSelectedSavedAddress(savedAddress);
+    setFullName(savedAddress.fullName);
+    setPhone(savedAddress.phoneNumber);
+    setAddress(savedAddress.address);
+    setCity(savedAddress.city);
+    setPostalCode(savedAddress.postalCode || '');
+    setLatitude(savedAddress.latitude || null);
+    setLongitude(savedAddress.longitude || null);
+    setShowSavedAddresses(false);
+    Alert.alert('✅ Address Selected', `Using "${savedAddress.label || 'Home'}" address`);
   };
 
   // Open Maps to Pick Location
@@ -196,13 +250,20 @@ export default function CheckoutDetailsScreen() {
         [
           {
             text: 'View Order',
-            onPress: () => router.push(`/order/${order.id}` as any),
+            onPress: () => {
+              // Replace navigation stack to prevent going back to cart
+              router.replace(`/order/${order.id}` as any);
+            },
           },
           {
             text: 'Continue Shopping',
-            onPress: () => router.push('/(tabs)/home' as any),
+            onPress: () => {
+              // Replace navigation stack to go to home
+              router.replace('/(tabs)/home' as any);
+            },
           },
-        ]
+        ],
+        { cancelable: false } // Prevent dismissing without choosing an option
       );
     } catch (error) {
       console.error('❌ Error placing order:', error);
@@ -248,38 +309,109 @@ export default function CheckoutDetailsScreen() {
             <Text style={styles.sectionTitle}>Shipping Address</Text>
           </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Full Name *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your name"
-              value={fullName}
-              onChangeText={setFullName}
-            />
-          </View>
+          {/* Saved Addresses Toggle */}
+          {savedAddresses.length > 0 && (
+            <TouchableOpacity
+              style={styles.savedAddressToggle}
+              onPress={() => setShowSavedAddresses(!showSavedAddresses)}
+            >
+              <View style={styles.savedAddressToggleLeft}>
+                <MaterialCommunityIcons name="bookmark-multiple" size={22} color="#8B5CF6" />
+                <Text style={styles.savedAddressToggleText}>
+                  {showSavedAddresses ? 'Hide' : 'Use'} Saved Addresses ({savedAddresses.length})
+                </Text>
+              </View>
+              <Feather name={showSavedAddresses ? 'chevron-up' : 'chevron-down'} size={20} color="#6B7280" />
+            </TouchableOpacity>
+          )}
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Phone Number *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter here"
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-            />
-          </View>
+          {/* Loading Saved Addresses */}
+          {loadingSavedAddresses && (
+            <View style={{ padding: 20, alignItems: 'center' }}>
+              <Text style={{ color: '#6B7280', fontSize: 14 }}>Loading saved addresses...</Text>
+            </View>
+          )}
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Address *</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Street address, building, apartment"
-              value={address}
-              onChangeText={setAddress}
-              multiline
-              numberOfLines={3}
-            />
-          </View>
+          {/* Saved Addresses List */}
+          {showSavedAddresses && savedAddresses.length > 0 && (
+            <View style={styles.savedAddressesList}>
+              {savedAddresses.map((savedAddr) => (
+                <TouchableOpacity
+                  key={savedAddr.id}
+                  style={[
+                    styles.savedAddressCard,
+                    selectedSavedAddress?.id === savedAddr.id && styles.savedAddressCardSelected,
+                  ]}
+                  onPress={() => handleSelectSavedAddress(savedAddr)}
+                >
+                  <View style={styles.savedAddressIcon}>
+                    <MaterialCommunityIcons 
+                      name={savedAddr.label === 'Home' ? 'home' : savedAddr.label === 'Work' ? 'briefcase' : 'map-marker'}
+                      size={20}
+                      color={selectedSavedAddress?.id === savedAddr.id ? '#8B5CF6' : '#6B7280'}
+                    />
+                  </View>
+                  <View style={styles.savedAddressContent}>
+                    <Text style={styles.savedAddressLabel}>{savedAddr.label || 'Address'}</Text>
+                    <Text style={styles.savedAddressName}>{savedAddr.fullName}</Text>
+                    <Text style={styles.savedAddressText} numberOfLines={2}>
+                      {savedAddr.address}, {savedAddr.city}
+                    </Text>
+                    <Text style={styles.savedAddressPhone}>{savedAddr.phoneNumber}</Text>
+                    {savedAddr.latitude && savedAddr.longitude && (
+                      <View style={styles.verifiedBadge}>
+                        <MaterialCommunityIcons name="map-marker-check" size={14} color="#10B981" />
+                        <Text style={styles.verifiedText}>Location Verified</Text>
+                      </View>
+                    )}
+                  </View>
+                  {selectedSavedAddress?.id === savedAddr.id && (
+                    <View style={styles.selectedCheckmark}>
+                      <Feather name="check-circle" size={24} color="#8B5CF6" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          {/* Manual Address Input */}
+          {!showSavedAddresses && (
+            <>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Full Name *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your name"
+                  value={fullName}
+                  onChangeText={setFullName}
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Phone Number *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter here"
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Address *</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  placeholder="Street address, building, apartment"
+                  value={address}
+                  onChangeText={setAddress}
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
+            </>
+          )}
 
           {/* Location Picker Buttons */}
           <View style={styles.locationButtons}>
@@ -790,5 +922,96 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFF',
     marginRight: 8,
+  },
+  // Saved Addresses Styles
+  savedAddressToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F3E8FF',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E9D5FF',
+  },
+  savedAddressToggleLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  savedAddressToggleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#7C3AED',
+    marginLeft: 10,
+  },
+  savedAddressesList: {
+    marginBottom: 16,
+  },
+  savedAddressCard: {
+    flexDirection: 'row',
+    backgroundColor: '#FFF',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+  },
+  savedAddressCardSelected: {
+    borderColor: '#8B5CF6',
+    backgroundColor: '#F9F5FF',
+  },
+  savedAddressIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  savedAddressContent: {
+    flex: 1,
+  },
+  savedAddressLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  savedAddressName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  savedAddressText: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    marginBottom: 4,
+    lineHeight: 18,
+  },
+  savedAddressPhone: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginBottom: 6,
+  },
+  verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  verifiedText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#059669',
+    marginLeft: 4,
+  },
+  selectedCheckmark: {
+    marginLeft: 8,
   },
 });

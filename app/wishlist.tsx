@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Platform,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -19,6 +20,7 @@ import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Colors, Spacing, BorderRadius, FontSizes } from '@/constants/theme';
 import { getDocuments, collections, where, deleteDocument, getDocument } from '@/constants/firestore';
+import SafeImage from '@/components/SafeImage';
 
 interface WishlistItem {
   id: string;
@@ -158,40 +160,104 @@ export default function WishlistScreen() {
           {wishlistProducts.map((product, index) => {
             if (!product) return null;
             const wishlistItem = wishlistItems[index];
+            
+            // Get product name based on language
+            const productName = typeof product.name === 'string'
+              ? product.name
+              : (product.name?.[language] || product.name?.en || product.name?.ar || t('wishlist.savedItem'));
+            
             const finalPrice = product.discount
               ? product.price * (1 - product.discount / 100)
               : product.price;
 
             return (
-              <View key={wishlistItem.id} style={styles.productCard}>
+              <TouchableOpacity
+                key={wishlistItem.id}
+                style={styles.productCard}
+                onPress={() => router.push(`/product/${product.id}` as any)}
+                activeOpacity={0.8}
+              >
                 <View style={styles.productContent}>
+                  {/* Product Image */}
+                  <View style={styles.imageContainer}>
+                    {product.images && product.images.length > 0 ? (
+                      <SafeImage
+                        uri={product.images[0]}
+                        style={styles.productImage}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View style={[styles.productImage, styles.placeholderImage]}>
+                        <Feather name="image" size={32} color={Colors.gray[300]} />
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Product Info */}
                   <View style={styles.productInfo}>
                     <Text style={styles.productName} numberOfLines={2}>
-                      {t('wishlist.savedItem')} {/* عنصر محفوظ */}
+                      {productName}
                     </Text>
+                    
+                    {/* Discount Badge */}
+                    {product.discount > 0 && (
+                      <View style={styles.discountBadge}>
+                        <Text style={styles.discountText}>-{product.discount}%</Text>
+                      </View>
+                    )}
+                    
                     <View style={styles.priceRow}>
                       <Text style={styles.productPrice}>
                         {formatPrice(finalPrice)}
                       </Text>
+                      {product.discount > 0 && (
+                        <Text style={styles.originalPrice}>
+                          {formatPrice(product.price)}
+                        </Text>
+                      )}
                     </View>
+                    
+                    {/* Rating */}
+                    {product.rating && (
+                      <View style={styles.ratingRow}>
+                        <Feather name="star" size={14} color="#FFB800" fill="#FFB800" />
+                        <Text style={styles.ratingText}>{product.rating.toFixed(1)}</Text>
+                        {product.reviews && (
+                          <Text style={styles.reviewsText}>({product.reviews})</Text>
+                        )}
+                      </View>
+                    )}
                   </View>
                 </View>
 
+                {/* Product Actions */}
                 <View style={styles.productActions}>
                   <TouchableOpacity
                     style={styles.removeButton}
-                    onPress={() => {
-                      const productName = typeof product.name === 'string'
-                        ? product.name
-                        : (product.name?.[language] || product.name?.en || product.name?.ar || '');
+                    onPress={(e) => {
+                      e.stopPropagation();
                       handleRemoveFromWishlist(wishlistItem.id, productName);
                     }}
                     activeOpacity={0.7}
                   >
                     <Feather name="trash-2" size={20} color={Colors.error} />
                   </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={styles.addToCartButton}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      router.push(`/product/${product.id}` as any);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Feather name="shopping-cart" size={18} color={Colors.white} />
+                    <Text style={styles.addToCartText}>
+                      {language === 'ar' ? 'أضف للسلة' : 'Add to Cart'}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-              </View>
+              </TouchableOpacity>
             );
           })}
         </ScrollView>
@@ -286,15 +352,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: Spacing.md,
   },
+  imageContainer: {
+    marginRight: Spacing.md,
+  },
   productImage: {
     width: 100,
     height: 100,
     borderRadius: BorderRadius.md,
     backgroundColor: Colors.gray[100],
   },
+  placeholderImage: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   productInfo: {
     flex: 1,
-    marginLeft: Spacing.md,
+    justifyContent: 'space-between',
   },
   productName: {
     fontSize: FontSizes.md,
@@ -329,6 +402,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: 2,
     borderRadius: BorderRadius.sm,
+    alignSelf: 'flex-start',
+    marginBottom: Spacing.xs,
   },
   discountText: {
     color: Colors.white,

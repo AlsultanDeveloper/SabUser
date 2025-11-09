@@ -1,25 +1,30 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, Stack } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius, FontSizes, FontWeights } from '@/constants/theme';
 import AmazonStyleProductCard from '@/components/AmazonStyleProductCard';
-
-// منتجات فارغة - تم حذف المنتجات الوهمية
-const allProducts: any[] = [];
+import { useFeaturedProducts } from '@/hooks/useFirestore';
+import { useApp } from '@/contexts/AppContext';
 
 export default function FeaturedProducts() {
   const router = useRouter();
-  const [language, setLanguage] = useState('ar');
+  const { language, formatPrice: appFormatPrice } = useApp();
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('featured');
-
+  const [displayLimit, setDisplayLimit] = useState(20);
+  
+  // جلب المنتجات المميزة من Firebase
+  const { data: allProducts = [], isLoading } = useFeaturedProducts(100); // جلب 100 منتج
+  
   const formatPrice = (price: number) => {
-    if (language === 'ar') {
-      return `${price.toFixed(2)} ريال`;
+    try {
+      const result = appFormatPrice(price);
+      return typeof result === 'string' && result.length > 0 ? result : '$0.00';
+    } catch {
+      return '$0.00';
     }
-    return `$${price.toFixed(2)}`;
   };
 
   const handleProductPress = (product: any) => {
@@ -35,24 +40,31 @@ export default function FeaturedProducts() {
   };
 
   const getFilteredProducts = () => {
+    let filtered = allProducts;
+    
     switch (sortBy) {
       case 'featured':
-        return allProducts.filter(product => product.rating >= 4.5);
+        filtered = allProducts.filter(product => product.rating >= 4.0);
+        break;
       case 'newest':
-        return allProducts.filter(product => product.isNew);
+        filtered = allProducts.slice().reverse(); // عكس الترتيب للحصول على الأحدث
+        break;
       case 'popular':
-        return allProducts.filter(product => product.reviewsCount >= 300);
+        filtered = allProducts.filter(product => product.reviews >= 10);
+        break;
       case 'discounted':
-        return allProducts.filter(product => product.discount);
-      case 'electronics':
-        return allProducts.filter(product => product.category === 'Electronics');
-      case 'fashion':
-        return allProducts.filter(product => product.category === 'Fashion');
-      case 'home':
-        return allProducts.filter(product => product.category === 'Home');
+        filtered = allProducts.filter(product => product.discount && product.discount > 0);
+        break;
       default:
-        return allProducts;
+        filtered = allProducts;
     }
+    
+    // عرض فقط displayLimit منتج
+    return filtered.slice(0, displayLimit);
+  };
+  
+  const handleLoadMore = () => {
+    setDisplayLimit(prev => prev + 20);
   };
 
   const renderProductsGrid = () => {
@@ -97,11 +109,7 @@ export default function FeaturedProducts() {
         <Text style={styles.headerTitle}>
           {language === 'ar' ? 'منتجاتنا المميزة' : 'Featured Products'}
         </Text>
-        <TouchableOpacity onPress={() => setLanguage(prev => prev === 'ar' ? 'en' : 'ar')}>
-          <Text style={styles.langButton}>
-            {language === 'ar' ? 'EN' : 'عربي'}
-          </Text>
-        </TouchableOpacity>
+        <View style={{ width: 60 }} />
       </View>
 
       {/* Filter Bar */}
@@ -125,18 +133,51 @@ export default function FeaturedProducts() {
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.productsContainer}>
-          {renderProductsGrid()}
-        </View>
-        
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            {language === 'ar' 
-              ? `عرض ${allProducts.length} منتج من منتجاتنا المميزة`
-              : `Showing ${allProducts.length} featured products`
-            }
-          </Text>
-        </View>
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+            <Text style={styles.loadingText}>
+              {language === 'ar' ? 'جاري التحميل...' : 'Loading...'}
+            </Text>
+          </View>
+        ) : allProducts.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Feather name="inbox" size={64} color={Colors.gray[400]} />
+            <Text style={styles.emptyText}>
+              {language === 'ar' ? 'لا توجد منتجات مميزة' : 'No featured products'}
+            </Text>
+          </View>
+        ) : (
+          <>
+            <View style={styles.productsContainer}>
+              {renderProductsGrid()}
+            </View>
+            
+            {/* زر عرض المزيد */}
+            {getFilteredProducts().length < allProducts.length && (
+              <View style={styles.loadMoreContainer}>
+                <TouchableOpacity 
+                  style={styles.loadMoreButton}
+                  onPress={handleLoadMore}
+                >
+                  <Text style={styles.loadMoreText}>
+                    {language === 'ar' ? 'عرض المزيد' : 'Load More'}
+                  </Text>
+                  <Feather name="chevron-down" size={20} color={Colors.primary} />
+                </TouchableOpacity>
+              </View>
+            )}
+            
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>
+                {language === 'ar' 
+                  ? `عرض ${getFilteredProducts().length} من ${allProducts.length} منتج`
+                  : `Showing ${getFilteredProducts().length} of ${allProducts.length} products`
+                }
+              </Text>
+            </View>
+          </>
+        )}
         
         <View style={{ height: 50 }} />
       </ScrollView>
@@ -217,5 +258,59 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.text.secondary,
     textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: FontSizes.md,
+    color: Colors.text.secondary,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 80,
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: FontSizes.lg,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+  },
+  loadMoreContainer: {
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  loadMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.white,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    minWidth: 200,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  loadMoreText: {
+    fontSize: FontSizes.md,
+    fontWeight: FontWeights.semibold,
+    color: Colors.primary,
+    marginRight: 8,
   },
 });

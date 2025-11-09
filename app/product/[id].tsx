@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
+  Share,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
@@ -15,23 +17,54 @@ import { useApp } from '@/contexts/AppContext';
 import { Colors, Spacing, BorderRadius, FontSizes } from '@/constants/theme';
 import { useProduct } from '@/hooks/useFirestore';
 import SafeImage from '@/components/SafeImage';
+import { getProductImageUrl } from '@/utils/imageHelper';
 
 export default function ProductDetailsScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { language, formatPrice, addToCart } = useApp();
+  const { language, formatPrice, addToCart, cart } = useApp();
   const insets = useSafeAreaInsets();
   const { product, loading } = useProduct(typeof id === 'string' ? id : '');
   
   // Quantity state
   const [quantity, setQuantity] = useState(1);
+  
+  // Image gallery state
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
+  // Selection states for product options
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedShoeSize, setSelectedShoeSize] = useState<string | null>(null);
+  const [selectedColor, setSelectedColor] = useState<any>(null);
+  const [selectedAge, setSelectedAge] = useState<string | null>(null);
+  
+  // Weight state for vegetables/fruits (in kg)
+  const [selectedWeight, setSelectedWeight] = useState(0.5);
+  
+  // Piece count state for items sold by piece
+  const [selectedPieces, setSelectedPieces] = useState(1);
+  
+  // Common weight options - only 0.5 and 1 kg
+  const weightOptions = [0.5, 1];
+  
+  // Common piece options
+  const pieceOptions = [1, 2, 3, 4, 5, 6];
 
   const getProductName = () => {
     if (!product) return '';
+    
+    // إذا الاسم object (bilingual)
     if (typeof product.name === 'object' && product.name !== null) {
       const nameByLanguage = language === 'ar' ? product.name.ar : product.name.en;
       return typeof nameByLanguage === 'string' && nameByLanguage.trim() ? nameByLanguage : 'Product';
     }
+    
+    // إذا الاسم string عادي
+    if (typeof product.name === 'string') {
+      const nameStr = product.name as string;
+      return nameStr.trim() ? nameStr : 'Product';
+    }
+    
     return 'Product';
   };
 
@@ -41,7 +74,265 @@ export default function ProductDetailsScreen() {
       const descByLanguage = language === 'ar' ? product.description.ar : product.description.en;
       return typeof descByLanguage === 'string' && descByLanguage.trim() ? descByLanguage : '';
     }
-    return language === 'ar' ? 'لا يوجد وصف متاح' : 'No description available';
+    if (typeof product.description === 'string') {
+      const descStr = product.description as string;
+      return descStr.trim() ? descStr : '';
+    }
+    return '';
+  };
+
+  // Check if product is vegetable/fruit (needs weight selection)
+  const isWeightBasedProduct = () => {
+    if (!product) return false;
+    
+    // PRIORITY CHECK: If unit is explicitly set to 'pc' or 'piece', it's NOT weight-based
+    const unit = typeof product.unit === 'string' 
+      ? product.unit.toLowerCase() 
+      : '';
+    
+    if (unit === 'pc' || unit === 'piece' || unit === 'قطعة' || unit === 'pcs' || unit === 'ea' || unit === 'each') {
+      return false;  // Explicitly sold by piece
+    }
+    
+    // Check category name
+    const categoryName = typeof product.categoryName === 'string' 
+      ? product.categoryName.toLowerCase() 
+      : '';
+    
+    // Check subcategory name
+    const subcategoryName = typeof product.subcategoryName === 'string'
+      ? product.subcategoryName.toLowerCase()
+      : '';
+    
+    // Keywords to check - vegetables, fruits, dairy (bulk items only)
+    const keywords = [
+      'vegetable', 'fruit', 'vegetables', 'fruits',
+      'خضار', 'فواكه', 'خضروات',
+      'cheese', 'butter',  // Only bulk dairy items, not packaged yogurt/milk
+      'جبن', 'زبدة',
+      'egg', 'eggs', 'بيض'
+    ];
+    
+    // Check if any keyword exists in category or subcategory
+    return keywords.some(keyword => 
+      categoryName.includes(keyword) || subcategoryName.includes(keyword)
+    );
+  };
+
+  // Check if product is sold by piece (pc)
+  const isPieceBasedProduct = () => {
+    if (!product) return false;
+    
+    // Don't show pieces if it's weight-based
+    if (isWeightBasedProduct()) return false;
+    
+    // Check unit field
+    const unit = typeof product.unit === 'string' 
+      ? product.unit.toLowerCase() 
+      : '';
+    
+    // Check if unit is "pc", "piece", "قطعة", "pcs"
+    if (unit === 'pc' || unit === 'piece' || unit === 'قطعة' || unit === 'pcs') {
+      return true;
+    }
+    
+    // Check category/subcategory for items typically sold by piece
+    const categoryName = typeof product.categoryName === 'string' 
+      ? product.categoryName.toLowerCase() 
+      : '';
+    const subcategoryName = typeof product.subcategoryName === 'string'
+      ? product.subcategoryName.toLowerCase()
+      : '';
+    
+    // Items typically sold by piece - drinks, snacks, candies, packaged dairy
+    const pieceKeywords = [
+      'drink', 'beverage', 'soda', 'juice', 'water', 'cola', 'pepsi',
+      'مشروب', 'مشروبات', 'عصير', 'ماء', 'كولا',
+      'candy', 'chocolate', 'snack', 'chips', 'biscuit', 'cookie',
+      'حلوى', 'شوكولا', 'شوكولاتة', 'بسكويت', 'شيبس',
+      'yogurt', 'milk', 'yoghurt', 'dairy',  // Packaged dairy products
+      'زبادي', 'حليب', 'لبن', 'ألبان'
+    ];
+    
+    return pieceKeywords.some(keyword => 
+      categoryName.includes(keyword) || subcategoryName.includes(keyword)
+    );
+  };
+
+  // Calculate final price based on weight or pieces
+  const getFinalPrice = () => {
+    const pricePerUnit = hasDiscount ? discountedPrice : basePrice;
+    
+    if (isWeightBasedProduct()) {
+      return pricePerUnit * selectedWeight;
+    } else if (isPieceBasedProduct()) {
+      return pricePerUnit * selectedPieces;
+    }
+    
+    return pricePerUnit;
+  };
+
+  // Check if user can add to cart (all required options selected)
+  const canAddToCart = () => {
+    if (!product) return false;
+    
+    // Only enforce selection for Fashion/Clothing and Market products
+    const requiresSelection = isFashionOrMarketProduct();
+    
+    if (!requiresSelection) {
+      return true; // No selection required for furniture, electronics, etc.
+    }
+    
+    // Check if sizes are required and selected
+    if (product.sizes && product.sizes.length > 0 && !selectedSize) {
+      return false;
+    }
+    
+    // Check if shoe sizes are required and selected
+    if (product.shoeSizes && product.shoeSizes.length > 0 && !selectedShoeSize) {
+      return false;
+    }
+    
+    // Check if colors are required and selected
+    if (product.colors && product.colors.length > 0 && !selectedColor) {
+      return false;
+    }
+    
+    // Check if age range is required and selected
+    if (product.ageRange && product.ageRange.length > 0 && !selectedAge) {
+      return false;
+    }
+    
+    return true;
+  };
+
+  // Check if product is Fashion or Market category (requires selection)
+  const isFashionOrMarketProduct = () => {
+    if (!product) return false;
+    
+    const categoryName = typeof product.categoryName === 'string' 
+      ? product.categoryName.toLowerCase() 
+      : '';
+    
+    const subcategoryName = typeof product.subcategoryName === 'string'
+      ? product.subcategoryName.toLowerCase()
+      : '';
+    
+    // Fashion/Clothing keywords
+    const fashionKeywords = [
+      'fashion', 'clothing', 'clothes', 'apparel', 'wear',
+      'shirt', 'pants', 'dress', 'shoes', 'jacket', 'coat',
+      'ملابس', 'أزياء', 'قميص', 'بنطال', 'فستان', 'حذاء', 'جاكيت',
+      'men', 'women', 'kids', 'baby',
+      'رجال', 'نساء', 'أطفال', 'بيبي'
+    ];
+    
+    // Market/Food keywords
+    const marketKeywords = [
+      'market', 'food', 'grocery', 'fresh',
+      'vegetable', 'fruit', 'dairy', 'meat', 'fish',
+      'سوق', 'طعام', 'بقالة', 'طازج',
+      'خضار', 'فواكه', 'ألبان', 'لحوم', 'سمك'
+    ];
+    
+    const allKeywords = [...fashionKeywords, ...marketKeywords];
+    
+    return allKeywords.some(keyword => 
+      categoryName.includes(keyword) || subcategoryName.includes(keyword)
+    );
+  };
+
+  // Check if product is from SAB MARKET (local Lebanese products)
+  const isSabMarketProduct = (productToCheck?: any) => {
+    const prod = productToCheck || product;
+    if (!prod) return false;
+    
+    const categoryName = typeof prod.categoryName === 'string' 
+      ? prod.categoryName.toLowerCase() 
+      : '';
+    
+    const subcategoryName = typeof prod.subcategoryName === 'string'
+      ? prod.subcategoryName.toLowerCase()
+      : '';
+    
+    // Check for SAB MARKET keywords
+    const sabMarketKeywords = ['sab market', 'sabmarket', 'سوق ساب', 'ساب ماركت'];
+    
+    return sabMarketKeywords.some(keyword => 
+      categoryName.includes(keyword) || subcategoryName.includes(keyword)
+    );
+  };
+
+  // Check if cart can accept this product (no mixing SAB MARKET with others)
+  const canMixWithCart = () => {
+    if (cart.length === 0) return true; // Empty cart = can add anything
+    
+    const currentProductIsSabMarket = isSabMarketProduct();
+    const cartHasSabMarket = cart.some(item => isSabMarketProduct(item.product));
+    
+    // If current product is SAB MARKET and cart has non-SAB products, reject
+    if (currentProductIsSabMarket && !cartHasSabMarket) {
+      return false;
+    }
+    
+    // If current product is NOT SAB MARKET and cart has SAB products, reject
+    if (!currentProductIsSabMarket && cartHasSabMarket) {
+      return false;
+    }
+    
+    return true;
+  };
+
+  // Get list of missing required options
+  const getMissingOptions = () => {
+    if (!product) return [];
+    
+    const missing: string[] = [];
+    
+    if (product.sizes && product.sizes.length > 0 && !selectedSize) {
+      missing.push(language === 'ar' ? 'المقاس' : 'Size');
+    }
+    
+    if (product.shoeSizes && product.shoeSizes.length > 0 && !selectedShoeSize) {
+      missing.push(language === 'ar' ? 'مقاس الحذاء' : 'Shoe Size');
+    }
+    
+    if (product.colors && product.colors.length > 0 && !selectedColor) {
+      missing.push(language === 'ar' ? 'اللون' : 'Color');
+    }
+    
+    if (product.ageRange && product.ageRange.length > 0 && !selectedAge) {
+      missing.push(language === 'ar' ? 'الفئة العمرية' : 'Age Range');
+    }
+    
+    return missing;
+  };
+
+  // Handle Share Product
+  const handleShare = async () => {
+    try {
+      const productName = getProductName();
+      const price = formatPrice(getFinalPrice());
+      const message = `${productName}\n${price}\n\nCheck out this product on SAB!`;
+      
+      const result = await Share.share({
+        message,
+        title: productName,
+      });
+
+      if (result.action === Share.sharedAction) {
+        if (result.activityType) {
+          console.log('Shared via:', result.activityType);
+        } else {
+          console.log('Product shared successfully');
+        }
+      } else if (result.action === Share.dismissedAction) {
+        console.log('Share dismissed');
+      }
+    } catch (error: any) {
+      Alert.alert('Error', 'Failed to share product');
+      console.error('Share error:', error);
+    }
   };
 
   if (loading) {
@@ -97,38 +388,109 @@ export default function ProductDetailsScreen() {
         <Text style={styles.headerTitle} numberOfLines={1}>
           {getProductName()}
         </Text>
-        <TouchableOpacity style={styles.shareButton}>
+        <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
           <Feather name="share-2" size={20} color={Colors.text.primary} />
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Product Image */}
+        {/* Product Image Gallery */}
         <View style={styles.imageContainer}>
+          {/* Main Image Display */}
           <SafeImage 
-            uri={product.image || 'https://picsum.photos/800/800'} 
+            uri={
+              product.images && Array.isArray(product.images) && product.images.length > 0
+                ? typeof product.images[currentImageIndex] === 'string'
+                  ? product.images[currentImageIndex]
+                  : getProductImageUrl(product, 800)
+                : getProductImageUrl(product, 800)
+            }
             style={styles.productImage}
             fallbackIconSize={100}
             fallbackIconName="image"
             showLoader={true}
             resizeMode="cover"
           />
+          
+          {/* Image Counter Badge */}
+          {product.images && Array.isArray(product.images) && product.images.length > 1 && (
+            <View style={styles.imageCountBadge}>
+              <Feather name="image" size={14} color="#FFF" />
+              <Text style={styles.imageCountText}>
+                {currentImageIndex + 1}/{product.images.length}
+              </Text>
+            </View>
+          )}
+          
+          {/* Discount Badge */}
           {hasDiscount && (
             <View style={styles.discountBadge}>
               <Text style={styles.discountText}>{`-${product.discount}%`}</Text>
             </View>
           )}
+          
+          {/* Navigation Arrows (if multiple images) */}
+          {product.images && Array.isArray(product.images) && product.images.length > 1 && (
+            <>
+              {/* Previous Button */}
+              {currentImageIndex > 0 && (
+                <TouchableOpacity
+                  style={[styles.imageNavButton, styles.imageNavButtonLeft]}
+                  onPress={() => setCurrentImageIndex(prev => prev - 1)}
+                >
+                  <Feather name="chevron-left" size={24} color="#FFF" />
+                </TouchableOpacity>
+              )}
+              
+              {/* Next Button */}
+              {currentImageIndex < product.images.length - 1 && (
+                <TouchableOpacity
+                  style={[styles.imageNavButton, styles.imageNavButtonRight]}
+                  onPress={() => setCurrentImageIndex(prev => prev + 1)}
+                >
+                  <Feather name="chevron-right" size={24} color="#FFF" />
+                </TouchableOpacity>
+              )}
+            </>
+          )}
         </View>
+
+        {/* Image Thumbnails */}
+        {product.images && Array.isArray(product.images) && product.images.length > 1 && (
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            style={styles.thumbnailsContainer}
+            contentContainerStyle={styles.thumbnailsContent}
+          >
+            {product.images.map((image, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.thumbnail,
+                  currentImageIndex === index && styles.thumbnailActive,
+                ]}
+                onPress={() => setCurrentImageIndex(index)}
+              >
+                <SafeImage
+                  uri={typeof image === 'string' ? image : getProductImageUrl(product, 200)}
+                  style={styles.thumbnailImage}
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
 
         {/* Product Info */}
         <View style={styles.productInfo}>
           {/* Brand */}
-          {((typeof product.brandName === 'string' && product.brandName) || 
-            (typeof product.brand === 'string' && product.brand)) && (
+          {(typeof product.brandName === 'string' && product.brandName) || 
+           (typeof product.brand === 'string' && product.brand) ? (
             <Text style={styles.brandText}>
               {product.brandName || product.brand}
             </Text>
-          )}
+          ) : null}
 
           {/* Product Name */}
           <Text style={styles.productTitle}>
@@ -163,14 +525,98 @@ export default function ProductDetailsScreen() {
           {/* Price */}
           <View style={styles.priceContainer}>
             <Text style={styles.currentPrice}>
-              {formatPrice(discountedPrice)}
+              {formatPrice(getFinalPrice())}
+              {isWeightBasedProduct() && (
+                <Text style={styles.priceUnit}>
+                  {language === 'ar' ? ' للكيلو' : ' /kg'}
+                </Text>
+              )}
+              {isPieceBasedProduct() && (
+                <Text style={styles.priceUnit}>
+                  {language === 'ar' ? ' للقطعة' : ' /pc'}
+                </Text>
+              )}
             </Text>
             {hasDiscount && (
               <Text style={styles.originalPrice}>
-                {formatPrice(basePrice)}
+                {formatPrice(
+                  isWeightBasedProduct() 
+                    ? basePrice * selectedWeight 
+                    : isPieceBasedProduct()
+                      ? basePrice * selectedPieces
+                      : basePrice
+                )}
               </Text>
             )}
           </View>
+
+          {/* Weight Selection for Vegetables/Fruits */}
+          {isWeightBasedProduct() && (
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>
+                {language === 'ar' ? 'اختر الوزن' : 'Select Weight'}
+              </Text>
+              <View style={styles.weightContainer}>
+                {weightOptions.map((weight) => (
+                  <TouchableOpacity
+                    key={weight}
+                    style={[
+                      styles.weightOption,
+                      selectedWeight === weight && styles.weightOptionSelected
+                    ]}
+                    onPress={() => setSelectedWeight(weight)}
+                  >
+                    <Text style={[
+                      styles.weightText,
+                      selectedWeight === weight && styles.weightTextSelected
+                    ]}>
+                      {weight} {language === 'ar' ? 'كغ' : 'kg'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text style={styles.totalWeightPrice}>
+                {language === 'ar' ? 'السعر الإجمالي: ' : 'Total Price: '}
+                <Text style={styles.totalWeightPriceAmount}>
+                  {formatPrice(getFinalPrice())}
+                </Text>
+              </Text>
+            </View>
+          )}
+
+          {/* Piece Selection for items sold by piece */}
+          {isPieceBasedProduct() && (
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>
+                {language === 'ar' ? 'اختر عدد القطع' : 'Select Pieces'}
+              </Text>
+              <View style={styles.weightContainer}>
+                {pieceOptions.map((pieces) => (
+                  <TouchableOpacity
+                    key={pieces}
+                    style={[
+                      styles.weightOption,
+                      selectedPieces === pieces && styles.weightOptionSelected
+                    ]}
+                    onPress={() => setSelectedPieces(pieces)}
+                  >
+                    <Text style={[
+                      styles.weightText,
+                      selectedPieces === pieces && styles.weightTextSelected
+                    ]}>
+                      {pieces} {language === 'ar' ? 'قطعة' : 'pc'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text style={styles.totalWeightPrice}>
+                {language === 'ar' ? 'السعر الإجمالي: ' : 'Total Price: '}
+                <Text style={styles.totalWeightPriceAmount}>
+                  {formatPrice(getFinalPrice())}
+                </Text>
+              </Text>
+            </View>
+          )}
 
           {/* Stock Status */}
           <View style={styles.stockContainer}>
@@ -188,11 +634,7 @@ export default function ProductDetailsScreen() {
                 : (language === 'ar' ? 'غير متوفر' : 'Out of Stock')
               }
             </Text>
-            {product.stock && product.stock > 0 && typeof product.stock === 'number' && (
-              <Text style={styles.stockCount}>
-                {` (${product.stock} ${language === 'ar' ? 'قطعة' : 'items'})`}
-              </Text>
-            )}
+            {/* Stock count hidden as per user request */}
           </View>
 
           {/* Delivery Time */}
@@ -207,37 +649,55 @@ export default function ProductDetailsScreen() {
           )}
 
           {/* Description */}
-          <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>
-              {language === 'ar' ? 'الوصف' : 'Description'}
-            </Text>
-            <Text style={styles.descriptionText}>
-              {getProductDescription()}
-            </Text>
-          </View>
+          {getProductDescription() && (
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>
+                {language === 'ar' ? 'الوصف' : 'Description'}
+              </Text>
+              <Text style={styles.descriptionText}>
+                {getProductDescription()}
+              </Text>
+            </View>
+          )}
 
           {/* Colors */}
           {product.colors && product.colors.length > 0 && (
             <View style={styles.sectionContainer}>
               <Text style={styles.sectionTitle}>
                 {language === 'ar' ? 'الألوان المتاحة' : 'Available Colors'}
+                {isFashionOrMarketProduct() && !selectedColor && <Text style={styles.requiredStar}> *</Text>}
               </Text>
               <View style={styles.colorsContainer}>
                 {product.colors.map((color, index) => (
-                  <View key={index} style={styles.colorItem}>
+                  <TouchableOpacity 
+                    key={index} 
+                    style={[
+                      styles.colorItem,
+                      selectedColor === color && styles.colorItemSelected
+                    ]}
+                    onPress={() => setSelectedColor(color)}
+                  >
                     <View 
                       style={[
                         styles.colorCircle, 
-                        { backgroundColor: color.hex || '#CCC' }
+                        { backgroundColor: color.hex || '#CCC' },
+                        selectedColor === color && styles.colorCircleSelected
                       ]} 
-                    />
-                    <Text style={styles.colorText}>
+                    >
+                      {selectedColor === color && (
+                        <Feather name="check" size={16} color="#FFF" />
+                      )}
+                    </View>
+                    <Text style={[
+                      styles.colorText,
+                      selectedColor === color && styles.colorTextSelected
+                    ]}>
                       {language === 'ar' 
                         ? (typeof color.ar === 'string' ? color.ar : 'Color') 
                         : (typeof color.en === 'string' ? color.en : 'Color')
                       }
                     </Text>
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             </View>
@@ -248,14 +708,25 @@ export default function ProductDetailsScreen() {
             <View style={styles.sectionContainer}>
               <Text style={styles.sectionTitle}>
                 {language === 'ar' ? 'المقاسات المتاحة' : 'Available Sizes'}
+                {isFashionOrMarketProduct() && !selectedSize && <Text style={styles.requiredStar}> *</Text>}
               </Text>
               <View style={styles.sizesContainer}>
                 {product.sizes.map((size, index) => (
-                  <View key={index} style={styles.sizeChip}>
-                    <Text style={styles.sizeText}>
+                  <TouchableOpacity 
+                    key={index} 
+                    style={[
+                      styles.sizeChip,
+                      selectedSize === String(size) && styles.sizeChipSelected
+                    ]}
+                    onPress={() => setSelectedSize(String(size))}
+                  >
+                    <Text style={[
+                      styles.sizeText,
+                      selectedSize === String(size) && styles.sizeTextSelected
+                    ]}>
                       {typeof size === 'string' || typeof size === 'number' ? String(size) : 'Size'}
                     </Text>
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             </View>
@@ -266,14 +737,25 @@ export default function ProductDetailsScreen() {
             <View style={styles.sectionContainer}>
               <Text style={styles.sectionTitle}>
                 {language === 'ar' ? 'مقاسات الأحذية' : 'Shoe Sizes'}
+                {isFashionOrMarketProduct() && !selectedShoeSize && <Text style={styles.requiredStar}> *</Text>}
               </Text>
               <View style={styles.sizesContainer}>
                 {product.shoeSizes.map((size, index) => (
-                  <View key={index} style={styles.sizeChip}>
-                    <Text style={styles.sizeText}>
+                  <TouchableOpacity 
+                    key={index} 
+                    style={[
+                      styles.sizeChip,
+                      selectedShoeSize === String(size) && styles.sizeChipSelected
+                    ]}
+                    onPress={() => setSelectedShoeSize(String(size))}
+                  >
+                    <Text style={[
+                      styles.sizeText,
+                      selectedShoeSize === String(size) && styles.sizeTextSelected
+                    ]}>
                       {typeof size === 'string' || typeof size === 'number' ? String(size) : 'Size'}
                     </Text>
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             </View>
@@ -284,14 +766,25 @@ export default function ProductDetailsScreen() {
             <View style={styles.sectionContainer}>
               <Text style={styles.sectionTitle}>
                 {language === 'ar' ? 'الفئة العمرية' : 'Age Range'}
+                {isFashionOrMarketProduct() && !selectedAge && <Text style={styles.requiredStar}> *</Text>}
               </Text>
               <View style={styles.sizesContainer}>
                 {product.ageRange.map((age, index) => (
-                  <View key={index} style={styles.sizeChip}>
-                    <Text style={styles.sizeText}>
+                  <TouchableOpacity 
+                    key={index} 
+                    style={[
+                      styles.sizeChip,
+                      selectedAge === String(age) && styles.sizeChipSelected
+                    ]}
+                    onPress={() => setSelectedAge(String(age))}
+                  >
+                    <Text style={[
+                      styles.sizeText,
+                      selectedAge === String(age) && styles.sizeTextSelected
+                    ]}>
                       {typeof age === 'string' || typeof age === 'number' ? String(age) : 'Age'}
                     </Text>
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             </View>
@@ -307,9 +800,6 @@ export default function ProductDetailsScreen() {
               {product.gender && typeof product.gender === 'string' && (
                 <View style={styles.specRow}>
                   <Feather name="users" size={16} color={Colors.text.secondary} />
-                  <Text style={styles.specLabel}>
-                    {language === 'ar' ? 'الجنس:' : 'Gender:'}
-                  </Text>
                   <Text style={styles.specValue}>{product.gender}</Text>
                 </View>
               )}
@@ -318,9 +808,6 @@ export default function ProductDetailsScreen() {
               {product.season && typeof product.season === 'string' && (
                 <View style={styles.specRow}>
                   <Feather name="sun" size={16} color={Colors.text.secondary} />
-                  <Text style={styles.specLabel}>
-                    {language === 'ar' ? 'الموسم:' : 'Season:'}
-                  </Text>
                   <Text style={styles.specValue}>{product.season}</Text>
                 </View>
               )}
@@ -329,9 +816,6 @@ export default function ProductDetailsScreen() {
               {product.material && typeof product.material === 'string' && (
                 <View style={styles.specRow}>
                   <Feather name="package" size={16} color={Colors.text.secondary} />
-                  <Text style={styles.specLabel}>
-                    {language === 'ar' ? 'المادة:' : 'Material:'}
-                  </Text>
                   <Text style={styles.specValue}>{product.material}</Text>
                 </View>
               )}
@@ -341,31 +825,14 @@ export default function ProductDetailsScreen() {
                 (typeof product.brand === 'string' && product.brand)) && (
                 <View style={styles.specRow}>
                   <Feather name="award" size={16} color={Colors.text.secondary} />
-                  <Text style={styles.specLabel}>
-                    {language === 'ar' ? 'العلامة التجارية:' : 'Brand:'}
-                  </Text>
                   <Text style={styles.specValue}>{product.brandName || product.brand}</Text>
-                </View>
-              )}
-
-              {/* Category */}
-              {product.categoryName && typeof product.categoryName === 'string' && (
-                <View style={styles.specRow}>
-                  <Feather name="grid" size={16} color={Colors.text.secondary} />
-                  <Text style={styles.specLabel}>
-                    {language === 'ar' ? 'الفئة:' : 'Category:'}
-                  </Text>
-                  <Text style={styles.specValue}>{product.categoryName}</Text>
                 </View>
               )}
 
               {/* Subcategory */}
               {product.subcategoryName && typeof product.subcategoryName === 'string' && (
                 <View style={styles.specRow}>
-                  <Feather name="list" size={16} color={Colors.text.secondary} />
-                  <Text style={styles.specLabel}>
-                    {language === 'ar' ? 'الفئة الفرعية:' : 'Subcategory:'}
-                  </Text>
+                  <Feather name="tag" size={16} color={Colors.text.secondary} />
                   <Text style={styles.specValue}>{product.subcategoryName}</Text>
                 </View>
               )}
@@ -458,11 +925,69 @@ export default function ProductDetailsScreen() {
         <TouchableOpacity 
           style={[
             styles.addToCartButton,
-            product.inStock === false && styles.addToCartButtonDisabled
+            (product.inStock === false || !canAddToCart()) && styles.addToCartButtonDisabled
           ]}
           onPress={() => {
+            // Check if cart mixing is allowed (SAB MARKET vs other products)
+            if (!canMixWithCart()) {
+              const currentProductIsSabMarket = isSabMarketProduct();
+              
+              Alert.alert(
+                language === 'ar' ? 'لا يمكن دمج المنتجات' : 'Cannot Mix Products',
+                currentProductIsSabMarket
+                  ? language === 'ar' 
+                    ? 'لا يمكن دمج منتجات SAB MARKET مع منتجات أخرى في نفس السلة.\n\nيرجى إفراغ السلة أولاً أو إكمال الطلب الحالي.'
+                    : 'Cannot mix SAB MARKET products with other products in the same cart.\n\nPlease empty your cart first or complete your current order.'
+                  : language === 'ar'
+                    ? 'لا يمكن دمج منتجات أخرى مع SAB MARKET في نفس السلة.\n\nيرجى إفراغ السلة أولاً أو إكمال الطلب الحالي.'
+                    : 'Cannot mix other products with SAB MARKET in the same cart.\n\nPlease empty your cart first or complete your current order.',
+                [{ text: language === 'ar' ? 'حسناً' : 'OK' }]
+              );
+              return;
+            }
+            
+            // Validation: Check if required selections are made
+            if (!canAddToCart()) {
+              const missingOptions = getMissingOptions();
+              Alert.alert(
+                language === 'ar' ? 'اختيار مطلوب' : 'Selection Required',
+                language === 'ar' 
+                  ? `الرجاء اختيار: ${missingOptions.join('، ')}`
+                  : `Please select: ${missingOptions.join(', ')}`,
+                [{ text: language === 'ar' ? 'حسناً' : 'OK' }]
+              );
+              return;
+            }
+            
             if (product.inStock !== false) {
-              addToCart(product, quantity);
+              // Create product with weight/piece info if applicable
+              let productToAdd: any = product;
+              
+              if (isWeightBasedProduct()) {
+                productToAdd = {
+                  ...product,
+                  selectedWeight,
+                  pricePerKg: hasDiscount ? discountedPrice : basePrice,
+                  finalPrice: getFinalPrice(),
+                  displayName: `${getProductName()} (${selectedWeight} ${language === 'ar' ? 'كغ' : 'kg'})`
+                };
+              } else if (isPieceBasedProduct()) {
+                productToAdd = {
+                  ...product,
+                  selectedPieces,
+                  pricePerPiece: hasDiscount ? discountedPrice : basePrice,
+                  finalPrice: getFinalPrice(),
+                  displayName: `${getProductName()} (${selectedPieces} ${language === 'ar' ? 'قطعة' : 'pcs'})`
+                };
+              }
+              
+              // Add selected options to product
+              if (selectedSize) productToAdd.selectedSize = selectedSize;
+              if (selectedShoeSize) productToAdd.selectedShoeSize = selectedShoeSize;
+              if (selectedColor) productToAdd.selectedColor = selectedColor;
+              if (selectedAge) productToAdd.selectedAge = selectedAge;
+              
+              addToCart(productToAdd, quantity);
               router.back();
             }
           }}
@@ -555,13 +1080,15 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.text.secondary,
     marginBottom: Spacing.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   productTitle: {
-    fontSize: FontSizes.xxl,
-    fontWeight: 'bold',
+    fontSize: FontSizes.xl,
+    fontWeight: '700',
     color: Colors.text.primary,
     marginBottom: Spacing.sm,
-    lineHeight: 28,
+    lineHeight: 24,
   },
   ratingContainer: {
     flexDirection: 'row',
@@ -589,13 +1116,13 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   currentPrice: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: FontSizes.xxl,
+    fontWeight: '700',
     color: '#B12704',
     marginRight: Spacing.sm,
   },
   originalPrice: {
-    fontSize: FontSizes.lg,
+    fontSize: FontSizes.md,
     color: Colors.text.secondary,
     textDecorationLine: 'line-through',
   },
@@ -669,6 +1196,49 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     color: Colors.text.secondary,
   },
+  weightContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  weightOption: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 2,
+    borderColor: Colors.border.light,
+    backgroundColor: Colors.white,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  weightOptionSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary + '10',
+  },
+  weightText: {
+    fontSize: FontSizes.md,
+    color: Colors.text.secondary,
+    fontWeight: '600',
+  },
+  weightTextSelected: {
+    color: Colors.primary,
+    fontWeight: '700',
+  },
+  totalWeightPrice: {
+    fontSize: FontSizes.md,
+    color: Colors.text.secondary,
+    marginTop: Spacing.md,
+  },
+  totalWeightPriceAmount: {
+    fontSize: FontSizes.lg,
+    color: Colors.primary,
+    fontWeight: '700',
+  },
+  priceUnit: {
+    fontSize: FontSizes.sm,
+    color: Colors.text.secondary,
+    fontWeight: '400',
+  },
   sizesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -695,8 +1265,12 @@ const styles = StyleSheet.create({
   specRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
     marginBottom: Spacing.xs,
+    backgroundColor: '#F9FAFB',
+    borderRadius: BorderRadius.sm,
+    gap: Spacing.sm,
   },
   specLabel: {
     fontSize: FontSizes.md,
@@ -708,8 +1282,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FontSizes.md,
     color: Colors.text.primary,
-    fontWeight: '500',
-    marginLeft: Spacing.sm,
+    fontWeight: '600',
   },
   careContainer: {
     flexDirection: 'row',
@@ -831,5 +1404,91 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: FontSizes.md,
     fontWeight: 'bold',
+  },
+  // Image Gallery Styles
+  imageCountBadge: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+  },
+  imageCountText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  imageNavButton: {
+    position: 'absolute',
+    top: '50%',
+    transform: [{ translateY: -20 }],
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imageNavButtonLeft: {
+    left: 16,
+  },
+  imageNavButtonRight: {
+    right: 16,
+  },
+  thumbnailsContainer: {
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  thumbnailsContent: {
+    paddingHorizontal: Spacing.md,
+    gap: 12,
+  },
+  thumbnail: {
+    width: 70,
+    height: 70,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: Colors.border.light,
+    overflow: 'hidden',
+  },
+  thumbnailActive: {
+    borderColor: Colors.primary,
+    borderWidth: 3,
+  },
+  thumbnailImage: {
+    width: '100%',
+    height: '100%',
+  },
+  // Selection Styles
+  requiredStar: {
+    color: '#EF4444',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  colorItemSelected: {
+    borderColor: Colors.primary,
+    borderWidth: 2,
+    backgroundColor: '#F3E8FF',
+  },
+  colorCircleSelected: {
+    borderWidth: 2,
+    borderColor: '#FFF',
+  },
+  colorTextSelected: {
+    color: Colors.primary,
+    fontWeight: '700',
+  },
+  sizeChipSelected: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  sizeTextSelected: {
+    color: '#FFF',
+    fontWeight: '700',
   },
 });

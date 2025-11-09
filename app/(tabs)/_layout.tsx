@@ -32,6 +32,9 @@ export default function TabLayout() {
           fontSize: 12,
           fontWeight: '600' as const,
         },
+        // Performance optimizations
+        lazy: true, // Load screens lazily for faster initial load
+        tabBarHideOnKeyboard: true,
       }}
     >
       <Tabs.Screen
@@ -46,7 +49,7 @@ export default function TabLayout() {
         name="categories"
         options={{
           title: t('tabs.categories'),
-          headerTitle: t('tabs.categories'),
+          headerTitle: 'Shop by category',
           tabBarIcon: ({ color, size }) => <Feather name="grid" color={color} size={size} />,
         }}
       />
@@ -83,6 +86,14 @@ export default function TabLayout() {
           title: t('tabs.orders'),
           headerTitle: t('tabs.orders'),
           href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="wishlist"
+        options={{
+          title: t('account.wishlist'),
+          headerShown: false,
+          href: null, // مخفية من شريط التابز
         }}
       />
       <Tabs.Screen

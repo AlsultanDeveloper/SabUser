@@ -23,12 +23,11 @@ export const [AppProvider, useApp] = createContextHook(() => {
     i18n.locale = language;
     
     const isRTL = language === 'ar';
-    if (I18nManager.isRTL !== isRTL) {
-      I18nManager.forceRTL(isRTL);
-      if (Platform.OS !== 'web') {
-        console.log('RTL changed, app needs restart on native');
-      }
-    }
+    // Apply RTL immediately on language change
+    I18nManager.allowRTL(isRTL);
+    I18nManager.forceRTL(isRTL);
+    
+    console.log(`[AppContext] RTL ${isRTL ? 'enabled' : 'disabled'} for language: ${language}`);
   }, [language]);
 
   const loadSettings = async () => {
@@ -57,28 +56,51 @@ export const [AppProvider, useApp] = createContextHook(() => {
     try {
       console.log('[AppContext] Changing language to:', newLanguage);
       
+      const isRTL = newLanguage === 'ar';
+      const needsReload = I18nManager.isRTL !== isRTL;
+      
+      // Save language first
       await AsyncStorage.setItem('language', newLanguage);
       setLanguage(newLanguage);
-      
       i18n.locale = newLanguage;
-      const isRTL = newLanguage === 'ar';
       
-      if (I18nManager.isRTL !== isRTL) {
+      // Apply RTL and reload immediately if needed
+      if (needsReload && Platform.OS !== 'web') {
         I18nManager.forceRTL(isRTL);
+        I18nManager.allowRTL(isRTL);
         
-        if (Platform.OS !== 'web') {
-          console.log('[AppContext] RTL changed, reloading app...');
-          setTimeout(async () => {
-            try {
-              await Updates.reloadAsync();
-            } catch (error) {
-              console.error('[AppContext] Failed to reload app:', error);
-            }
-          }, 300);
-        }
+        console.log('[AppContext] RTL changed, reloading app immediately...');
+        
+        // Show a brief toast before reload
+        Toast.show({
+          type: 'info',
+          text1: isRTL ? 'جاري تطبيق التغييرات...' : 'Applying changes...',
+          text2: isRTL ? 'سيتم إعادة تشغيل التطبيق' : 'App will restart',
+          position: 'top',
+          visibilityTime: 1000,
+        });
+        
+        // Immediate reload
+        setTimeout(() => {
+          Updates.reloadAsync().catch(error => {
+            console.error('[AppContext] Failed to reload app:', error);
+            // Fallback: show manual restart instruction
+            Toast.show({
+              type: 'error',
+              text1: isRTL ? 'يرجى إعادة تشغيل التطبيق' : 'Please restart the app',
+              text2: isRTL ? 'أغلق وافتح التطبيق مرة أخرى' : 'Close and reopen the app',
+              position: 'top',
+              visibilityTime: 5000,
+            });
+          });
+        }, 500);
+      } else if (needsReload && Platform.OS === 'web') {
+        // For web, just force a page reload
+        I18nManager.forceRTL(isRTL);
+        window.location.reload();
+      } else {
+        console.log('[AppContext] Language changed successfully to:', newLanguage);
       }
-      
-      console.log('[AppContext] Language changed successfully to:', newLanguage);
     } catch (error) {
       console.error('[AppContext] Error saving language:', error);
       Toast.show({
@@ -204,9 +226,14 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
   const cartTotal = useMemo(() => {
     return cart.reduce((total, item) => {
-      const itemPrice = item.product.discount 
-        ? item.product.price * (1 - item.product.discount / 100)
-        : item.product.price;
+      // Use finalPrice if available (for weight/piece-based products)
+      let itemPrice = item.product.finalPrice || item.product.price;
+      
+      // Apply discount if no finalPrice is set
+      if (!item.product.finalPrice && item.product.discount) {
+        itemPrice = item.product.price * (1 - item.product.discount / 100);
+      }
+      
       return total + itemPrice * item.quantity;
     }, 0);
   }, [cart]);

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,12 +7,15 @@ import {
   TouchableOpacity,
   StatusBar,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useApp } from '@/contexts/AppContext';
 import { useProducts, useCategory } from '@/hooks/useFirestore';
+import { db } from '@/constants/firebase';
+import { collection, getDocs } from 'firebase/firestore';
 import AmazonStyleProductCard from '@/components/AmazonStyleProductCard';
 import { ProductCardSkeleton } from '@/components/SkeletonLoader';
 
@@ -24,6 +27,15 @@ export default function CategoryProductsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { language, formatPrice: appFormatPrice } = useApp();
+  
+  // State for pagination
+  const [displayLimit, setDisplayLimit] = useState(20); // عرض 20 منتج في البداية
+  const [showLoadMore, setShowLoadMore] = useState(false);
+  
+  // State for nested subcategories
+  const [nestedSubcategories, setNestedSubcategories] = useState<any[]>([]);
+  const [loadingNested, setLoadingNested] = useState(true);
+  const [hasNestedSubcategories, setHasNestedSubcategories] = useState(false);
 
   // دالة آمنة لتنسيق السعر
   const formatPrice = useCallback((price: number): string => {
@@ -38,36 +50,114 @@ export default function CategoryProductsScreen() {
   // جلب معلومات الفئة للحصول على اسم الفئة الفرعية
   const { category } = useCategory(categoryId || '');
   
-  // جلب المنتجات باستخدام subcategoryId بدلاً من subcategoryName
+  // جلب جميع المنتجات مرة واحدة (بدون limit)
+  // React Query سيخزنها في الذاكرة ولن يعيد جلبها
   const { products, loading, error, refetch } = useProducts({
     categoryId: categoryId,
-    subcategoryId: subcategoryId, // استخدام ID مباشرة
+    subcategoryId: subcategoryId,
+    // No limit - fetch all products once, then paginate locally
   });
 
   // الحصول على اسم الفئة الفرعية
   const subcategoryName = useMemo(() => {
+    // If subcategoryId is 'all', show the category name instead
+    if (subcategoryId === 'all') {
+      if (!category?.name) return '';
+      if (typeof category.name === 'string') return category.name;
+      return language === 'ar' ? category.name.ar : category.name.en;
+    }
+    
     if (!category?.subcategories || !subcategoryId) return '';
     const subcategory = category.subcategories.find(sub => sub.id === subcategoryId);
     if (!subcategory) return '';
-    return typeof subcategory.name === 'object' 
-      ? (language === 'ar' ? subcategory.name.ar : subcategory.name.en)
-      : subcategory.name;
+    
+    let name = '';
+    if (typeof subcategory.name === 'object' && subcategory.name !== null) {
+      name = language === 'ar' ? subcategory.name.ar : subcategory.name.en;
+    } else if (typeof subcategory.name === 'string') {
+      name = subcategory.name;
+    }
+    
+    return typeof name === 'string' && name.trim() ? name.trim() : '';
   }, [category, subcategoryId, language]);
+
+  // Fetch nested subcategories
+  useEffect(() => {
+    const fetchNestedSubcategories = async () => {
+      // Skip nested subcategories if showing all products
+      if (!categoryId || !subcategoryId || subcategoryId === 'all' || !db) {
+        setLoadingNested(false);
+        setHasNestedSubcategories(false);
+        return;
+      }
+
+      try {
+        setLoadingNested(true);
+        const nestedRef = collection(db, 'categories', categoryId, 'subcategory', subcategoryId, 'subcategory');
+        const nestedSnapshot = await getDocs(nestedRef);
+        
+        if (nestedSnapshot.size > 0) {
+          console.log(`✅ Found ${nestedSnapshot.size} nested subcategories in ${subcategoryId}`);
+          const nested = nestedSnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              nameEn: data.nameEn || data.name || 'Unknown',
+              nameAr: data.nameAr || data.name || 'غير معروف',
+              image: data.image || '',
+            };
+          });
+          console.log('📦 Nested subcategories:', nested);
+          setNestedSubcategories(nested);
+          setHasNestedSubcategories(true);
+        } else {
+          console.log(`ℹ️ No nested subcategories found in ${subcategoryId}, showing products`);
+          setHasNestedSubcategories(false);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching nested subcategories:', error);
+        setHasNestedSubcategories(false);
+      } finally {
+        setLoadingNested(false);
+      }
+    };
+
+    fetchNestedSubcategories();
+  }, [categoryId, subcategoryId]);
 
   const handleGoBack = useCallback(() => {
     router.back();
   }, [router]);
 
-  const renderProductItem = useCallback(({ item }: { item: any }) => (
-    <View style={styles.productContainer}>
-      <AmazonStyleProductCard 
-        product={item} 
-        onPress={() => router.push(`/product/${item.id}` as any)}
-        formatPrice={formatPrice}
-        language={language}
-      />
-    </View>
-  ), [formatPrice, language, router]);
+  const handleNestedSubcategoryPress = useCallback((nestedSubId: string) => {
+    console.log('Nested subcategory pressed:', nestedSubId);
+    // Navigate to products with the nested subcategory ID
+    router.push({
+      pathname: '/category-products/[categoryId]/[subcategoryId]',
+      params: {
+        categoryId: categoryId,
+        subcategoryId: nestedSubId,
+      },
+    });
+  }, [router, categoryId]);
+
+  const renderProductItem = useCallback(({ item }: { item: any }) => {
+    // Validate item before rendering
+    if (!item || typeof item !== 'object' || !item.id) {
+      return null;
+    }
+    
+    return (
+      <View style={styles.productContainer}>
+        <AmazonStyleProductCard 
+          product={item} 
+          onPress={() => router.push(`/product/${item.id}` as any)}
+          formatPrice={formatPrice}
+          language={language}
+        />
+      </View>
+    );
+  }, [formatPrice, language, router]);
 
   const renderEmptyState = useCallback(() => (
     <View style={styles.emptyContainer}>
@@ -101,10 +191,41 @@ export default function CategoryProductsScreen() {
 
   // عنوان الصفحة
   const pageTitle = useMemo(() => {
-    return subcategoryName || (language === 'ar' ? 'المنتجات' : 'Products');
+    const name = subcategoryName || (language === 'ar' ? 'المنتجات' : 'Products');
+    return typeof name === 'string' && name.trim() ? name : (language === 'ar' ? 'المنتجات' : 'Products');
   }, [subcategoryName, language]);
 
-  const productsCount = products?.length || 0;
+  // Filter valid products
+  const validProducts = useMemo(() => {
+    if (!products || !Array.isArray(products)) return [];
+    return products.filter(p => p && typeof p === 'object' && p.id);
+  }, [products]);
+  
+  // Products to display based on limit
+  const displayedProducts = useMemo(() => {
+    const result = validProducts.slice(0, displayLimit);
+    console.log(`📊 Displaying ${result.length} of ${validProducts.length} products (limit: ${displayLimit})`);
+    return result;
+  }, [validProducts, displayLimit]);
+  
+  // Check if there are more products to load
+  useEffect(() => {
+    setShowLoadMore(validProducts.length > displayLimit);
+  }, [validProducts.length, displayLimit]);
+  
+  // Reset display limit when category/subcategory changes
+  useEffect(() => {
+    setDisplayLimit(20);
+  }, [categoryId, subcategoryId]);
+  
+  // Load more handler
+  const handleLoadMore = useCallback(() => {
+    console.log(`🔄 Loading more products... Current limit: ${displayLimit} → New limit: ${displayLimit + 20}`);
+    setDisplayLimit(prev => prev + 20);
+  }, [displayLimit]);
+  
+  // Keep for future use if needed
+  // const productsCount = validProducts?.length || 0;
 
   if (loading) {
     return (
@@ -221,34 +342,90 @@ export default function CategoryProductsScreen() {
           <View style={styles.placeholder} />
         </View>
 
-      {/* Products Count */}
-      <View style={styles.countContainer}>
-        <Text style={styles.countText}>
-          {language === 'ar' 
-            ? `${productsCount} منتج` 
-            : `${productsCount} product${productsCount !== 1 ? 's' : ''}`
-          }
-        </Text>
-      </View>
+      {/* Products Count - Hidden as per user request */}
+      {/* {!loadingNested && !hasNestedSubcategories && (
+        <View style={styles.countContainer}>
+          <Text style={styles.countText}>
+            {language === 'ar' 
+              ? `${productsCount} منتج` 
+              : `${productsCount} product${productsCount !== 1 ? 's' : ''}`
+            }
+          </Text>
+        </View>
+      )} */}
 
-      {/* Products List */}
-      {products && products.length > 0 ? (
+      {/* Show nested subcategories if they exist */}
+      {loadingNested ? (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>
+            {language === 'ar' ? 'جاري التحميل...' : 'Loading...'}
+          </Text>
+        </View>
+      ) : hasNestedSubcategories && nestedSubcategories.length > 0 ? (
         <FlatList
-          data={products}
-          renderItem={renderProductItem}
+          data={nestedSubcategories}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.nestedSubcategoryCard}
+              onPress={() => handleNestedSubcategoryPress(item.id)}
+              activeOpacity={0.7}
+            >
+              {item.image ? (
+                <Image
+                  source={{ uri: item.image }}
+                  style={styles.nestedSubcategoryImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={styles.placeholderImage}>
+                  <Feather name="package" size={40} color="#9CA3AF" />
+                </View>
+              )}
+              <Text style={styles.nestedSubcategoryName} numberOfLines={2}>
+                {language === 'ar' ? item.nameAr : item.nameEn}
+              </Text>
+            </TouchableOpacity>
+          )}
           keyExtractor={(item) => item.id}
           numColumns={2}
+          columnWrapperStyle={styles.nestedSubcategoryRow}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={loading}
-              onRefresh={refetch}
-              colors={['#7C3AED']}
-              tintColor={'#7C3AED'}
-            />
-          }
         />
+      ) : displayedProducts && displayedProducts.length > 0 ? (
+        <>
+          <FlatList
+            data={displayedProducts}
+            renderItem={renderProductItem}
+            keyExtractor={(item) => item.id}
+            numColumns={2}
+            contentContainerStyle={styles.listContainer}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={loading}
+                onRefresh={refetch}
+                colors={['#7C3AED']}
+                tintColor={'#7C3AED'}
+              />
+            }
+            ListFooterComponent={
+              showLoadMore ? (
+                <View style={styles.loadMoreContainer}>
+                  <TouchableOpacity 
+                    style={styles.loadMoreButton}
+                    onPress={handleLoadMore}
+                  >
+                    <Text style={styles.loadMoreText}>
+                      {language === 'ar' ? 'عرض المزيد' : 'Load More'}
+                    </Text>
+                    <Feather name="chevron-down" size={20} color="#7C3AED" />
+                  </TouchableOpacity>
+                </View>
+              ) : null
+            }
+          />
+        </>
         ) : (
           renderEmptyState()
         )}
@@ -363,5 +540,87 @@ export default function CategoryProductsScreen() {
     fontSize: 15,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    fontSize: 15,
+    color: '#64748B',
+    marginTop: 12,
+  },
+  nestedSubcategoryRow: {
+    justifyContent: 'space-between',
+  },
+  nestedSubcategoryCard: {
+    width: '48%',
+    marginBottom: 16,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  nestedSubcategoryImage: {
+    width: '100%',
+    height: 120,
+    backgroundColor: '#E8F4FD',
+  },
+  placeholderImage: {
+    width: '100%',
+    height: 120,
+    backgroundColor: '#E8F4FD',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nestedSubcategoryName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#000',
+    textAlign: 'center',
+    lineHeight: 18,
+    padding: 12,
+  },
+  loadMoreContainer: {
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  loadMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#7C3AED',
+    minWidth: 200,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  loadMoreText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#7C3AED',
+    marginRight: 8,
   },
 });

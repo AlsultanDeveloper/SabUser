@@ -14,12 +14,13 @@ import {
   updateProfile,
 } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, isConfigured } from '@/constants/firebase';
+import { auth, isConfigured, db } from '@/constants/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import Constants from 'expo-constants';
 import type { SignUpData, User as AppUser } from '@/types';
 
@@ -37,6 +38,23 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     loading: true,
     phoneVerificationId: null,
   });
+
+  // ---- Load persisted session on mount ----
+  useEffect(() => {
+    const loadPersistedSession = async () => {
+      try {
+        const savedUser = await AsyncStorage.getItem('user');
+        if (savedUser) {
+          console.log('📱 Loaded persisted session from AsyncStorage');
+          // Don't set user here - let onAuthStateChanged handle it
+          // This just ensures Firebase Auth is initialized
+        }
+      } catch (error) {
+        console.error('❌ Failed to load persisted session:', error);
+      }
+    };
+    loadPersistedSession();
+  }, []);
 
   // ---- OAuth Client IDs from ENV (with fallback to Constants) ----
   const GOOGLE_ANDROID_CLIENT_ID = useMemo(
@@ -68,38 +86,168 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     console.log('  Android Client ID:', GOOGLE_ANDROID_CLIENT_ID ? '✓ Loaded' : '✗ Missing');
     console.log('  iOS Client ID:', GOOGLE_IOS_CLIENT_ID ? '✓ Loaded' : '✗ Missing');
     console.log('  Web Client ID:', GOOGLE_WEB_CLIENT_ID ? '✓ Loaded' : '✗ Missing');
+    
+    // Configure GoogleSignin for Android
+    if (Platform.OS === 'android') {
+      if (!GOOGLE_WEB_CLIENT_ID) {
+        console.error('❌ GOOGLE_WEB_CLIENT_ID is missing!');
+        return;
+      }
+      
+      console.log('🔧 Configuring GoogleSignin with Web Client ID:', GOOGLE_WEB_CLIENT_ID);
+      
+      GoogleSignin.configure({
+        webClientId: GOOGLE_WEB_CLIENT_ID,
+        offlineAccess: false,
+        forceCodeForRefreshToken: false,
+      });
+      
+      console.log('✅ GoogleSignin configured successfully');
+    }
   }, [GOOGLE_ANDROID_CLIENT_ID, GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID]);
 
   // ---- Google OAuth Config ----
   const googleConfig = useMemo(() => {
+    // Use the same configuration as iOS - platform-specific client IDs
     const config: any = {
       androidClientId: GOOGLE_ANDROID_CLIENT_ID,
       iosClientId: GOOGLE_IOS_CLIENT_ID,
       webClientId: GOOGLE_WEB_CLIENT_ID,
     };
     
-    // استخدام Expo Auth Proxy على Mobile بدلاً من Custom URI Scheme
-    if (Platform.OS !== 'web') {
-      config.redirectUri = 'https://auth.expo.io/@alsultandeveloper/sab-store';
-      console.log('🔧 Using Expo Auth Proxy redirect URI:', config.redirectUri);
-    }
+    // Don't set redirectUri - let expo-auth-session generate it automatically
+    // This will use the deep link scheme from AndroidManifest.xml / Info.plist
+    console.log('🔧 Using automatic redirect URI with native client IDs');
     
     return config;
   }, [GOOGLE_ANDROID_CLIENT_ID, GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID]);
 
   const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest(googleConfig);
 
+  // ---- Debug: Log the actual redirect URI being used ----
+  useEffect(() => {
+    if (googleRequest) {
+      console.log('📍 Google Request Details:');
+      console.log('  Redirect URI:', googleRequest.redirectUri);
+      console.log('  Client ID being used:', googleRequest.clientId);
+      console.log('  Response Type:', googleRequest.responseType);
+    }
+  }, [googleRequest]);
+
+  // ---- Google Sign-In ----
+  const signInWithGoogle = useCallback(async () => {
+    try {
+      if (!isConfigured || !auth) {
+        console.error('❌ Firebase not configured');
+        return { success: false, error: 'Firebase is not configured.' };
+      }
+
+      console.log('🔐 Starting Google Sign-In...');
+      console.log('📱 Platform:', Platform.OS);
+      
+      // Use native Google Sign-In for Android
+      if (Platform.OS === 'android') {
+        console.log('🤖 Using Native Google Sign-In for Android');
+        
+        // Check if Google Play services are available
+        await GoogleSignin.hasPlayServices();
+        
+        // Sign in
+        const userInfo = await GoogleSignin.signIn();
+        console.log('✅ Google Sign-In successful:', userInfo.data?.user.email);
+        
+        // Get ID token
+        const idToken = userInfo.data?.idToken;
+        
+        if (!idToken) {
+          throw new Error('No ID token received');
+        }
+        
+        // Create Firebase credential
+        const credential = GoogleAuthProvider.credential(idToken);
+        
+        // Sign in to Firebase
+        const result = await signInWithCredential(auth, credential);
+        console.log('✅ Firebase sign-in successful:', result.user.uid);
+        
+        // Create/update user document
+        const userDocRef = doc(db, 'users', result.user.uid);
+        const docSnap = await getDoc(userDocRef);
+        
+        if (!docSnap.exists()) {
+          await setDoc(userDocRef, {
+            uid: result.user.uid,
+            email: result.user.email,
+            displayName: result.user.displayName || '',
+            photoURL: result.user.photoURL || '',
+            phoneNumber: result.user.phoneNumber || null,
+            authProvider: 'google',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          });
+          console.log('✅ User document created');
+        } else {
+          await setDoc(userDocRef, {
+            updatedAt: new Date().toISOString(),
+            lastLoginAt: new Date().toISOString(),
+          }, { merge: true });
+          console.log('✅ User document updated');
+        }
+        
+        return { success: true, user: result.user };
+      }
+      
+      // For iOS - use expo-auth-session (existing code)
+      if (!googleRequest) {
+        console.error('❌ Google request not initialized');
+        return { success: false, error: 'Google authentication not ready. Please try again.' };
+      }
+
+      // Trigger the Google sign-in flow
+      const result = await googlePromptAsync();
+      
+      console.log('📋 Google prompt result type:', result?.type);
+
+      if (result?.type === 'cancel') {
+        console.log('ℹ️ User cancelled sign-in');
+        return { success: false, cancelled: true };
+      } else if (result?.type === 'dismiss') {
+        console.log('ℹ️ Sign-in popup dismissed');
+        return { success: false, cancelled: true };
+      } else if (result?.type === 'success') {
+        // The useEffect below will handle the actual sign-in
+        console.log('✅ OAuth successful, processing...');
+        // Return success immediately - useEffect will complete the sign-in
+        return { success: true };
+      } else {
+        console.error('❌ Unexpected result type:', result?.type);
+        return { 
+          success: false, 
+          error: 'Google sign-in was not successful. Please try again.' 
+        };
+      }
+    } catch (error: any) {
+      console.error('❌ Google sign in exception:', error);
+      return { success: false, error: error.message || 'Google sign-in failed' };
+    }
+  }, [googleRequest, googlePromptAsync]);
+
   // ---- Handle Google OAuth response ----
   useEffect(() => {
+    console.log('📡 Google Response Update:', {
+      type: googleResponse?.type,
+      timestamp: new Date().toISOString()
+    });
+    
     if (googleResponse?.type === 'success') {
-      console.log('🎯 Google OAuth response received:', googleResponse);
+      console.log('🎯 Google OAuth response received - SUCCESS!');
+      console.log('📦 Response params:', JSON.stringify(googleResponse.params, null, 2));
       
       const { id_token, access_token } = googleResponse.params;
       
       // التحقق من وجود id_token
       if (!id_token) {
         console.error('❌ No id_token in response!');
-        console.log('📋 Response params:', googleResponse.params);
         console.log('💡 Using access_token instead...');
         
         // استخدام access_token إذا لم يكن id_token موجوداً
@@ -108,16 +256,18 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
           signInWithCredential(auth!, credential)
             .then(async (result) => {
               console.log('✅ Google sign in successful (with access_token):', result.user.uid);
-              const db = getFirestore();
               const userDocRef = doc(db, 'users', result.user.uid);
               const docSnap = await getDoc(userDocRef);
               if (!docSnap.exists()) {
                 await setDoc(userDocRef, {
+                  uid: result.user.uid,
                   email: result.user.email,
-                  fullName: result.user.displayName || '',
+                  displayName: result.user.displayName || '',
                   photoURL: result.user.photoURL || '',
-                  signInMethod: 'google',
+                  phoneNumber: result.user.phoneNumber || null,
+                  authProvider: 'google',
                   createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
                 });
               }
             })
@@ -133,22 +283,37 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       signInWithCredential(auth!, credential)
         .then(async (result) => {
           console.log('✅ Google sign in successful:', result.user.uid);
-          const db = getFirestore();
           const userDocRef = doc(db, 'users', result.user.uid);
           const docSnap = await getDoc(userDocRef);
           if (!docSnap.exists()) {
             await setDoc(userDocRef, {
+              uid: result.user.uid,
               email: result.user.email,
-              fullName: result.user.displayName || '',
+              displayName: result.user.displayName || '',
               photoURL: result.user.photoURL || '',
-              signInMethod: 'google',
+              phoneNumber: result.user.phoneNumber || null,
+              authProvider: 'google',
               createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
             });
+          } else {
+            // Update last login
+            await setDoc(userDocRef, {
+              updatedAt: new Date().toISOString(),
+              lastLoginAt: new Date().toISOString(),
+            }, { merge: true });
           }
         })
         .catch((error) => {
           console.error('❌ Google sign in error:', error);
+          console.error('Error details:', JSON.stringify(error, null, 2));
         });
+    } else if (googleResponse?.type === 'error') {
+      console.error('❌ Google OAuth error response:', googleResponse);
+    } else if (googleResponse?.type === 'cancel') {
+      console.log('ℹ️ User cancelled Google sign-in');
+    } else if (googleResponse?.type === 'dismiss') {
+      console.log('ℹ️ Google sign-in dismissed');
     }
   }, [googleResponse]);
 
@@ -158,9 +323,27 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       setState(prev => ({ ...prev, loading: false }));
       return;
     }
-    const unsubscribe = onAuthStateChanged(auth, user => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setState(prev => ({ ...prev, user, loading: false }));
       console.log('Auth state changed:', user?.uid);
+      
+      // Persist user session to AsyncStorage
+      if (user) {
+        try {
+          await AsyncStorage.setItem('user', JSON.stringify({
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+          }));
+          console.log('✅ User session saved to AsyncStorage');
+        } catch (error) {
+          console.error('❌ Failed to save user session:', error);
+        }
+      } else {
+        await AsyncStorage.removeItem('user');
+        console.log('✅ User session cleared from AsyncStorage');
+      }
     });
     return () => unsubscribe();
   }, []);
@@ -305,80 +488,6 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     }
   }, []);
 
-  // ---- Google Sign-In ----
-  const signInWithGoogle = useCallback(async () => {
-    try {
-      if (!isConfigured || !auth) {
-        console.error('❌ Firebase not configured');
-        return { success: false, error: 'Firebase is not configured.' };
-      }
-
-      console.log('🔐 Starting Google Sign-In with expo-auth-session...');
-      console.log('📱 Platform:', Platform.OS);
-      
-      if (!googleRequest) {
-        console.error('❌ Google request not initialized');
-        console.log('🔍 Debug - Client IDs:');
-        console.log('  Android:', GOOGLE_ANDROID_CLIENT_ID ? 'Present' : 'Missing');
-        console.log('  iOS:', GOOGLE_IOS_CLIENT_ID ? 'Present' : 'Missing');
-        console.log('  Web:', GOOGLE_WEB_CLIENT_ID ? 'Present' : 'Missing');
-        return { success: false, error: 'Google authentication not ready. Please try again.' };
-      }
-
-      // إضافة معلومات تشخيصية مهمة
-      console.log('🔑 Web Client ID:', GOOGLE_WEB_CLIENT_ID?.substring(0, 20) + '...');
-      console.log('🔄 Redirect URI:', googleRequest.redirectUri);
-      console.log('🌐 Auth URL:', googleRequest.url ? 'Generated' : 'Missing');
-      console.log('⚠️ IMPORTANT: Allow popups if blocked!');
-
-      const result = await googlePromptAsync();
-      console.log('📋 Auth result type:', result?.type);
-      console.log('📋 Full result:', JSON.stringify(result, null, 2));
-
-      if (result?.type === 'success') {
-        console.log('✅ Authentication successful');
-        return { success: true };
-      } else if (result?.type === 'cancel') {
-        console.log('ℹ️ User cancelled sign-in');
-        return { success: false, cancelled: true };
-      } else if (result?.type === 'dismiss') {
-        console.error('❌ Popup was dismissed');
-        console.log('💡 Common causes:');
-        console.log('   1. Popup blocker is active');
-        console.log('   2. Redirect URI not configured in Google Cloud Console');
-        console.log('   3. User manually closed the popup');
-        console.log('');
-        console.log('🔧 TO FIX: Add this to Google Cloud Console:');
-        console.log('   → Credentials → Web OAuth Client → Authorized redirect URIs');
-        console.log('   → Add:', googleRequest.redirectUri);
-        return { 
-          success: false, 
-          error: 'Sign-in popup was closed. Please allow popups and ensure redirect URI is configured.' 
-        };
-      } else {
-        console.error('❌ Authentication failed:', result?.type);
-        return { 
-          success: false, 
-          error: 'Google sign-in was not successful. Please try again.' 
-        };
-      }
-    } catch (error: any) {
-      console.error('❌ Google sign in exception:', error);
-      console.error('Error code:', error.code);
-      console.error('Error message:', error.message);
-      
-      let userFriendlyError = error.message;
-      
-      if (error.code === 'auth/account-exists-with-different-credential') {
-        userFriendlyError = 'An account already exists with the same email. Try signing in with a different method.';
-      } else if (error.code === 'auth/invalid-credential') {
-        userFriendlyError = 'Invalid Google credentials. Please try again.';
-      }
-      
-      return { success: false, error: userFriendlyError };
-    }
-  }, [googleRequest, googlePromptAsync, GOOGLE_ANDROID_CLIENT_ID, GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID]);
-
   // ---- Apple Sign-In ----
   const signInWithApple = useCallback(async () => {
     try {
@@ -392,11 +501,81 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             AppleAuthentication.AppleAuthenticationScope.EMAIL,
           ],
         });
-        const { identityToken } = credential;
+        const { identityToken, fullName } = credential;
         if (identityToken) {
           const provider = new OAuthProvider('apple.com');
           const firebaseCredential = provider.credential({ idToken: identityToken });
           const result = await signInWithCredential(auth, firebaseCredential);
+          console.log('✅ Apple sign-in successful');
+          
+          // Check if user document exists, create if not
+          const userDocRef = doc(db, 'users', result.user.uid);
+          const userDocSnap = await getDoc(userDocRef);
+          
+          if (!userDocSnap.exists()) {
+            console.log('📝 Creating user document for Apple sign-in user');
+            const displayName = fullName 
+              ? `${fullName.givenName || ''} ${fullName.familyName || ''}`.trim()
+              : result.user.displayName || 'Apple User';
+            
+            // Create complete user document structure for OAuth
+            const userData: Partial<AppUser> = {
+              uid: result.user.uid,
+              email: result.user.email || '',
+              emailVerified: result.user.emailVerified || false,
+              displayName: displayName,
+              fullName: displayName,
+              phoneNumber: result.user.phoneNumber || '',
+              photoURL: result.user.photoURL || '',
+              signInMethod: 'apple',
+              phoneVerified: false,
+              
+              preferences: {
+                language: 'en',
+                currency: 'USD',
+                notifications: {
+                  push: true,
+                  email: true,
+                  sms: false,
+                  orders: true,
+                  promotions: true,
+                },
+                theme: 'auto',
+              },
+              
+              stats: {
+                totalOrders: 0,
+                totalSpent: 0,
+                wishlistCount: 0,
+                loyaltyPoints: 0,
+                membershipLevel: 'bronze',
+              },
+              
+              status: {
+                isActive: true,
+                isVerified: false,
+                isBlocked: false,
+                twoFactorEnabled: false,
+              },
+              
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              lastLoginAt: new Date().toISOString(),
+              
+              metadata: {
+                registrationSource: 'ios' as any,
+                deviceInfo: {
+                  platform: 'ios',
+                  version: Platform.Version.toString(),
+                },
+              },
+            };
+            
+            // Use setDoc with complete data structure
+            await setDoc(userDocRef, userData);
+            console.log('✅ User document created successfully');
+          }
+          
           return { success: true, user: result.user };
         }
         return { success: false, error: 'No identity token' };
@@ -405,12 +584,80 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         provider.addScope('email');
         provider.addScope('name');
         const result = await signInWithPopup(auth, provider);
+        
+        // Check if user document exists, create if not
+        const userDocRef = doc(db, 'users', result.user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        
+        if (!userDocSnap.exists()) {
+          console.log('📝 Creating user document for Apple sign-in user');
+          
+          const userData: Partial<AppUser> = {
+            uid: result.user.uid,
+            email: result.user.email || '',
+            emailVerified: result.user.emailVerified || false,
+            displayName: result.user.displayName || 'Apple User',
+            fullName: result.user.displayName || 'Apple User',
+            phoneNumber: result.user.phoneNumber || '',
+            photoURL: result.user.photoURL || '',
+            signInMethod: 'apple',
+            phoneVerified: false,
+            
+            preferences: {
+              language: 'en',
+              currency: 'USD',
+              notifications: {
+                push: true,
+                email: true,
+                sms: false,
+                orders: true,
+                promotions: true,
+              },
+              theme: 'auto',
+            },
+            
+            stats: {
+              totalOrders: 0,
+              totalSpent: 0,
+              wishlistCount: 0,
+              loyaltyPoints: 0,
+              membershipLevel: 'bronze',
+            },
+            
+            status: {
+              isActive: true,
+              isVerified: false,
+              isBlocked: false,
+              twoFactorEnabled: false,
+            },
+            
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            lastLoginAt: new Date().toISOString(),
+            
+            metadata: {
+              registrationSource: 'web' as any,
+              deviceInfo: {
+                platform: 'web',
+                version: '1.0',
+              },
+            },
+          };
+          
+          await setDoc(userDocRef, userData);
+          console.log('✅ User document created successfully');
+        }
+        
         return { success: true, user: result.user };
       } else {
         return { success: false, error: 'Apple sign-in not available on Android' };
       }
     } catch (error: any) {
       console.error('Apple sign in error:', error);
+      // Check if user cancelled
+      if (error.code === 'ERR_REQUEST_CANCELED' || error.message?.includes('canceled')) {
+        return { success: false, cancelled: true };
+      }
       return { success: false, error: error.message };
     }
   }, []);
@@ -462,3 +709,4 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     [state.user, state.loading, signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, signOut]
   );
 });
+

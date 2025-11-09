@@ -31,7 +31,10 @@ export default function OrderDetailsScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <SafeAreaView style={styles.headerContainer} edges={['top']}>
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <TouchableOpacity 
+              onPress={() => router.replace('/(tabs)/orders' as any)} 
+              style={styles.backButton}
+            >
               <Feather name="arrow-left" size={24} color={Colors.text.primary} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>{t('order.orderDetails')}</Text>
@@ -96,7 +99,10 @@ export default function OrderDetailsScreen() {
       >
         <SafeAreaView edges={['top']}>
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <TouchableOpacity 
+              onPress={() => router.replace('/(tabs)/orders' as any)} 
+              style={styles.backButton}
+            >
               <Feather name="arrow-left" size={24} color="#FFF" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>{t('order.orderDetails')}</Text>

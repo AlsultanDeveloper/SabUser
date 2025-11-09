@@ -176,17 +176,27 @@ export default function LoginScreen() {
     try {
       const result = await signInWithApple();
       if (result.success) {
-        console.log('Apple auth successful');
+        console.log('✅ Apple auth successful');
         if (router.canGoBack()) {
           router.back();
         } else {
           router.replace('/(tabs)/home');
         }
+      } else if ((result as any).cancelled) {
+        // User cancelled, don't show error
+        console.log('ℹ️ User cancelled Apple sign-in');
       } else {
-        Alert.alert('Error', result.error ?? 'Apple sign-in failed');
+        // Only show error if it's not a cancellation
+        const errorMessage = result.error ?? t('auth.errors.appleFailed');
+        console.error('❌ Apple sign-in failed:', errorMessage);
+        Alert.alert(t('common.error'), errorMessage);
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      console.error('❌ Apple sign-in exception:', error);
+      // Don't show alert for user cancellation
+      if (!error.message?.includes('canceled') && !error.message?.includes('unknown reason')) {
+        Alert.alert(t('common.error'), error.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -585,19 +595,18 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   socialButtonImg: {
-    flex: 1,
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'transparent',
     borderRadius: BorderRadius.lg,
     paddingVertical: Spacing.xs,
-    height: 44,
+    height: 50,
   },
   signinImg: {
-    width: 200,
-    height: 40,
-    resizeMode: 'contain',
-    maxWidth: 200,
+    width: '90%',
+    height: 44,
+    maxWidth: 280,
   },
   container: {
     flex: 1,
@@ -791,6 +800,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     marginBottom: Spacing.sm,
     alignItems: 'center',
+    width: '100%',
   },
   socialButton: {
     flex: 1,

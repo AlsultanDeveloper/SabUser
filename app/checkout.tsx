@@ -11,8 +11,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  Animated,
-  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, Stack } from 'expo-router';
@@ -21,20 +19,57 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import SafeImage from '@/components/SafeImage';
+import { calculateShipping, getDefaultShipping } from '@/utils/shippingCalculator';
+import * as Location from 'expo-location';
 
-const { width } = Dimensions.get('window');
 const FREE_SHIPPING_THRESHOLD = 100; // SAR
 
 export default function ModernCartScreen() {
   const router = useRouter();
-  const { t, cart, cartTotal, formatPrice, removeFromCart, updateCartItemQuantity } = useApp();
+  const { cart, cartTotal, formatPrice, removeFromCart, updateCartItemQuantity } = useApp();
   const { isAuthenticated } = useAuth();
   
   const [couponCode, setCouponCode] = useState('');
   const [discount, setDiscount] = useState(0);
   const [showCoupon, setShowCoupon] = useState(false);
+  const [shippingCost, setShippingCost] = useState(5); // Default shipping
+  const [estimatedDays, setEstimatedDays] = useState('2-3');
 
-  // Calculate shipping progress
+  // Calculate shipping based on location
+  useEffect(() => {
+    const calculateShippingCost = async () => {
+      try {
+        // Request location permission
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        
+        if (status === 'granted') {
+          const location = await Location.getCurrentPositionAsync({});
+          const shipping = await calculateShipping(
+            location.coords.latitude,
+            location.coords.longitude,
+            cartTotal
+          );
+          
+          setShippingCost(shipping.cost);
+          setEstimatedDays(shipping.estimatedDays);
+        } else {
+          // Use default shipping if no location permission
+          const defaultShipping = await getDefaultShipping(cartTotal);
+          setShippingCost(defaultShipping.cost);
+          setEstimatedDays(defaultShipping.estimatedDays);
+        }
+      } catch (error) {
+        console.log('Error calculating shipping:', error);
+        const defaultShipping = await getDefaultShipping(cartTotal);
+        setShippingCost(defaultShipping.cost);
+        setEstimatedDays(defaultShipping.estimatedDays);
+      }
+    };
+
+    calculateShippingCost();
+  }, [cartTotal]);
+
+  // Calculate shipping progress (for free shipping bar)
   const shippingProgress = Math.min((cartTotal / FREE_SHIPPING_THRESHOLD) * 100, 100);
   const remainingForFreeShipping = Math.max(FREE_SHIPPING_THRESHOLD - cartTotal, 0);
 
@@ -282,9 +317,17 @@ export default function ModernCartScreen() {
           )}
 
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Shipping</Text>
-            <Text style={[styles.summaryValue, { color: remainingForFreeShipping > 0 ? '#6B7280' : '#10B981' }]}>
-              {remainingForFreeShipping > 0 ? formatPrice(15) : 'FREE'}
+            <View>
+              <Text style={styles.summaryLabel}>Shipping</Text>
+              {shippingCost > 0 && (
+                <Text style={styles.shippingSubtext}>Delivered in {estimatedDays} days</Text>
+              )}
+            </View>
+            <Text style={[
+              styles.summaryValue, 
+              { color: shippingCost === 0 ? '#10B981' : '#6B7280' }
+            ]}>
+              {shippingCost === 0 ? 'FREE' : formatPrice(shippingCost)}
             </Text>
           </View>
 
@@ -293,7 +336,7 @@ export default function ModernCartScreen() {
           <View style={styles.summaryRow}>
             <Text style={styles.totalLabel}>Total</Text>
             <Text style={styles.totalValue}>
-              {formatPrice(finalTotal + (remainingForFreeShipping > 0 ? 15 : 0))}
+              {formatPrice(finalTotal + shippingCost)}
             </Text>
           </View>
         </View>
@@ -307,7 +350,7 @@ export default function ModernCartScreen() {
           <View>
             <Text style={styles.bottomLabel}>Total</Text>
             <Text style={styles.bottomTotal}>
-              {formatPrice(finalTotal + (remainingForFreeShipping > 0 ? 15 : 0))}
+              {formatPrice(finalTotal + shippingCost)}
             </Text>
           </View>
           
@@ -381,6 +424,11 @@ const styles = StyleSheet.create({
     color: '#374151',
     marginLeft: 8,
     flex: 1,
+  },
+  shippingSubtext: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
   },
   shippingAmount: {
     fontWeight: '700',

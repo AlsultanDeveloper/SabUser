@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   Dimensions,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -21,9 +20,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSettings } from '@/hooks/useSettings';
 import { Colors, Spacing, BorderRadius, FontSizes, Shadows, FontWeights } from '@/constants/theme';
-import { useCategories } from '@/hooks/useFirestore';
-import { getDocuments, collections, where, limit as firestoreLimit } from '@/constants/firestore';
+import { useCategories, useFeaturedProducts } from '@/hooks/useFirestore';
+import { getDocuments, collections, where } from '@/constants/firestore';
 import SafeImage from '@/components/SafeImage';
 import { CategoryCardSkeleton } from '@/components/SkeletonLoader';
 import AmazonStyleProductCard from '@/components/AmazonStyleProductCard';
@@ -33,15 +33,65 @@ const BANNER_WIDTH = width - Spacing.md * 2;
 
 // بيانات المنتجات التجريبية - 10 منتجات متنوعة
 // كومبونت لعرض بطاقة Amazon فقط
-const ProductCardDisplay = ({ product, language, formatPrice, router }: any) => {
+const ProductCardDisplay = ({ product, language, formatPrice, router, user, wishlistItems, onWishlistUpdate }: any) => {
   const handlePress = () => {
     console.log('Product pressed:', product.id);
     router.push(`/product/${product.id}`);
   };
 
-  const handleWishlist = (productId: string) => {
-    console.log('Wishlist toggled for:', productId);
+  const handleWishlist = async (productId: string) => {
+    if (!user?.uid) {
+      Alert.alert(
+        language === 'ar' ? 'تسجيل الدخول مطلوب' : 'Login Required',
+        language === 'ar' ? 'يرجى تسجيل الدخول لإضافة المنتجات إلى قائمة الأمنيات' : 'Please log in to add products to your wishlist'
+      );
+      return;
+    }
+
+    try {
+      // استيراد الدوال من firestore
+      const { createDocument, deleteDocument, getDocuments, collections, where } = await import('@/constants/firestore');
+      
+      // تحقق إذا كان المنتج موجود في wishlist
+      const existingItems = await getDocuments(collections.wishlists, [
+        where('userId', '==', user.uid),
+        where('productId', '==', productId),
+      ]);
+
+      if (existingItems.length > 0) {
+        // إزالة من wishlist
+        await deleteDocument(collections.wishlists, existingItems[0].id);
+        console.log('❌ Removed from wishlist:', productId);
+        
+        if (Platform.OS !== 'web') {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        }
+      } else {
+        // إضافة إلى wishlist
+        await createDocument(collections.wishlists, {
+          userId: user.uid,
+          productId: productId,
+          createdAt: new Date().toISOString(),
+        });
+        console.log('✅ Added to wishlist:', productId);
+        
+        if (Platform.OS !== 'web') {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+      }
+
+      // تحديث القائمة
+      onWishlistUpdate?.();
+    } catch (error) {
+      console.error('Error toggling wishlist:', error);
+      Alert.alert(
+        language === 'ar' ? 'خطأ' : 'Error',
+        language === 'ar' ? 'حدث خطأ أثناء تحديث قائمة الأمنيات' : 'Error updating wishlist'
+      );
+    }
   };
+
+  const isInWishlist = wishlistItems?.some((item: any) => item.productId === product.id) || false;
 
   return (
     <AmazonStyleProductCard
@@ -50,7 +100,7 @@ const ProductCardDisplay = ({ product, language, formatPrice, router }: any) => 
       formatPrice={formatPrice}
       language={language}
       onToggleWishlist={handleWishlist}
-      isInWishlist={false}
+      isInWishlist={isInWishlist}
     />
   );
 };
@@ -58,39 +108,18 @@ const ProductCardDisplay = ({ product, language, formatPrice, router }: any) => 
 export default function HomeScreen() {
   const { language, changeLanguage, formatPrice: appFormatPrice } = useApp();
   const { user } = useAuth();
+  const { usdToLbp } = useSettings(); // سعر الصرف الديناميكي
   const router = useRouter();
   const { categories, loading: categoriesLoading, refetch: refetchCategories } = useCategories();
   
-  // State للمنتجات المتنوعة
-  const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
-  const [productsLoading, setProductsLoading] = useState(true);
+  // استخدام React Query للمنتجات - Amazon Style: 10 منتجات فقط للتحميل الفوري ⚡
+  const { data: featuredProducts = [], isLoading: productsLoading } = useFeaturedProducts(10);
   
-  // جلب منتجات محدودة بسرعة - 20 منتج فقط للأداء
-  useEffect(() => {
-    const fetchFeaturedProducts = async () => {
-      try {
-        setProductsLoading(true);
-        
-        // جلب 20 منتج فقط بدلاً من كل المنتجات (بدون limit للحصول على تنوع)
-        const allProducts = await getDocuments(collections.products);
-        
-        console.log('📦 Products fetched:', allProducts.length);
-        
-        // خلط المنتجات عشوائياً واختيار 20 فقط
-        const shuffled = allProducts.sort(() => 0.5 - Math.random());
-        const selectedProducts = shuffled.slice(0, 20);
-        
-        setFeaturedProducts(selectedProducts);
-      } catch (error) {
-        console.error('❌ Error loading products:', error);
-        setFeaturedProducts([]);
-      } finally {
-        setProductsLoading(false);
-      }
-    };
-    
-    fetchFeaturedProducts();
-  }, []);
+  // State للبروفايل (للاستخدام المستقبلي)
+  const [userProfile] = useState<any>(null);
+
+  // State لـ Wishlist
+  const [wishlistItems, setWishlistItems] = useState<any[]>([]);
 
   // دالة تنسيق السعر الآمنة
   const formatPrice = (price: number) => {
@@ -108,7 +137,7 @@ export default function HomeScreen() {
   const hardcodedBanners = useMemo(() => [
     {
       id: 'YByfRqFBV1qfqzN5M4PG',
-      image: 'https://firebasestorage.googleapis.com/v0/b/sab-store-9b947.firebasestorage.app/o/Banners%2FSab%20Market.png?alt=media&token=a9bfbcc4-55d7-4d74-a29f-d042b618d4c9',
+      image: 'https://firebasestorage.googleapis.com/v0/b/sab-store-9b947.firebasestorage.app/o/Banners%2Fnew%20banner%20(1).jpg?alt=media',
       title: { ar: 'ساب ماركت', en: 'Sab Market' },
       subtitle: { ar: 'تسوق الآن', en: 'Shop Now' },
       link: { type: 'category', id: 'cwt28D5gjoLno8SFqoxQ' },
@@ -123,7 +152,6 @@ export default function HomeScreen() {
   );
 
   const [activeSlide, setActiveSlide] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -157,17 +185,53 @@ export default function HomeScreen() {
     return () => clearInterval(interval);
   }, [user]);
 
+  // Fetch wishlist items
+  useEffect(() => {
+    const fetchWishlist = async () => {
+      if (!user?.uid) {
+        setWishlistItems([]);
+        return;
+      }
+
+      try {
+        const items = await getDocuments(collections.wishlists, [
+          where('userId', '==', user.uid),
+        ]);
+        setWishlistItems(items);
+      } catch (error) {
+        console.error('Error fetching wishlist:', error);
+      }
+    };
+
+    fetchWishlist();
+  }, [user]);
+
+  // تحديث wishlist بعد التغيير
+  const handleWishlistUpdate = useCallback(async () => {
+    if (!user?.uid) return;
+    
+    try {
+      const items = await getDocuments(collections.wishlists, [
+        where('userId', '==', user.uid),
+      ]);
+      setWishlistItems(items);
+    } catch (error) {
+      console.error('Error updating wishlist:', error);
+    }
+  }, [user]);
+
   // Refresh handler
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
       await refetchCategories();
+      await handleWishlistUpdate();
     } catch (error) {
       console.error('Error refreshing data:', error);
     } finally {
       setRefreshing(false);
     }
-  }, [refetchCategories]);
+  }, [refetchCategories, handleWishlistUpdate]);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
@@ -248,8 +312,20 @@ export default function HomeScreen() {
       >
         <View style={styles.headerContent}>
           <View style={styles.welcomeSection}>
-            <Text style={styles.welcomeText}>{language === 'ar' ? 'مرحباً بك' : 'Welcome'}</Text>
-            <Text style={styles.storeTitle}>{language === 'ar' ? 'متجر سب' : 'Sab Store'}</Text>
+            {user && (
+              <Text style={styles.welcomeText}>
+                {language === 'ar' 
+                  ? `مرحباً بك${(userProfile?.fullName || userProfile?.displayName || user?.displayName || '').trim() ? ' ' + (userProfile?.fullName || userProfile?.displayName || user?.displayName || '').trim() : ''}` 
+                  : `Welcome${(userProfile?.fullName || userProfile?.displayName || user?.displayName || '').trim() ? ' ' + (userProfile?.fullName || userProfile?.displayName || user?.displayName || '').trim() : ''}`
+                }
+              </Text>
+            )}
+            {!user && (
+              <Text style={styles.welcomeText}>
+                {language === 'ar' ? 'مرحباً بك' : 'Welcome'}
+              </Text>
+            )}
+            <Text style={styles.storeTitle}>Sab Store</Text>
             <Text style={styles.storeSubtitle}>{language === 'ar' ? 'تسوق منتجات عالية الجودة' : 'Shop premium quality products'}</Text>
           </View>
           <View style={styles.headerButtons}>
@@ -289,26 +365,28 @@ export default function HomeScreen() {
           </View>
         </View>
 
+        {/* Exchange Rate Display */}
+        <View style={styles.exchangeRateContainer}>
+          <Feather name="info" size={14} color="#FFF" />
+          <Text style={styles.exchangeRateText}>
+            {language === 'ar' 
+              ? `يمكنك الدفع بالليرة اللبنانية - 1.00 $ = ${usdToLbp.toLocaleString('en-US')} LBP`
+              : `You Can Pay In LBP - 1.00 $ = ${usdToLbp.toLocaleString('en-US')} LBP`
+            }
+          </Text>
+        </View>
+
         <View style={styles.searchBarContainer}>
-          <View style={styles.searchContainer}>
+          <TouchableOpacity 
+            style={styles.searchContainer}
+            activeOpacity={0.7}
+            onPress={() => router.push('/search' as any)}
+          >
             <Feather name="search" size={20} color={Colors.gray[400]} style={styles.searchIcon} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder={language === 'ar' ? 'البحث عن المنتجات...' : 'Search products...'}
-              placeholderTextColor={Colors.gray[400]}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity 
-                onPress={() => setSearchQuery('')}
-                style={styles.clearButton}
-                activeOpacity={0.7}
-              >
-                <Feather name="x" size={18} color={Colors.gray[400]} />
-              </TouchableOpacity>
-            )}
-          </View>
+            <Text style={styles.searchPlaceholder}>
+              {language === 'ar' ? 'البحث في سوق ساب...' : 'Search In Sab Market...'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </LinearGradient>
 
@@ -324,7 +402,7 @@ export default function HomeScreen() {
             tintColor={Colors.primary}
           />
         }
-        // Performance optimizations
+        // Performance optimizations - Amazon Style
         removeClippedSubviews={true}
         scrollEventThrottle={16}
         decelerationRate="normal"
@@ -354,17 +432,12 @@ export default function HomeScreen() {
                   colors={['transparent', 'rgba(0,0,0,0.8)']}
                   style={styles.bannerOverlay}
                 >
-                  <Text style={styles.bannerTitle}>
-                    {banner.title?.[language] || banner.title?.en || 'Shop Now'}
-                  </Text>
-                  {banner.subtitle && (
-                    <Text style={styles.bannerSubtitle}>
-                      {banner.subtitle?.[language] || banner.subtitle?.en || ''}
-                    </Text>
-                  )}
-                  <View style={styles.bannerButton}>
-                    <Text style={styles.bannerButtonText}>{language === 'ar' ? 'تسوق الآن' : 'Shop Now'}</Text>
-                    <Feather name="arrow-right" size={16} color={Colors.white} />
+                  <View style={styles.bannerContent}>
+                    <View style={styles.bannerButton}>
+                      <Text style={styles.bannerButtonText}>
+                        {language === 'ar' ? 'تسوق الآن' : 'Shop Now'}
+                      </Text>
+                    </View>
                   </View>
                 </LinearGradient>
               </TouchableOpacity>
@@ -433,7 +506,14 @@ export default function HomeScreen() {
                   />
                 </View>
                 <Text style={styles.categoryName} numberOfLines={2}>
-                  {typeof category.name === 'string' ? category.name : (category.name?.[language] || category.name?.en || 'Category')}
+                  {/* Keep "Sab Market" in English always */}
+                  {(typeof category.name === 'object' && (category.name.en === 'Sab Market' || category.name.ar === 'ساب ماركت'))
+                    ? 'Sab Market'
+                    : (typeof category.name === 'object'
+                      ? (language === 'ar' ? category.name.ar : category.name.en)
+                      : category.name || 'Category'
+                    )
+                  }
                 </Text>
               </TouchableOpacity>
               ))}
@@ -457,7 +537,7 @@ export default function HomeScreen() {
           {/* Amazon Products Grid - المنتجات المميزة من Firebase */}
           <View style={styles.productsGrid}>
             {productsLoading ? (
-              // عرض skeleton loading أثناء التحميل - 3 صفوف فقط للسرعة
+              // عرض 3 صفوف = 6 skeleton loaders للتحميل الفوري
               Array(3).fill(null).map((_, rowIndex) => (
                 <View key={`skeleton-row-${rowIndex}`} style={styles.productsRow}>
                   {Array(2).fill(null).map((_, colIndex) => (
@@ -472,8 +552,8 @@ export default function HomeScreen() {
                 </View>
               ))
             ) : featuredProducts && featuredProducts.length > 0 ? (
-              // عرض المنتجات من Firebase
-              Array(Math.ceil(featuredProducts.slice(0, 20).length / 2)).fill(null).map((_, rowIndex) => (
+              // عرض 10 منتجات (5 صفوف × 2)
+              Array(Math.ceil(featuredProducts.slice(0, 10).length / 2)).fill(null).map((_, rowIndex) => (
                 <View key={`row-${rowIndex}`} style={styles.productsRow}>
                   {featuredProducts.slice(rowIndex * 2, (rowIndex + 1) * 2).map((product, index: number) => (
                     <ProductCardDisplay 
@@ -482,6 +562,9 @@ export default function HomeScreen() {
                       language={language}
                       formatPrice={formatPrice}
                       router={router}
+                      user={user}
+                      wishlistItems={wishlistItems}
+                      onWishlistUpdate={handleWishlistUpdate}
                     />
                   ))}
                 </View>
@@ -634,6 +717,24 @@ const styles = StyleSheet.create({
     fontWeight: 'bold' as const,
     textAlign: 'center' as const,
   },
+  exchangeRateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    marginHorizontal: Spacing.md,
+    marginTop: 8,
+    gap: 6,
+  },
+  exchangeRateText: {
+    color: Colors.white,
+    fontSize: 11,
+    fontWeight: FontWeights.semibold,
+    letterSpacing: 0.3,
+  },
   searchBarContainer: {
     paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.sm,
@@ -656,6 +757,12 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     fontWeight: FontWeights.medium,
   },
+  searchPlaceholder: {
+    flex: 1,
+    fontSize: FontSizes.sm,
+    color: Colors.gray[400],
+    fontWeight: FontWeights.medium,
+  },
   clearButton: {
     width: 32,
     height: 32,
@@ -670,7 +777,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
   },
   bannerSection: {
-    marginTop: 0,
+    marginTop: Spacing.md, // مسافة من الخلفية البنفسجية
     marginBottom: Spacing.sm,
   },
   bannerScrollContent: {
@@ -691,30 +798,21 @@ const styles = StyleSheet.create({
   },
   bannerOverlay: {
     ...StyleSheet.absoluteFillObject,
-    justifyContent: 'flex-end',
+    justifyContent: 'flex-start', // في الأعلى
+    alignItems: 'flex-end', // على اليمين
     padding: Spacing.md,
   },
-  bannerTitle: {
-    fontSize: FontSizes.xxl,
-    fontWeight: FontWeights.extrabold,
-    color: Colors.white,
-    marginBottom: 4,
-  },
-  bannerSubtitle: {
-    fontSize: FontSizes.md,
-    color: Colors.white,
-    fontWeight: FontWeights.medium,
-    marginBottom: Spacing.sm,
+  bannerContent: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end', // على اليمين
+    alignItems: 'flex-start', // في الأعلى
+    width: '100%',
   },
   bannerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: Colors.white,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.lg,
-    alignSelf: 'flex-start',
-    gap: 6,
   },
   bannerButtonText: {
     fontSize: FontSizes.sm,
