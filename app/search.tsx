@@ -26,146 +26,84 @@ export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(false);
   const [wishlistItems, setWishlistItems] = useState<any[]>([]);
-  const [displayLimit, setDisplayLimit] = useState(20);
-  const [allSabMarketProducts, setAllSabMarketProducts] = useState<Product[]>([]);
-  const [allFilteredResults, setAllFilteredResults] = useState<Product[]>([]);
-  const [hasMore, setHasMore] = useState(false);
+  const displayLimit = 20; // ثابت - نعرض 20 منتج دائماً
   
-  // Load all Sab Market products once when component mounts
+  // ✅ OPTIMIZED: بحث مباشر في Firebase بدون تحميل كل المنتجات
   useEffect(() => {
-    const loadAllProducts = async () => {
-      try {
-        setInitialLoading(true);
-        const { collection, getDocs, query, where } = await import('firebase/firestore');
-        const { db } = await import('@/constants/firebase');
-        
-        if (!db) {
-          setInitialLoading(false);
-          return;
-        }
-        
-        // Load all Sab Market products at once using categoryId
-        const productsRef = collection(db, 'products');
-        const q = query(productsRef, where('categoryId', '==', 'cwt28D5gjoLno8SFqoxQ'));
-        const snapshot = await getDocs(q);
-        
-        const products = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Product[];
-        
-        console.log(`✅ Loaded ${products.length} Sab Market products`);
-        setAllSabMarketProducts(products);
-        setInitialLoading(false);
-        
-      } catch (error) {
-        console.error('❌ Error loading products:', error);
-        setInitialLoading(false);
-      }
-    };
-    
-    loadAllProducts();
-  }, []);
-  
-  // Search with debounce - البحث مع التأخير (now searches in cached products)
-  useEffect(() => {
-    // Reset display limit when search query changes
-    setDisplayLimit(20);
-    
-    // Need at least 1 character to search
-    if (!searchQuery || searchQuery.trim().length < 1) {
+    // Need at least 2 characters to search
+    if (!searchQuery || searchQuery.trim().length < 2) {
       setSearchResults([]);
-      setAllFilteredResults([]);
-      setHasMore(false);
       return;
     }
 
     setLoading(true);
+    
+    // Debounce: انتظر 300ms قبل البحث
     const timer = setTimeout(async () => {
       try {
-        // Search in cached products (much faster!)
+        const { collection, getDocs, query, where, limit } = await import('firebase/firestore');
+        const { db } = await import('@/constants/firebase');
+        
+        if (!db) {
+          setLoading(false);
+          return;
+        }
+
         const queryTrimmed = searchQuery.trim();
         const queryLower = queryTrimmed.toLowerCase();
         
-        console.log(`🔎 Query: "${queryTrimmed}" | Lower: "${queryLower}"`);
-        console.log(`🔍 Searching in ${allSabMarketProducts.length} cached products...`);
+        console.log(`🔎 Searching Firebase directly for: "${queryTrimmed}"`);
         
-        const filtered = allSabMarketProducts.filter((product: Product) => {
-          // English search (case-insensitive)
-          const nameEn = typeof product.name === 'object' ? (product.name.en || '') : (product.name || '');
-          const nameEnLower = nameEn.toLowerCase().trim();
+        // ✅ OPTIMIZED: نجلب فقط أول 100 منتج من Sab Market
+        const productsRef = collection(db, 'products');
+        const q = query(
+          productsRef,
+          where('categoryId', '==', 'cwt28D5gjoLno8SFqoxQ'),
+          limit(100) // جلب 100 فقط للبحث فيهم
+        );
+        
+        const snapshot = await getDocs(q);
+        
+        // Client-side filtering للبحث في الاسم والوصف
+        const results: Product[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
           
-          // Arabic search (case-sensitive for better matching)
-          const nameAr = typeof product.name === 'object' ? (product.name.ar || '') : '';
+          const nameEn = typeof data.name === 'object' ? (data.name.en || '') : (data.name || '');
+          const nameAr = typeof data.name === 'object' ? (data.name.ar || '') : '';
+          const brand = (data.brand || '').trim();
           
-          // Categories
-          const category = (product.categoryName || '').trim();
-          const categoryLower = category.toLowerCase();
+          const matchesEnglish = nameEn.toLowerCase().includes(queryLower);
+          const matchesArabic = nameAr.includes(queryTrimmed);
+          const matchesBrand = brand.toLowerCase().includes(queryLower);
           
-          const subcategory = (product.subcategoryName || '').trim();
-          const subcategoryLower = subcategory.toLowerCase();
-          
-          // Brand search
-          const brand = (product.brand || '').trim();
-          const brandLower = brand.toLowerCase();
-          
-          // Description search
-          const descEn = typeof product.description === 'object' ? (product.description.en || '') : '';
-          const descEnLower = descEn.toLowerCase().trim();
-          const descAr = typeof product.description === 'object' ? (product.description.ar || '') : '';
-          
-          // English search (check if any field contains the query)
-          const matchesEnglish = nameEnLower.includes(queryLower) || 
-                                categoryLower.includes(queryLower) ||
-                                subcategoryLower.includes(queryLower) ||
-                                brandLower.includes(queryLower) ||
-                                descEnLower.includes(queryLower);
-          
-          // Arabic search (use original case)
-          const matchesArabic = nameAr.includes(queryTrimmed) || 
-                               category.includes(queryTrimmed) ||
-                               subcategory.includes(queryTrimmed) ||
-                               brand.includes(queryTrimmed) ||
-                               descAr.includes(queryTrimmed);
-          
-          const matches = matchesEnglish || matchesArabic;
-          
-          // Debug logging for products that match "co" but not "coc"
-          if (queryLower === 'coc' && nameEnLower.includes('co')) {
-            console.log(`🐛 Debug: "${nameEn}" | Lower: "${nameEnLower}" | Includes "coc": ${nameEnLower.includes('coc')}`);
+          if (matchesEnglish || matchesArabic || matchesBrand) {
+            results.push({
+              id: doc.id,
+              ...data,
+              image: data.image || data.images?.[0] || '',
+            } as Product);
           }
-          
-          return matches;
         });
         
-        console.log(`✅ Found ${filtered.length} results`);
+        console.log(`✅ Found ${results.length} results from ${snapshot.size} products`);
         
-        // Store all results
-        setAllFilteredResults(filtered);
-        
-        // Display only first 20 results
-        setSearchResults(filtered.slice(0, displayLimit));
-        setHasMore(filtered.length > displayLimit);
+        // عرض أول 20 منتج
+        setSearchResults(results.slice(0, displayLimit));
         setLoading(false);
         
       } catch (error) {
         console.error('❌ Search error:', error);
         setLoading(false);
       }
-    }, 300); // Reduced debounce time from 400ms to 300ms
+    }, 300); // 300ms debounce
 
     return () => clearTimeout(timer);
-  }, [searchQuery, displayLimit, allSabMarketProducts]);
+  }, [searchQuery, displayLimit]);
 
-  // Load more products - تحميل المزيد من المنتجات
-  const loadMore = () => {
-    const newLimit = displayLimit + 20;
-    setDisplayLimit(newLimit);
-    setSearchResults(allFilteredResults.slice(0, newLimit));
-    setHasMore(allFilteredResults.length > newLimit);
-  };
+  // ✅ REMOVED: Load more - لن نحتاجه لأننا نجلب 100 منتج فقط
+  // المستخدم يمكنه تحسين البحث بكلمات أكثر دقة
 
   // Fetch wishlist
   useEffect(() => {
@@ -248,22 +186,21 @@ export default function SearchScreen() {
       </View>
 
       {/* Content */}
-      {initialLoading ? (
+      {loading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={Colors.primary} />
           <Text style={styles.loadingText}>
-            {language === 'ar' ? 'جاري تحميل المنتجات...' : 'Loading products...'}
+            {language === 'ar' ? 'جاري البحث...' : 'Searching...'}
           </Text>
         </View>
-      ) : loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-        </View>
-      ) : searchQuery.length === 0 ? (
+      ) : searchQuery.length < 2 ? (
         <View style={styles.center}>
           <Feather name="search" size={64} color={Colors.gray[300]} />
           <Text style={styles.emptyTitle}>
             {language === 'ar' ? 'ابحث عن المنتجات' : 'Search for products'}
+          </Text>
+          <Text style={styles.emptySubtitle}>
+            {language === 'ar' ? 'اكتب حرفين على الأقل' : 'Type at least 2 characters'}
           </Text>
         </View>
       ) : searchResults.length === 0 ? (
@@ -305,32 +242,24 @@ export default function SearchScreen() {
             </View>
           )}
           ListHeaderComponent={
-            <View style={styles.resultsHeader}>
-              <Text style={styles.count}>
-                {language === 'ar' 
-                  ? `عرض ${searchResults.length} من ${allFilteredResults.length} منتج`
-                  : `Showing ${searchResults.length} of ${allFilteredResults.length} products`
-                }
-              </Text>
-            </View>
+            searchResults.length > 0 ? (
+              <View style={styles.resultsHeader}>
+                <Text style={styles.count}>
+                  {language === 'ar' 
+                    ? `${searchResults.length} منتج`
+                    : `${searchResults.length} products`
+                  }
+                </Text>
+              </View>
+            ) : null
           }
           ListFooterComponent={
-            hasMore ? (
-              <TouchableOpacity 
-                style={styles.loadMoreButton}
-                onPress={loadMore}
-              >
-                <Text style={styles.loadMoreText}>
-                  {language === 'ar' ? 'تحميل المزيد' : 'Load More'}
-                </Text>
-                <Feather name="chevron-down" size={20} color={Colors.primary} />
-              </TouchableOpacity>
-            ) : searchResults.length > 0 ? (
+            searchResults.length >= 20 ? (
               <View style={styles.endMessage}>
                 <Text style={styles.endMessageText}>
                   {language === 'ar' 
-                    ? `تم عرض جميع المنتجات (${allFilteredResults.length})`
-                    : `All products shown (${allFilteredResults.length})`
+                    ? 'اكتب كلمات أكثر دقة لنتائج أفضل'
+                    : 'Use more specific keywords for better results'
                   }
                 </Text>
               </View>
