@@ -3,6 +3,7 @@
  */
 
 const {onDocumentUpdated, onDocumentCreated} = require('firebase-functions/v2/firestore');
+const {onCall} = require('firebase-functions/v2/https');
 const {setGlobalOptions} = require('firebase-functions/v2');
 const admin = require('firebase-admin');
 
@@ -211,3 +212,259 @@ exports.onOrderStatusUpdate = onDocumentUpdated('orders/{orderId}', async (event
   
   return null;
 });
+
+// ============================================
+// 🔐 Phone OTP Authentication System
+// ============================================
+
+/**
+ * توليد كود OTP مكون من 6 أرقام وإرساله عبر Push Notification
+ */
+exports.sendPhoneOTP = onCall(async (request) => {
+  try {
+    const { phoneNumber, pushToken } = request.data;
+    
+    console.log('📱 Sending OTP to phone:', phoneNumber);
+    
+    // التحقق من البيانات
+    if (!phoneNumber || !pushToken) {
+      console.error('❌ Missing required fields');
+      throw new Error('Phone number and push token are required');
+    }
+    
+    // توليد كود OTP عشوائي من 6 أرقام
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log('🔑 Generated OTP:', otp);
+    
+    // حفظ OTP في Firestore مع مدة صلاحية 5 دقائق
+    const otpDoc = {
+      phoneNumber: phoneNumber,
+      otp: otp,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      expiresAt: admin.firestore.Timestamp.fromDate(
+        new Date(Date.now() + 5 * 60 * 1000) // 5 دقائق
+      ),
+      verified: false,
+      attempts: 0,
+    };
+    
+    await admin.firestore()
+      .collection('phoneOTPs')
+      .doc(phoneNumber)
+      .set(otpDoc);
+    
+    console.log('💾 OTP saved to Firestore');
+    
+    // إرسال Push Notification مع الكود
+    const message = {
+      to: pushToken,
+      sound: 'default',
+      title: 'رمز التحقق | Verification Code',
+      body: `رمز التحقق الخاص بك: ${otp}\nYour verification code: ${otp}`,
+      data: {
+        type: 'phone_otp',
+        otp: otp,
+        phoneNumber: phoneNumber,
+      },
+      priority: 'high',
+      channelId: 'default',
+    };
+    
+    const response = await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(message),
+    });
+    
+    const result = await response.json();
+    console.log('✅ Push notification sent:', result);
+    
+    return {
+      success: true,
+      message: 'OTP sent successfully',
+      expiresIn: 300, // 5 minutes in seconds
+    };
+    
+  } catch (error) {
+    console.error('❌ Error sending OTP:', error);
+    throw new Error(`Failed to send OTP: ${error.message}`);
+  }
+});
+
+/**
+ * التحقق من كود OTP المدخل
+ */
+exports.verifyPhoneOTP = onCall(async (request) => {
+  try {
+    const { phoneNumber, otp } = request.data;
+    
+    console.log('🔍 Verifying OTP for phone:', phoneNumber);
+    
+    // التحقق من البيانات
+    if (!phoneNumber || !otp) {
+      throw new Error('Phone number and OTP are required');
+    }
+    
+    // جلب OTP من Firestore
+    const otpDoc = await admin.firestore()
+      .collection('phoneOTPs')
+      .doc(phoneNumber)
+      .get();
+    
+    if (!otpDoc.exists) {
+      console.error('❌ No OTP found for this phone');
+      throw new Error('No OTP found. Please request a new code.');
+    }
+    
+    const otpData = otpDoc.data();
+    
+    // التحقق من عدد المحاولات
+    if (otpData.attempts >= 5) {
+      console.error('❌ Too many attempts');
+      throw new Error('Too many attempts. Please request a new code.');
+    }
+    
+    // التحقق من انتهاء الصلاحية
+    const now = admin.firestore.Timestamp.now();
+    if (now.toMillis() > otpData.expiresAt.toMillis()) {
+      console.error('❌ OTP expired');
+      await admin.firestore()
+        .collection('phoneOTPs')
+        .doc(phoneNumber)
+        .delete();
+      throw new Error('OTP expired. Please request a new code.');
+    }
+    
+    // التحقق من الكود
+    if (otpData.otp !== otp) {
+      console.error('❌ Invalid OTP');
+      
+      // زيادة عدد المحاولات
+      await admin.firestore()
+        .collection('phoneOTPs')
+        .doc(phoneNumber)
+        .update({
+          attempts: admin.firestore.FieldValue.increment(1)
+        });
+      
+      throw new Error('Invalid OTP. Please try again.');
+    }
+    
+    // الكود صحيح! تحديث الحالة
+    await admin.firestore()
+      .collection('phoneOTPs')
+      .doc(phoneNumber)
+      .update({
+        verified: true,
+        verifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    
+    console.log('✅ OTP verified successfully');
+    
+    // البحث عن المستخدم أو إنشاء حساب جديد
+    let userDoc = await admin.firestore()
+      .collection('users')
+      .where('phoneNumber', '==', phoneNumber)
+      .limit(1)
+      .get();
+    
+    let userId;
+    let isNewUser = false;
+    
+    if (userDoc.empty) {
+      // إنشاء مستخدم جديد
+      console.log('📝 Creating new user');
+      isNewUser = true;
+      
+      const newUserRef = admin.firestore().collection('users').doc();
+      userId = newUserRef.id;
+      
+      await newUserRef.set({
+        uid: userId,
+        phoneNumber: phoneNumber,
+        phoneVerified: true,
+        signInMethod: 'phone',
+        displayName: phoneNumber,
+        fullName: '',
+        email: '',
+        emailVerified: false,
+        photoURL: '',
+        
+        preferences: {
+          language: 'ar',
+          currency: 'USD',
+          notifications: {
+            push: true,
+            email: false,
+            sms: true,
+            orders: true,
+            promotions: true,
+          },
+          theme: 'auto',
+        },
+        
+        stats: {
+          totalOrders: 0,
+          totalSpent: 0,
+          wishlistCount: 0,
+          loyaltyPoints: 0,
+          membershipLevel: 'bronze',
+        },
+        
+        status: {
+          isActive: true,
+          isVerified: true,
+          isBlocked: false,
+          twoFactorEnabled: false,
+        },
+        
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        lastLoginAt: admin.firestore.FieldValue.serverTimestamp(),
+        
+        metadata: {
+          registrationSource: 'phone_otp',
+          deviceInfo: {
+            platform: 'mobile',
+          },
+        },
+      });
+      
+      console.log('✅ New user created:', userId);
+    } else {
+      // تحديث آخر تسجيل دخول
+      const existingUser = userDoc.docs[0];
+      userId = existingUser.id;
+      
+      await admin.firestore()
+        .collection('users')
+        .doc(userId)
+        .update({
+          phoneVerified: true,
+          lastLoginAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      
+      console.log('✅ Existing user updated:', userId);
+    }
+    
+    // حذف OTP بعد التحقق الناجح
+    await admin.firestore()
+      .collection('phoneOTPs')
+      .doc(phoneNumber)
+      .delete();
+    
+    return {
+      success: true,
+      message: 'Phone verified successfully',
+      userId: userId,
+      isNewUser: isNewUser,
+      phoneNumber: phoneNumber,
+    };
+    
+  } catch (error) {
+    console.error('❌ Error verifying OTP:', error);
+    throw new Error(error.message || 'Failed to verify OTP');
+  }
+});
+

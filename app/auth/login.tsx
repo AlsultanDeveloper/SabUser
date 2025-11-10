@@ -24,6 +24,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useApp } from '@/contexts/AppContext';
 import { Colors, Spacing, BorderRadius, FontSizes } from '@/constants/theme';
 import { COUNTRIES, Country } from '@/constants/countries';
+import { sendPhoneOTP } from '@/utils/phoneOTP';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -56,15 +57,38 @@ export default function LoginScreen() {
       Alert.alert(t('common.error'), t('auth.errors.enterPhone'));
       return;
     }
+    
     setLoading(true);
     try {
-      // Phone authentication is not implemented yet
+      // إرسال OTP عبر Push Notification
+      const fullPhoneNumber = `${selectedCountry.code}${phoneNumber}`;
+      console.log('📱 Sending OTP to:', fullPhoneNumber);
+      
+      const result = await sendPhoneOTP(fullPhoneNumber);
+      
+      if (result.success) {
+        console.log('✅ OTP sent successfully');
+        // الانتقال إلى شاشة إدخال الكود
+        router.push({
+          pathname: '/auth/verify-otp',
+          params: { phoneNumber: fullPhoneNumber },
+        });
+      } else {
+        Alert.alert(
+          language === 'ar' ? 'خطأ' : 'Error',
+          result.error || (language === 'ar' 
+            ? 'فشل إرسال رمز التحقق' 
+            : 'Failed to send verification code')
+        );
+      }
+    } catch (error: any) {
+      console.error('❌ Error sending OTP:', error);
       Alert.alert(
         t('common.error'),
-        t('auth.errors.phoneAuthNote')
+        language === 'ar' 
+          ? 'حدث خطأ أثناء إرسال رمز التحقق. يرجى المحاولة مرة أخرى.'
+          : 'An error occurred while sending the verification code. Please try again.'
       );
-    } catch (error: any) {
-      Alert.alert(t('common.error'), error.message);
     } finally {
       setLoading(false);
     }

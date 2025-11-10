@@ -14,6 +14,7 @@ import {
 } from "firebase/auth";
 import { getFirestore, Firestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getStorage, FirebaseStorage, connectStorageEmulator } from "firebase/storage";
+import { getFunctions, Functions, connectFunctionsEmulator } from "firebase/functions";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // React Native Persistence Adapter
@@ -84,6 +85,7 @@ let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 let storage: FirebaseStorage;
+let functions: Functions;
 
 try {
   app = getApps().length ? getApp() : initializeApp(firebaseConfig);
@@ -114,12 +116,17 @@ try {
   console.log('✅ Firestore initialized with optimized settings');
   
   storage = getStorage(app);
+  
+  // Initialize Cloud Functions
+  functions = getFunctions(app);
+  console.log('✅ Cloud Functions initialized');
 
   if (USE_EMULATORS) {
     try {
       connectFirestoreEmulator(db, "127.0.0.1", 8080);
       connectStorageEmulator(storage, "127.0.0.1", 9199);
-      console.log("ℹ️ Connected to Firebase emulators (Firestore, Storage).");
+      connectFunctionsEmulator(functions, "127.0.0.1", 5001);
+      console.log("ℹ️ Connected to Firebase emulators (Firestore, Storage, Functions).");
     } catch (e) {
       console.warn("Emulator connection failed (ignored):", e);
     }
@@ -150,5 +157,5 @@ export const signOutSafely = async () => {
 };
 
 // -------------------- Exports --------------------
-export { app, auth, db, storage, isConfigValid, isConfigValid as isConfigured };
+export { app, auth, db, storage, functions, isConfigValid, isConfigValid as isConfigured };
 export type { FirebaseApp };

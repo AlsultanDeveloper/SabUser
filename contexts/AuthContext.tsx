@@ -735,6 +735,58 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     }
   }, []);
 
+  // ---- Phone OTP Sign In ----
+  const signInWithPhoneOTP = useCallback(async (userId: string, phoneNumber: string) => {
+    try {
+      console.log('📱 Completing phone OTP sign-in for user:', userId);
+      
+      if (!isConfigured || !db) {
+        return { success: false, error: 'Firebase is not configured.' };
+      }
+
+      // جلب بيانات المستخدم من Firestore
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      
+      if (!userDoc.exists()) {
+        console.error('❌ User not found in Firestore');
+        return { success: false, error: 'User not found' };
+      }
+
+      const userData = userDoc.data();
+      
+      // إنشاء كائن User مؤقت لتحديث الـ state
+      const mockUser = {
+        uid: userId,
+        email: userData.email || null,
+        displayName: userData.displayName || userData.phoneNumber || 'User',
+        photoURL: userData.photoURL || null,
+        phoneNumber: phoneNumber,
+        emailVerified: userData.emailVerified || false,
+        providerId: 'phone',
+        isAnonymous: false,
+      } as User;
+
+      // تحديث state
+      setState(prev => ({ ...prev, user: mockUser, loading: false }));
+      
+      // حفظ في AsyncStorage
+      await AsyncStorage.setItem('user', JSON.stringify({
+        uid: userId,
+        email: userData.email,
+        displayName: userData.displayName,
+        photoURL: userData.photoURL,
+        phoneNumber: phoneNumber,
+      }));
+      
+      console.log('✅ Phone OTP sign-in completed successfully');
+      
+      return { success: true, user: mockUser };
+    } catch (error: any) {
+      console.error('❌ Phone OTP sign-in error:', error);
+      return { success: false, error: error.message };
+    }
+  }, []);
+
   return useMemo(
     () => ({
       user: state.user,
@@ -744,9 +796,10 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       signUpWithEmail,
       signInWithGoogle,
       signInWithApple,
+      signInWithPhoneOTP,
       signOut,
     }),
-    [state.user, state.loading, signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, signOut]
+    [state.user, state.loading, signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, signInWithPhoneOTP, signOut]
   );
 });
 
