@@ -47,7 +47,6 @@ async function initSettings() {
         maintenanceMode: false,
         features: {
           cart: true,
-          wishlist: true,
           notifications: true,
           gps: true
         }

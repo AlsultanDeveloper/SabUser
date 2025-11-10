@@ -207,7 +207,6 @@ export interface UserAddress {
 export interface UserStats {
   totalOrders: number;
   totalSpent: number;
-  wishlistCount: number;
   loyaltyPoints: number;
   membershipLevel: MembershipLevel;
 }

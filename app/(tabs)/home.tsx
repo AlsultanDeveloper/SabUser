@@ -33,7 +33,7 @@ const BANNER_WIDTH = width - Spacing.md * 2;
 
 // بيانات المنتجات التجريبية - 10 منتجات متنوعة
 // كومبونت لعرض بطاقة Amazon فقط
-const ProductCardDisplay = ({ product, language, formatPrice, router, user, wishlistItems, onWishlistUpdate, addToCart }: any) => {
+const ProductCardDisplay = ({ product, language, formatPrice, router, user, addToCart }: any) => {
   const handlePress = () => {
     console.log('Product pressed:', product.id);
     router.push(`/product/${product.id}`);
@@ -52,141 +52,12 @@ const ProductCardDisplay = ({ product, language, formatPrice, router, user, wish
     }
   };
 
-  const handleWishlist = async (productId: string) => {
-    // Check if user is authenticated
-    if (!user?.uid) {
-      Alert.alert(
-        language === 'ar' ? 'تسجيل الدخول مطلوب' : 'Login Required',
-        language === 'ar' ? 'يرجى تسجيل الدخول لإضافة المنتجات إلى قائمة الأمنيات' : 'Please log in to add products to your wishlist',
-        [
-          { text: language === 'ar' ? 'إلغاء' : 'Cancel', style: 'cancel' },
-          { text: language === 'ar' ? 'تسجيل الدخول' : 'Login', onPress: () => router.push('/auth/login') }
-        ]
-      );
-      return;
-    }
-
-    try {
-      // استيراد Firebase Auth للتحقق من الجلسة
-      const { auth } = await import('@/constants/firebase');
-      const currentUser = auth?.currentUser;
-      
-      // التحقق من وجود المستخدم في Firebase Auth
-      if (!currentUser) {
-        console.warn('⚠️ Firebase Auth currentUser is null, but context has user');
-        Alert.alert(
-          language === 'ar' ? 'انتهت الجلسة' : 'Session Expired',
-          language === 'ar' ? 'يرجى إعادة تسجيل الدخول للمتابعة' : 'Please log in again to continue',
-          [
-            { text: language === 'ar' ? 'إلغاء' : 'Cancel', style: 'cancel' },
-            { 
-              text: language === 'ar' ? 'تسجيل الدخول' : 'Login', 
-              onPress: () => router.push('/auth/login') 
-            }
-          ]
-        );
-        return;
-      }
-      
-      // محاولة تحديث الـ token
-      try {
-        await currentUser.getIdToken(true);
-        console.log('✅ Token refreshed successfully');
-      } catch (tokenError) {
-        console.error('❌ Failed to refresh token:', tokenError);
-        Alert.alert(
-          language === 'ar' ? 'انتهت الجلسة' : 'Session Expired',
-          language === 'ar' ? 'يرجى إعادة تسجيل الدخول للمتابعة' : 'Please log in again to continue',
-          [
-            { text: language === 'ar' ? 'إلغاء' : 'Cancel', style: 'cancel' },
-            { 
-              text: language === 'ar' ? 'تسجيل الدخول' : 'Login', 
-              onPress: () => router.push('/auth/login') 
-            }
-          ]
-        );
-        return;
-      }
-      
-      // استيراد الدوال من firestore
-      const { createDocument, deleteDocument, getDocuments, collections, where } = await import('@/constants/firestore');
-      
-      console.log('🔍 Wishlist operation for user:', user.uid, 'product:', productId);
-      
-      // تحقق إذا كان المنتج موجود في wishlist
-      const existingItems = await getDocuments(collections.wishlists, [
-        where('userId', '==', user.uid),
-        where('productId', '==', productId),
-      ]);
-
-      if (existingItems.length > 0) {
-        // إزالة من wishlist
-        await deleteDocument(collections.wishlists, existingItems[0].id);
-        console.log('❌ Removed from wishlist:', productId);
-        
-        if (Platform.OS !== 'web') {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        }
-      } else {
-        // إضافة إلى wishlist
-        await createDocument(collections.wishlists, {
-          userId: user.uid,
-          productId: productId,
-          createdAt: new Date().toISOString(),
-        });
-        console.log('✅ Added to wishlist:', productId);
-        
-        if (Platform.OS !== 'web') {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        }
-      }
-
-      // تحديث القائمة
-      onWishlistUpdate?.();
-    } catch (error: any) {
-      console.error('❌ Wishlist error:', error);
-      console.error('❌ Error code:', error?.code);
-      console.error('❌ Error message:', error?.message);
-      
-      // Handle authentication errors
-      if (error?.message?.includes('must be logged in') || 
-          error?.message?.includes('logged in to perform') ||
-          error?.code === 'permission-denied' || 
-          error?.message?.includes('permissions') || 
-          error?.message?.includes('Missing or insufficient permissions')) {
-        console.warn('⚠️ Wishlist operation requires valid authentication');
-        Alert.alert(
-          language === 'ar' ? 'انتهت الجلسة' : 'Session Expired',
-          language === 'ar' ? 'يرجى إعادة تسجيل الدخول للمتابعة' : 'Please log in again to continue',
-          [
-            { text: language === 'ar' ? 'إلغاء' : 'Cancel', style: 'cancel' },
-            { 
-              text: language === 'ar' ? 'تسجيل الدخول' : 'Login', 
-              onPress: () => router.push('/auth/login') 
-            }
-          ]
-        );
-        return;
-      }
-      
-      // Show generic error for other cases
-      Alert.alert(
-        language === 'ar' ? 'خطأ' : 'Error',
-        language === 'ar' ? 'حدث خطأ أثناء تحديث قائمة الأمنيات' : 'Error updating wishlist'
-      );
-    }
-  };
-
-  const isInWishlist = wishlistItems?.some((item: any) => item.productId === product.id) || false;
-
   return (
     <AmazonStyleProductCard
       product={product}
       onPress={handlePress}
       formatPrice={formatPrice}
       language={language}
-      onToggleWishlist={handleWishlist}
-      isInWishlist={isInWishlist}
       onAddToCart={handleAddToCart}
     />
   );
@@ -224,10 +95,6 @@ export default function HomeScreen() {
   
   // State للبروفايل (للاستخدام المستقبلي)
   const [userProfile] = useState<any>(null);
-
-  // State لـ Wishlist
-  const [wishlistItems, setWishlistItems] = useState<any[]>([]);
-
   // دالة تنسيق السعر الآمنة
   const formatPrice = (price: number) => {
     try {
@@ -292,55 +159,17 @@ export default function HomeScreen() {
     return () => clearInterval(interval);
   }, [user]);
 
-  // Fetch wishlist items
-  useEffect(() => {
-    const fetchWishlist = async () => {
-      if (!user?.uid) {
-        setWishlistItems([]);
-        return;
-      }
-
-      try {
-        const items = await getDocuments(collections.wishlists, [
-          where('userId', '==', user.uid),
-        ]);
-        setWishlistItems(items);
-      } catch (error) {
-        // Silently handle permission errors - user might not be fully authenticated yet
-        console.warn('Could not fetch wishlist:', error);
-        setWishlistItems([]);
-      }
-    };
-
-    fetchWishlist();
-  }, [user]);
-
-  // تحديث wishlist بعد التغيير
-  const handleWishlistUpdate = useCallback(async () => {
-    if (!user?.uid) return;
-    
-    try {
-      const items = await getDocuments(collections.wishlists, [
-        where('userId', '==', user.uid),
-      ]);
-      setWishlistItems(items);
-    } catch (error) {
-      console.error('Error updating wishlist:', error);
-    }
-  }, [user]);
-
   // Refresh handler
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
       await refetchCategories();
-      await handleWishlistUpdate();
     } catch (error) {
       console.error('Error refreshing data:', error);
     } finally {
       setRefreshing(false);
     }
-  }, [refetchCategories, handleWishlistUpdate]);
+  }, [refetchCategories]);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
@@ -704,8 +533,6 @@ export default function HomeScreen() {
                       formatPrice={formatPrice}
                       router={router}
                       user={user}
-                      wishlistItems={wishlistItems}
-                      onWishlistUpdate={handleWishlistUpdate}
                       addToCart={addToCart}
                     />
                   ))}

@@ -191,18 +191,6 @@ export default function AccountScreen() {
           <TouchableOpacity 
             style={styles.menuItem} 
             activeOpacity={0.7}
-            onPress={() => router.push('/(tabs)/wishlist' as any)}
-          >
-            <View style={styles.menuItemLeft}>
-              <Feather name="heart" size={22} color="#111827" />
-              <Text style={styles.menuItemText}>{t('account.wishlist')}</Text>
-            </View>
-            <Feather name="chevron-right" size={20} color={Colors.gray[400]} />
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.menuItem} 
-            activeOpacity={0.7}
             onPress={() => router.push('/notifications' as any)}
           >
             <View style={styles.menuItemLeft}>

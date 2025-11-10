@@ -27,7 +27,6 @@ export const collections = {
   addresses: 'addresses',
   reviews: 'reviews',
   cart: 'carts',
-  wishlists: 'wishlists',
   brands: 'brands',
   notifications: 'notifications',
   userNotifications: 'userNotifications',
@@ -101,7 +100,7 @@ export async function createDocument<T extends WithFieldValue<DocumentData>>(
     }
     
     // Check if user is authenticated (for collections that require auth)
-    const authRequiredCollections = ['wishlists', 'orders', 'addresses', 'reviews', 'userNotifications'];
+    const authRequiredCollections = ['orders', 'addresses', 'reviews', 'userNotifications'];
     if (authRequiredCollections.includes(collectionName)) {
       const { auth } = await import('./firebase');
       const currentUser = auth?.currentUser;
@@ -188,7 +187,7 @@ export async function deleteDocument(
     }
     
     // Check if user is authenticated (for collections that require auth)
-    const authRequiredCollections = ['wishlists', 'orders', 'addresses', 'reviews', 'userNotifications'];
+    const authRequiredCollections = ['orders', 'addresses', 'reviews', 'userNotifications'];
     if (authRequiredCollections.includes(collectionName)) {
       const { auth } = await import('./firebase');
       const currentUser = auth?.currentUser;

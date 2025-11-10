@@ -45,9 +45,12 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       try {
         const savedUser = await AsyncStorage.getItem('user');
         if (savedUser) {
-          console.log('📱 Loaded persisted session from AsyncStorage');
-          // Don't set user here - let onAuthStateChanged handle it
-          // This just ensures Firebase Auth is initialized
+          console.log('📱 Found persisted session in AsyncStorage');
+          console.log('⏳ Waiting for Firebase Auth to restore session...');
+          // ✅ لا نفعل شيء هنا - نترك onAuthStateChanged يُعيد الجلسة
+          // Firebase Auth سيستعيد الجلسة تلقائياً من تخزينه الخاص
+        } else {
+          console.log('ℹ️ No persisted session found in AsyncStorage');
         }
       } catch (error) {
         console.error('❌ Failed to load persisted session:', error);
@@ -363,12 +366,48 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       setState(prev => ({ ...prev, loading: false }));
       return;
     }
+    
+    let authRestored = false;
+    
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setState(prev => ({ ...prev, user, loading: false }));
-      console.log('Auth state changed:', user?.uid);
+      console.log('🔐 Firebase Auth state changed:', user?.uid || 'Not signed in');
       
-      // Persist user session to AsyncStorage
+      // ⚠️ إذا Firebase Auth قال "لا يوجد مستخدم" بعد Reload
+      if (!user && !authRestored) {
+        console.log('⚠️ Firebase Auth lost session after reload, checking AsyncStorage...');
+        try {
+          const savedUser = await AsyncStorage.getItem('user');
+          if (savedUser) {
+            const userData = JSON.parse(savedUser);
+            console.log('📱 Found session in AsyncStorage, restoring state...');
+            
+            // ✅ استعادة الـ state مؤقتاً
+            setState(prev => ({
+              ...prev,
+              user: {
+                uid: userData.uid,
+                email: userData.email,
+                displayName: userData.displayName,
+                photoURL: userData.photoURL,
+              } as any,
+              loading: false,
+            }));
+            
+            authRestored = true;
+            console.log('✅ Session restored from AsyncStorage (Firebase Auth will sync soon)');
+            return; // لا نحدث state مرة أخرى
+          }
+        } catch (error) {
+          console.error('❌ Failed to restore from AsyncStorage:', error);
+        }
+      }
+      
+      // ✅ تحديث الـ state من Firebase Auth
+      setState(prev => ({ ...prev, user, loading: false }));
+      
+      // حفظ أو حذف الجلسة في AsyncStorage
       if (user) {
+        authRestored = false; // reset flag
         try {
           await AsyncStorage.setItem('user', JSON.stringify({
             uid: user.uid,
@@ -381,10 +420,15 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
           console.error('❌ Failed to save user session:', error);
         }
       } else {
-        await AsyncStorage.removeItem('user');
-        console.log('✅ User session cleared from AsyncStorage');
+        try {
+          await AsyncStorage.removeItem('user');
+          console.log('✅ User session cleared from AsyncStorage');
+        } catch (error) {
+          console.error('❌ Failed to clear AsyncStorage:', error);
+        }
       }
     });
+    
     return () => unsubscribe();
   }, []);
 
@@ -484,7 +528,6 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         stats: {
           totalOrders: 0,
           totalSpent: 0,
-          wishlistCount: 0,
           loyaltyPoints: 0,
           membershipLevel: 'bronze',
         },
@@ -586,7 +629,6 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
               stats: {
                 totalOrders: 0,
                 totalSpent: 0,
-                wishlistCount: 0,
                 loyaltyPoints: 0,
                 membershipLevel: 'bronze',
               },
@@ -659,7 +701,6 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             stats: {
               totalOrders: 0,
               totalSpent: 0,
-              wishlistCount: 0,
               loyaltyPoints: 0,
               membershipLevel: 'bronze',
             },
@@ -699,6 +740,51 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         return { success: false, cancelled: true };
       }
       return { success: false, error: error.message };
+    }
+  }, []);
+
+  // ---- Delete Account ----
+  const deleteAccount = useCallback(async () => {
+    try {
+      if (!isConfigured || !auth || !auth.currentUser) {
+        console.error('❌ Firebase not configured or no user signed in');
+        return { success: false, error: 'No user signed in or Firebase not configured.' };
+      }
+
+      const userId = auth.currentUser.uid;
+      console.log('🗑️ Deleting account for user:', userId);
+
+      // Delete user document from Firestore (if exists)
+      if (db) {
+        try {
+          const userDocRef = doc(db, 'users', userId);
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            await setDoc(userDocRef, { deleted: true, deletedAt: new Date().toISOString() }, { merge: true });
+            console.log('✅ User document marked as deleted');
+          }
+        } catch (firestoreError) {
+          console.warn('⚠️ Could not delete user document:', firestoreError);
+          // Continue with account deletion even if Firestore fails
+        }
+      }
+
+      // Delete Firebase Auth account
+      await auth.currentUser.delete();
+      console.log('✅ Firebase Auth account deleted');
+
+      // Clear AsyncStorage
+      await AsyncStorage.removeItem('user');
+      console.log('✅ AsyncStorage cleared');
+
+      // Clear state
+      setState({ user: null, loading: false, phoneVerificationId: null });
+      console.log('✅ Auth state cleared');
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('❌ Delete account error:', error);
+      return { success: false, error: error.message || 'Failed to delete account' };
     }
   }, []);
 
@@ -797,9 +883,10 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       signInWithGoogle,
       signInWithApple,
       signInWithPhoneOTP,
+      deleteAccount,
       signOut,
     }),
-    [state.user, state.loading, signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, signInWithPhoneOTP, signOut]
+    [state.user, state.loading, signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, signInWithPhoneOTP, deleteAccount, signOut]
   );
 });
 

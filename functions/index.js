@@ -406,7 +406,6 @@ exports.verifyPhoneOTP = onCall(async (request) => {
         stats: {
           totalOrders: 0,
           totalSpent: 0,
-          wishlistCount: 0,
           loyaltyPoints: 0,
           membershipLevel: 'bronze',
         },

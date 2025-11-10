@@ -26,7 +26,6 @@ export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
-  const [wishlistItems, setWishlistItems] = useState<any[]>([]);
   const displayLimit = 20; // ثابت - نعرض 20 منتج دائماً
   
   // ✅ OPTIMIZED: بحث مباشر في Firebase بدون تحميل كل المنتجات
@@ -55,12 +54,12 @@ export default function SearchScreen() {
         
         console.log(`🔎 Searching Firebase directly for: "${queryTrimmed}"`);
         
-        // ✅ OPTIMIZED: نجلب فقط أول 100 منتج من Sab Market
+        // ✅ OPTIMIZED: نجلب أول 1000 منتج من Sab Market للبحث الشامل
         const productsRef = collection(db, 'products');
         const q = query(
           productsRef,
           where('categoryId', '==', 'cwt28D5gjoLno8SFqoxQ'),
-          limit(100) // جلب 100 فقط للبحث فيهم
+          limit(1000) // جلب 1000 منتج للبحث فيهم (من أصل 26,000)
         );
         
         const snapshot = await getDocs(q);
@@ -104,141 +103,6 @@ export default function SearchScreen() {
 
   // ✅ REMOVED: Load more - لن نحتاجه لأننا نجلب 100 منتج فقط
   // المستخدم يمكنه تحسين البحث بكلمات أكثر دقة
-
-  // Fetch wishlist
-  useEffect(() => {
-    const fetchWishlist = async () => {
-      if (!user?.uid) {
-        setWishlistItems([]);
-        return;
-      }
-
-      try {
-        const { getDocuments, collections, where } = await import('@/constants/firestore');
-        const items = await getDocuments(collections.wishlists, [
-          where('userId', '==', user.uid),
-        ]);
-        setWishlistItems(items);
-      } catch (error) {
-        // Silently handle permission errors
-        console.warn('Could not fetch wishlist:', error);
-        setWishlistItems([]);
-      }
-    };
-
-    fetchWishlist();
-  }, [user]);
-
-  const handleWishlist = async (productId: string) => {
-    // Check if user is authenticated
-    if (!user?.uid) {
-      const { Alert } = await import('react-native');
-      Alert.alert(
-        language === 'ar' ? 'تسجيل الدخول مطلوب' : 'Login Required',
-        language === 'ar' ? 'يرجى تسجيل الدخول لإضافة المنتجات إلى قائمة الأمنيات' : 'Please log in to add products to your wishlist',
-        [
-          { text: language === 'ar' ? 'إلغاء' : 'Cancel', style: 'cancel' },
-          { text: language === 'ar' ? 'تسجيل الدخول' : 'Login', onPress: () => router.push('/auth/login') }
-        ]
-      );
-      return;
-    }
-    
-    try {
-      const { createDocument, deleteDocument, getDocuments, collections, where } = await import('@/constants/firestore');
-      const { auth } = await import('@/constants/firebase');
-      
-      // Verify Firebase Auth token is valid
-      const currentUser = auth?.currentUser;
-      
-      console.log('🔍 Auth Debug:', {
-        hasUser: !!user,
-        userUid: user?.uid,
-        hasCurrentUser: !!currentUser,
-        currentUserUid: currentUser?.uid,
-        match: user?.uid === currentUser?.uid
-      });
-      
-      if (!currentUser) {
-        const { Alert } = await import('react-native');
-        console.warn('⚠️ User context exists but Firebase Auth currentUser is null');
-        console.warn('⚠️ This usually means the auth state is not synced');
-        Alert.alert(
-          language === 'ar' ? 'خطأ في المصادقة' : 'Authentication Error',
-          language === 'ar' ? 'يرجى إعادة تسجيل الدخول' : 'Please log in again',
-          [
-            { text: language === 'ar' ? 'إلغاء' : 'Cancel', style: 'cancel' },
-            { text: language === 'ar' ? 'تسجيل الدخول' : 'Login', onPress: () => router.push('/auth/login') }
-          ]
-        );
-        return;
-      }
-      
-      // Force a token refresh to ensure we have a valid token
-      try {
-        await currentUser.getIdToken(true);
-        console.log('✅ Token refreshed successfully');
-      } catch (tokenError) {
-        console.error('❌ Failed to refresh token:', tokenError);
-        const { Alert } = await import('react-native');
-        Alert.alert(
-          language === 'ar' ? 'خطأ في المصادقة' : 'Authentication Error',
-          language === 'ar' ? 'انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى' : 'Session expired. Please log in again',
-          [
-            { text: language === 'ar' ? 'إلغاء' : 'Cancel', style: 'cancel' },
-            { text: language === 'ar' ? 'تسجيل الدخول' : 'Login', onPress: () => router.push('/auth/login') }
-          ]
-        );
-        return;
-      }
-      
-      const existingItems = await getDocuments(collections.wishlists, [
-        where('userId', '==', user.uid),
-        where('productId', '==', productId),
-      ]);
-
-      if (existingItems.length > 0) {
-        await deleteDocument(collections.wishlists, existingItems[0].id);
-        console.log('❌ Removed from wishlist:', productId);
-      } else {
-        await createDocument(collections.wishlists, {
-          userId: user.uid,
-          productId: productId,
-          createdAt: new Date().toISOString(),
-        });
-        console.log('✅ Added to wishlist:', productId);
-      }
-
-      const items = await getDocuments(collections.wishlists, [
-        where('userId', '==', user.uid),
-      ]);
-      setWishlistItems(items);
-    } catch (error: any) {
-      console.error('❌ Wishlist error:', error);
-      console.error('❌ Error code:', error?.code);
-      console.error('❌ Error message:', error?.message);
-      
-      // Handle permission errors silently for guest users
-      if (error?.code === 'permission-denied' || error?.message?.includes('permissions') || error?.message?.includes('logged in')) {
-        const { Alert } = await import('react-native');
-        console.warn('⚠️ Wishlist operation requires authentication');
-        Alert.alert(
-          language === 'ar' ? 'تسجيل الدخول مطلوب' : 'Login Required',
-          language === 'ar' ? 'يرجى تسجيل الدخول لإضافة المنتجات إلى قائمة الأمنيات' : 'Please log in to add products to your wishlist',
-          [
-            { text: language === 'ar' ? 'إلغاء' : 'Cancel', style: 'cancel' },
-            { text: language === 'ar' ? 'تسجيل الدخول' : 'Login', onPress: () => router.push('/auth/login') }
-          ]
-        );
-        return;
-      }
-      const { Alert } = await import('react-native');
-      Alert.alert(
-        language === 'ar' ? 'خطأ' : 'Error',
-        language === 'ar' ? 'حدث خطأ أثناء تحديث قائمة الأمنيات' : 'Error updating wishlist'
-      );
-    }
-  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -322,8 +186,6 @@ export default function SearchScreen() {
                 onPress={() => router.push(`/product/${item.id}` as any)}
                 formatPrice={formatPrice}
                 language={language}
-                onToggleWishlist={() => handleWishlist(item.id)}
-                isInWishlist={wishlistItems?.some((w: any) => w.productId === item.id) || false}
               />
             </View>
           )}

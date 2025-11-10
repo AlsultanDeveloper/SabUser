@@ -20,8 +20,6 @@ interface AmazonStyleProductCardProps {
   onPress: () => void;
   formatPrice: (price: number) => string;
   language?: string;
-  onToggleWishlist?: (productId: string) => void;
-  isInWishlist?: boolean;
   onAddToCart?: (product: any) => void;
 }
 
@@ -30,35 +28,14 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
   onPress,
   formatPrice,
   language = 'en',
-  onToggleWishlist,
-  isInWishlist = false,
   onAddToCart,
 }: AmazonStyleProductCardProps) {
   
   // Early return if product is invalid
   if (!product || typeof product !== 'object') {
-    console.warn('Invalid product data:', product);
     return null;
   }
   
-  // Debug log to see what's in the product - only log once per render
-  if (Math.random() < 0.05) { // Log 5% of products to avoid spam
-    console.log('\n🔍 Product Image Debug:');
-    console.log('  Product ID:', product.id);
-    console.log('  Product name:', product.name);
-    console.log('  product.image:', product.image);
-    console.log('  product.images:', product.images);
-    console.log('  product.imageUrl:', product.imageUrl);
-    console.log('  Final URL:', getProductImageUrl(product, 400));
-  }
-  
-  const handleWishlistPress = () => {
-    if (Platform.OS === 'ios') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-    onToggleWishlist?.(product.id);
-  };
-
   const handleAddToCart = () => {
     if (Platform.OS === 'ios') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -153,21 +130,6 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
             <View style={styles.discountBadge}>
               <Text style={styles.discountText}>{`-${Math.round(product.discount)}%`}</Text>
             </View>
-          ) : null}
-
-          {onToggleWishlist ? (
-            <TouchableOpacity
-              style={styles.wishlistButton}
-              onPress={handleWishlistPress}
-              activeOpacity={0.7}
-            >
-              <Feather
-                name="heart"
-                size={16}
-                color={isInWishlist ? '#FF6B6B' : '#666'}
-                style={{ opacity: isInWishlist ? 1 : 0.7 }}
-              />
-            </TouchableOpacity>
           ) : null}
         </View>
 
@@ -292,25 +254,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '600',
-  },
-  wishlistButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
   productInfo: {
     padding: 8,

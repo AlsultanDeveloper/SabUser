@@ -11,7 +11,6 @@ import { useApp } from '@/contexts/AppContext';
 export default function FeaturedProducts() {
   const router = useRouter();
   const { language, formatPrice: appFormatPrice } = useApp();
-  const [wishlist, setWishlist] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('featured');
   const [displayLimit, setDisplayLimit] = useState(20);
   
@@ -28,14 +27,8 @@ export default function FeaturedProducts() {
   };
 
   const handleProductPress = (product: any) => {
-    console.log('Product pressed:', product.name);
-  };
-
-  const handleToggleWishlist = (productId: string) => {
-    setWishlist(prev => 
-      prev.includes(productId) 
-        ? prev.filter(id => id !== productId)
-        : [...prev, productId]
+    console.log('Product pressed:', product.id, 
+      typeof product.name === 'object' ? JSON.stringify(product.name) : product.name
     );
   };
 
@@ -78,8 +71,6 @@ export default function FeaturedProducts() {
             onPress={() => handleProductPress(filteredProducts[i])}
             formatPrice={formatPrice}
             language={language}
-            onToggleWishlist={handleToggleWishlist}
-            isInWishlist={wishlist.includes(filteredProducts[i].id)}
           />
           {filteredProducts[i + 1] && (
             <AmazonStyleProductCard
@@ -87,8 +78,6 @@ export default function FeaturedProducts() {
               onPress={() => handleProductPress(filteredProducts[i + 1])}
               formatPrice={formatPrice}
               language={language}
-              onToggleWishlist={handleToggleWishlist}
-              isInWishlist={wishlist.includes(filteredProducts[i + 1].id)}
             />
           )}
         </View>

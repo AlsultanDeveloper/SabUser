@@ -28,7 +28,7 @@ export default function EditProfileScreen() {
   const router = useRouter();
   const { user, deleteAccount } = useAuth();
   
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // ✅ لا حاجة للـ loading - نعرض الصفحة فوراً
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<{
     displayName: string;
@@ -36,9 +36,9 @@ export default function EditProfileScreen() {
     phoneNumber: string | null;
     signInMethod: string;
   }>({
-    displayName: '',
-    email: null,
-    phoneNumber: null,
+    displayName: user?.displayName || '',
+    email: user?.email || null,
+    phoneNumber: user?.phoneNumber || null,
     signInMethod: 'email',
   });
 
@@ -55,35 +55,44 @@ export default function EditProfileScreen() {
 
   const loadUserProfile = async () => {
     if (!user) {
-      setLoading(false);
+      console.log('❌ No user found');
       return;
     }
 
     try {
+      console.log('📝 Loading additional profile data for user:', user.uid);
       const userDoc = await getUserProfile(user.uid);
       
-      const signInMethod = user.providerData[0]?.providerId === 'phone' 
-        ? 'phone' 
-        : user.providerData[0]?.providerId === 'google.com'
-        ? 'google'
-        : user.providerData[0]?.providerId === 'apple.com'
-        ? 'apple'
-        : 'email';
+      if (userDoc) {
+        console.log('📦 User document found:', userDoc);
+        
+        const signInMethod = user.providerData[0]?.providerId === 'phone' 
+          ? 'phone' 
+          : user.providerData[0]?.providerId === 'google.com'
+          ? 'google'
+          : user.providerData[0]?.providerId === 'apple.com'
+          ? 'apple'
+          : 'email';
 
-      // Check if email is Apple Private Relay
-      const email = userDoc?.email || user.email || null;
-      const isPrivateEmail = email?.includes('privaterelay.appleid.com');
+        // Check if email is Apple Private Relay
+        const email = userDoc?.email || user.email || null;
+        const isPrivateEmail = email?.includes('privaterelay.appleid.com');
 
-      setProfile({
-        displayName: userDoc?.displayName || user.displayName || '',
-        email: isPrivateEmail ? 'Private Email 🔒' : email,
-        phoneNumber: userDoc?.phoneNumber || user.phoneNumber || null,
-        signInMethod,
-      });
+        // ✅ تحديث البيانات من Firestore
+        setProfile({
+          displayName: userDoc?.displayName || user.displayName || '',
+          email: isPrivateEmail ? 'Private Email 🔒' : email,
+          phoneNumber: userDoc?.phoneNumber || user.phoneNumber || null,
+          signInMethod,
+        });
+        
+        console.log('✅ Profile updated with Firestore data');
+      } else {
+        console.log('ℹ️ No Firestore document, using Firebase Auth data');
+      }
     } catch (error) {
-      console.error('Error loading profile:', error);
-    } finally {
-      setLoading(false);
+      console.error('❌ Error loading profile:', error);
+      // ✅ في حالة الخطأ، البيانات الأساسية من Firebase Auth موجودة مسبقاً
     }
   };
 
@@ -205,23 +214,7 @@ export default function EditProfileScreen() {
     );
   };
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Feather name="arrow-left" size={24} color={Colors.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t('profile.editProfile')}</Text>
-          <View style={styles.placeholder} />
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
+  // ✅ إزالة شاشة Loading - نعرض الصفحة مباشرة
   const isEmailReadOnly = profile.signInMethod === 'email' || profile.signInMethod === 'google';
   const isPhoneReadOnly = profile.signInMethod === 'phone';
 
@@ -443,11 +436,6 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     width: 40,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   content: {
     flex: 1,

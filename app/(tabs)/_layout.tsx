@@ -158,14 +158,6 @@ export default function TabLayout() {
           href: null,
         }}
       />
-      <Tabs.Screen
-        name="wishlist"
-        options={{
-          title: t('account.wishlist'),
-          headerShown: false,
-          href: null,
-        }}
-      />
     </Tabs>
     
     {/* Floating SAB Button with Bounce Animation */}

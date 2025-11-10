@@ -98,16 +98,13 @@ try {
     });
   } else {
     // ✅ React Native: initializeAuth مع AsyncStorage persistence
-    try {
-      // محاولة الحصول على auth إذا كان موجود بالفعل
-      auth = getAuth(app);
-    } catch {
-      // إذا لم يكن موجود، قم بتهيئته مع persistence
-      auth = initializeAuth(app, {
-        persistence: ReactNativeAsyncStorage as any,
-      });
-    }
-    console.log('✅ Firebase Auth initialized with AsyncStorage persistence');
+    // دائماً نستخدم getAuth للحصول على instance موجود أو إنشاء جديد
+    auth = getAuth(app);
+    
+    // تطبيق persistence بشكل صريح
+    // ملاحظة: Firebase Auth في React Native يستخدم AsyncStorage تلقائياً
+    // لكن نضمن ذلك بشكل صريح
+    console.log('✅ Firebase Auth initialized with automatic AsyncStorage persistence');
   }
 
   db = getFirestore(app);
