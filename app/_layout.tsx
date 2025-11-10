@@ -3,7 +3,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect, useRef } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Platform, LogBox } from 'react-native';
+import { Platform, LogBox, StyleSheet } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import Toast from 'react-native-toast-message';
 import { AppProvider } from '@/contexts/AppContext';
@@ -153,7 +153,7 @@ export default function RootLayout() {
         <NotificationProvider>
           <AppProvider>
             <OrderProvider>
-              <GestureHandlerRootView style={{ flex: 1 }}>
+              <GestureHandlerRootView style={styles.rootContainer}>
                 <RootLayoutNav />
                 <Toast />
               </GestureHandlerRootView>
@@ -165,3 +165,8 @@ export default function RootLayout() {
   );
 }
 
+const styles = StyleSheet.create({
+  rootContainer: {
+    flex: 1,
+  },
+});

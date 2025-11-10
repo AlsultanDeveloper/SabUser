@@ -172,7 +172,7 @@ export default function TabLayout() {
       <TouchableOpacity 
         activeOpacity={0.9}
         onPress={handleSabPress}
-        style={{ width: '100%', height: '100%' }}
+        style={styles.fabTouchable}
       >
         <LinearGradient
           colors={['#0056D2', '#5B3A9D', '#C8102E']}
@@ -249,5 +249,9 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 30, // تصغير من 35 إلى 30 (نفس borderRadius للزر)
+  },
+  fabTouchable: {
+    width: '100%',
+    height: '100%',
   },
 });

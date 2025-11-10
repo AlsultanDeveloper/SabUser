@@ -295,7 +295,7 @@ export default function AccountScreen() {
               <Text style={styles.modalTitle}>{t('account.helpSupport')}</Text>
               <TouchableOpacity 
                 onPress={() => setShowHelpMenu(false)}
-                style={{ padding: 4 }}
+                style={styles.modalCloseButton}
               >
                 <Feather name="x" size={24} color="#6B7280" />
               </TouchableOpacity>
@@ -709,5 +709,8 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     fontWeight: '700' as const,
     letterSpacing: 0.3,
+  },
+  modalCloseButton: {
+    padding: 4,
   },
 });

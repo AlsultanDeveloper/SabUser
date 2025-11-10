@@ -106,7 +106,6 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
           name="star"
           size={12}
           color={i <= rating ? '#FFA41B' : '#E5E5E5'}
-          style={{ marginRight: 1 }}
         />
       );
     }

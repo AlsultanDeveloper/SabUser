@@ -348,8 +348,8 @@ export default function CheckoutDetailsScreen() {
 
           {/* Loading Saved Addresses */}
           {loadingSavedAddresses && (
-            <View style={{ padding: 20, alignItems: 'center' }}>
-              <Text style={{ color: '#6B7280', fontSize: 14 }}>Loading saved addresses...</Text>
+            <View style={styles.loadingAddressesContainer}>
+              <Text style={styles.loadingAddressesText}>Loading saved addresses...</Text>
             </View>
           )}
 
@@ -1058,5 +1058,13 @@ const styles = StyleSheet.create({
   },
   selectedCheckmark: {
     marginLeft: 8,
+  },
+  loadingAddressesContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  loadingAddressesText: {
+    color: '#6B7280',
+    fontSize: 14,
   },
 });

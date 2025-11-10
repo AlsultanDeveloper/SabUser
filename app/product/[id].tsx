@@ -417,7 +417,7 @@ export default function ProductDetailsScreen() {
             <View style={styles.imageCountBadge}>
               <Feather name="image" size={14} color="#FFF" />
               <Text style={styles.imageCountText}>
-                {currentImageIndex + 1}/{product.images.length}
+                {`${currentImageIndex + 1}/${product.images.length}`}
               </Text>
             </View>
           )}
@@ -485,10 +485,12 @@ export default function ProductDetailsScreen() {
         {/* Product Info */}
         <View style={styles.productInfo}>
           {/* Brand */}
-          {(typeof product.brandName === 'string' && product.brandName) || 
-           (typeof product.brand === 'string' && product.brand) ? (
+          {((typeof product.brandName === 'string' && product.brandName.trim()) || 
+           (typeof product.brand === 'string' && product.brand.trim())) ? (
             <Text style={styles.brandText}>
-              {product.brandName || product.brand}
+              {(typeof product.brandName === 'string' && product.brandName.trim()) || 
+               (typeof product.brand === 'string' && product.brand.trim()) || 
+               'Brand'}
             </Text>
           ) : null}
 
@@ -507,16 +509,16 @@ export default function ProductDetailsScreen() {
                     name="star"
                     size={16}
                     color={star <= product.rating ? '#FFA41B' : '#E5E5E5'}
-                    style={{ marginRight: 2 }}
                   />
                 ))}
               </View>
               <Text style={styles.ratingText}>
                 {product.rating.toFixed(1)}
               </Text>
-              {(product.reviews || product.reviewsCount) && (
+              {((typeof product.reviews === 'number' && product.reviews > 0) || 
+                (typeof product.reviewsCount === 'number' && product.reviewsCount > 0)) && (
                 <Text style={styles.reviewsText}>
-                  {`(${product.reviews || product.reviewsCount} ${language === 'ar' ? 'تقييم' : 'reviews'})`}
+                  {`(${product.reviews || product.reviewsCount || 0} ${language === 'ar' ? 'تقييم' : 'reviews'})`}
                 </Text>
               )}
             </View>
@@ -570,7 +572,7 @@ export default function ProductDetailsScreen() {
                       styles.weightText,
                       selectedWeight === weight && styles.weightTextSelected
                     ]}>
-                      {weight} {language === 'ar' ? 'كغ' : 'kg'}
+                      {`${weight} ${language === 'ar' ? 'كغ' : 'kg'}`}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -604,7 +606,7 @@ export default function ProductDetailsScreen() {
                       styles.weightText,
                       selectedPieces === pieces && styles.weightTextSelected
                     ]}>
-                      {pieces} {language === 'ar' ? 'قطعة' : 'pc'}
+                      {`${pieces} ${language === 'ar' ? 'قطعة' : 'pc'}`}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -668,37 +670,40 @@ export default function ProductDetailsScreen() {
                 {isFashionOrMarketProduct() && !selectedColor && <Text style={styles.requiredStar}> *</Text>}
               </Text>
               <View style={styles.colorsContainer}>
-                {product.colors.map((color, index) => (
-                  <TouchableOpacity 
-                    key={index} 
-                    style={[
-                      styles.colorItem,
-                      selectedColor === color && styles.colorItemSelected
-                    ]}
-                    onPress={() => setSelectedColor(color)}
-                  >
-                    <View 
+                {product.colors.map((color, index) => {
+                  const colorHex = color.hex || '#CCC';
+                  return (
+                    <TouchableOpacity 
+                      key={index} 
                       style={[
-                        styles.colorCircle, 
-                        { backgroundColor: color.hex || '#CCC' },
-                        selectedColor === color && styles.colorCircleSelected
-                      ]} 
+                        styles.colorItem,
+                        selectedColor === color && styles.colorItemSelected
+                      ]}
+                      onPress={() => setSelectedColor(color)}
                     >
-                      {selectedColor === color && (
-                        <Feather name="check" size={16} color="#FFF" />
-                      )}
-                    </View>
-                    <Text style={[
-                      styles.colorText,
-                      selectedColor === color && styles.colorTextSelected
-                    ]}>
-                      {language === 'ar' 
-                        ? (typeof color.ar === 'string' ? color.ar : 'Color') 
-                        : (typeof color.en === 'string' ? color.en : 'Color')
-                      }
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                      <View 
+                        style={[
+                          styles.colorCircle, 
+                          { backgroundColor: colorHex },
+                          selectedColor === color && styles.colorCircleSelected
+                        ]} 
+                      >
+                        {selectedColor === color && (
+                          <Feather name="check" size={16} color="#FFF" />
+                        )}
+                      </View>
+                      <Text style={[
+                        styles.colorText,
+                        selectedColor === color && styles.colorTextSelected
+                      ]}>
+                        {language === 'ar' 
+                          ? (typeof color.ar === 'string' ? color.ar : 'Color') 
+                          : (typeof color.en === 'string' ? color.en : 'Color')
+                        }
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
           )}
@@ -821,11 +826,15 @@ export default function ProductDetailsScreen() {
               )}
 
               {/* Brand */}
-              {((typeof product.brandName === 'string' && product.brandName) || 
-                (typeof product.brand === 'string' && product.brand)) && (
+              {((typeof product.brandName === 'string' && product.brandName.trim()) || 
+                (typeof product.brand === 'string' && product.brand.trim())) && (
                 <View style={styles.specRow}>
                   <Feather name="award" size={16} color={Colors.text.secondary} />
-                  <Text style={styles.specValue}>{product.brandName || product.brand}</Text>
+                  <Text style={styles.specValue}>
+                    {(typeof product.brandName === 'string' && product.brandName.trim()) || 
+                     (typeof product.brand === 'string' && product.brand.trim()) || 
+                     'N/A'}
+                  </Text>
                 </View>
               )}
 

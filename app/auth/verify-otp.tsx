@@ -290,7 +290,7 @@ export default function VerifyOTPScreen() {
                     disabled={resendLoading}
                   >
                     {resendLoading ? (
-                      <ActivityIndicator size="small" color="#fff" style={{ marginLeft: 8 }} />
+                      <ActivityIndicator size="small" color="#fff" style={styles.resendLoader} />
                     ) : (
                       <Text style={styles.resendLink}>
                         {language === 'ar' ? 'إعادة إرسال' : 'Resend'}
@@ -439,6 +439,9 @@ const styles = StyleSheet.create({
   hintText: {
     fontSize: FontSizes.sm,
     color: 'rgba(255, 255, 255, 0.7)',
+    marginLeft: 8,
+  },
+  resendLoader: {
     marginLeft: 8,
   },
 });

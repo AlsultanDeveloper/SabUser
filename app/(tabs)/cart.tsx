@@ -202,7 +202,7 @@ export default function NewCartScreen() {
           ))}
         </View>
 
-        <View style={{ height: 100 }} />
+        <View style={styles.bottomSpacer} />
       </ScrollView>
 
       {/* Fixed Bottom: Order Summary + Checkout Button */}
@@ -625,5 +625,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: 'bold',
     color: '#FFF',
+  },
+  bottomSpacer: {
+    height: 100,
   },
 });

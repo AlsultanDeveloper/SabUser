@@ -167,7 +167,7 @@ export default function BrandsScreen() {
             </Text>
           </View>
 
-          <View style={{ height: 20 }} />
+          <View style={styles.bottomSpacer} />
         </ScrollView>
       </View>
   );
@@ -359,5 +359,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
     fontWeight: FontWeights.medium,
+  },
+  bottomSpacer: {
+    height: 20,
   },
 });
