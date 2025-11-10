@@ -38,7 +38,7 @@ export default function CategoryProductsScreen() {
       
       {/* Gradient Header */}
       <LinearGradient
-        colors={['#8B5CF6', '#6366F1']}
+        colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradientHeader}
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     marginRight: Spacing.sm,
   },
   sortButtonActive: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: Colors.primary,
   },
   sortText: {
     fontSize: FontSizes.sm,
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
   price: {
     fontSize: FontSizes.lg,
     fontWeight: FontWeights.bold as any,
-    color: '#8B5CF6',
+    color: Colors.primary,
     marginRight: Spacing.sm,
   },
   originalPrice: {

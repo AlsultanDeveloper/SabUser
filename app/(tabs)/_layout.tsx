@@ -106,7 +106,7 @@ export default function TabLayout() {
         name="categories"
         options={{
           title: t('tabs.categories'),
-          headerTitle: 'Shop by category',
+          headerShown: false,
           tabBarIcon: ({ color, size }) => <Feather name="grid" color={color} size={size} />,
         }}
       />
@@ -128,7 +128,7 @@ export default function TabLayout() {
         name="brands"
         options={{
           title: t('tabs.brands'),
-          headerTitle: t('tabs.brands'),
+          headerShown: false,
           tabBarIcon: ({ color, size }) => <Feather name="tag" color={color} size={size} />,
         }}
       />
@@ -146,7 +146,7 @@ export default function TabLayout() {
         name="cart"
         options={{
           title: t('tabs.cart'),
-          headerTitle: t('tabs.cart'),
+          headerShown: false,
           href: null,
         }}
       />

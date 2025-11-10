@@ -9,8 +9,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useCategories } from '@/hooks/useFirestore';
+import { useApp } from '@/contexts/AppContext';
+import { Colors } from '@/constants/theme';
 import type { Category } from '@/types';
 
 interface CategoryCardProps {
@@ -66,7 +69,7 @@ const CATEGORIES_WITHOUT_SUBCATEGORIES = [
 ];
 
 export default function Categories() {
-  const [language] = useState('en');
+  const { language, t } = useApp();
   const { categories, loading, error, refetch } = useCategories();
 
   // Filter out "Sab Market" category since we have a dedicated floating button for it
@@ -101,7 +104,25 @@ export default function Categories() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientHeader}
+      >
+        <SafeAreaView edges={['top']}>
+          <View style={styles.header}>
+            <View style={styles.headerPlaceholder} />
+            <Text style={styles.headerTitle}>
+              {language === 'ar' ? 'تسوق حسب الفئة' : 'Shop by category'}
+            </Text>
+            <View style={styles.headerPlaceholder} />
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+
       {/* Content */}
       <ScrollView 
         style={styles.scrollContainer}
@@ -155,18 +176,36 @@ export default function Categories() {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F9FAFB',
+  },
+  gradientHeader: {
+    paddingBottom: 12,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  headerPlaceholder: {
+    width: 40,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold' as const,
+    color: '#FFF',
   },
   scrollContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F9FAFB',
   },
   scrollContent: {
     padding: 16,

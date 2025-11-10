@@ -9,9 +9,12 @@ import {
   RefreshControl,
   Image,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import { Colors } from '@/constants/theme';
 import { useApp } from '@/contexts/AppContext';
 import { useProducts, useCategory } from '@/hooks/useFirestore';
 import { db } from '@/constants/firebase';
@@ -229,118 +232,137 @@ export default function CategoryProductsScreen() {
 
   if (loading) {
     return (
-      <>
+      <View style={styles.container}>
         <Stack.Screen 
           options={{ 
             title: pageTitle,
             headerShown: false 
           }} 
         />
-        <View style={[styles.container, { paddingTop: insets.top }]}>
-          <StatusBar barStyle="dark-content" backgroundColor="white" />
-          
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity 
-              style={styles.backButton} 
-              onPress={handleGoBack}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Feather 
-                name={language === 'ar' ? 'chevron-right' : 'chevron-left'} 
-                size={24} 
-                color="#0F172A" 
-              />
-            </TouchableOpacity>
-            
-            <Text style={styles.headerTitle}>{pageTitle}</Text>
-            
-            <View style={styles.placeholder} />
-          </View>
+        
+        {/* Gradient Header */}
+        <LinearGradient
+          colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradientHeader}
+        >
+          <SafeAreaView edges={['top']}>
+            <View style={styles.header}>
+              <TouchableOpacity 
+                style={styles.backButton} 
+                onPress={handleGoBack}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Feather 
+                  name={language === 'ar' ? 'chevron-right' : 'chevron-left'} 
+                  size={24} 
+                  color={Colors.white}
+                />
+              </TouchableOpacity>
+              
+              <Text style={styles.headerTitle}>{pageTitle}</Text>
+              
+              <View style={styles.placeholder} />
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
 
-          {renderLoadingSkeleton()}
-        </View>
-      </>
+        {renderLoadingSkeleton()}
+      </View>
     );
   }
 
   if (error) {
     return (
-      <>
+      <View style={styles.container}>
         <Stack.Screen 
           options={{ 
             title: pageTitle,
             headerShown: false 
           }} 
         />
-        <View style={[styles.container, { paddingTop: insets.top }]}>
-          <StatusBar barStyle="dark-content" backgroundColor="white" />
-          
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity 
-              style={styles.backButton} 
-              onPress={handleGoBack}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Feather 
-                name={language === 'ar' ? 'chevron-right' : 'chevron-left'} 
-                size={24} 
-                color="#0F172A" 
-              />
-            </TouchableOpacity>
-            
-            <Text style={styles.headerTitle}>{pageTitle}</Text>
-            
-            <View style={styles.placeholder} />
-          </View>
+        
+        {/* Gradient Header */}
+        <LinearGradient
+          colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradientHeader}
+        >
+          <SafeAreaView edges={['top']}>
+            <View style={styles.header}>
+              <TouchableOpacity 
+                style={styles.backButton} 
+                onPress={handleGoBack}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Feather 
+                  name={language === 'ar' ? 'chevron-right' : 'chevron-left'} 
+                  size={24} 
+                  color={Colors.white}
+                />
+              </TouchableOpacity>
+              
+              <Text style={styles.headerTitle}>{pageTitle}</Text>
+              
+              <View style={styles.placeholder} />
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
 
-          <View style={styles.errorContainer}>
-            <Feather name="alert-circle" size={64} color="#DC2626" />
-            <Text style={styles.errorTitle}>
-              {language === 'ar' ? 'حدث خطأ' : 'Something went wrong'}
+        <View style={styles.errorContainer}>
+          <Feather name="alert-circle" size={64} color="#DC2626" />
+          <Text style={styles.errorTitle}>
+            {language === 'ar' ? 'حدث خطأ' : 'Something went wrong'}
+          </Text>
+          <Text style={styles.errorMessage}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
+            <Text style={styles.retryButtonText}>
+              {language === 'ar' ? 'إعادة المحاولة' : 'Try Again'}
             </Text>
-            <Text style={styles.errorMessage}>{error}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
-              <Text style={styles.retryButtonText}>
-                {language === 'ar' ? 'إعادة المحاولة' : 'Try Again'}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
         </View>
-      </>
+      </View>
     );
   }
 
   return (
-    <>
+    <View style={styles.container}>
       <Stack.Screen 
         options={{ 
           title: pageTitle,
           headerShown: false 
         }} 
       />
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <StatusBar barStyle="dark-content" backgroundColor="white" />
-        
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity 
-            style={styles.backButton} 
-            onPress={handleGoBack}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Feather 
-              name={language === 'ar' ? 'chevron-right' : 'chevron-left'} 
-              size={24} 
-              color="#0F172A" 
-            />
-          </TouchableOpacity>
-          
-          <Text style={styles.headerTitle}>{pageTitle}</Text>
-          
-          <View style={styles.placeholder} />
-        </View>
+      
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientHeader}
+      >
+        <SafeAreaView edges={['top']}>
+          <View style={styles.header}>
+            <TouchableOpacity 
+              style={styles.backButton} 
+              onPress={handleGoBack}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Feather 
+                name={language === 'ar' ? 'chevron-right' : 'chevron-left'} 
+                size={24} 
+                color={Colors.white}
+              />
+            </TouchableOpacity>
+            
+            <Text style={styles.headerTitle}>{pageTitle}</Text>
+            
+            <View style={styles.placeholder} />
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
 
       {/* Products Count - Hidden as per user request */}
       {/* {!loadingNested && !hasNestedSubcategories && (
@@ -405,8 +427,8 @@ export default function CategoryProductsScreen() {
               <RefreshControl
                 refreshing={loading}
                 onRefresh={refetch}
-                colors={['#7C3AED']}
-                tintColor={'#7C3AED'}
+                colors={[Colors.primary]}
+                tintColor={Colors.primary}
               />
             }
             ListFooterComponent={
@@ -419,23 +441,27 @@ export default function CategoryProductsScreen() {
                     <Text style={styles.loadMoreText}>
                       {language === 'ar' ? 'عرض المزيد' : 'Load More'}
                     </Text>
-                    <Feather name="chevron-down" size={20} color="#7C3AED" />
+                    <Feather name="chevron-down" size={20} color={Colors.primary} />
                   </TouchableOpacity>
                 </View>
               ) : null
             }
           />
         </>
-        ) : (
-          renderEmptyState()
-        )}
-      </View>
-    </>
+      ) : (
+        renderEmptyState()
+      )}
+    </View>
   );
-}const styles = StyleSheet.create({
+}
+
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8F9FA',
+  },
+  gradientHeader: {
+    paddingBottom: 8,
   },
   header: {
     flexDirection: 'row',
@@ -443,29 +469,16 @@ export default function CategoryProductsScreen() {
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#F8F9FA',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    padding: 8,
   },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
     fontSize: 17,
     fontWeight: '600',
-    color: '#0F172A',
+    color: Colors.white,
     marginHorizontal: 8,
   },
   placeholder: {
@@ -530,7 +543,7 @@ export default function CategoryProductsScreen() {
     marginBottom: 24,
   },
   retryButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: Colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 8,
     borderRadius: 8,
@@ -606,7 +619,7 @@ export default function CategoryProductsScreen() {
     paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#7C3AED',
+    borderColor: Colors.primary,
     minWidth: 200,
     shadowColor: '#000',
     shadowOffset: {
@@ -620,7 +633,7 @@ export default function CategoryProductsScreen() {
   loadMoreText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#7C3AED',
+    color: Colors.primary,
     marginRight: 8,
   },
 });

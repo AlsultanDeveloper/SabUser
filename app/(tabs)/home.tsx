@@ -202,6 +202,26 @@ export default function HomeScreen() {
   // استخدام React Query للمنتجات - Amazon Style: 10 منتجات فقط للتحميل الفوري ⚡
   const { data: featuredProducts = [], isLoading: productsLoading } = useFeaturedProducts(10);
   
+  // طباعة معلومات المنتجات المحملة
+  useEffect(() => {
+    if (featuredProducts && featuredProducts.length > 0) {
+      console.log('🏠 Home Page - Featured Products Loaded:');
+      console.log(`📊 Total: ${featuredProducts.length} products`);
+      
+      // عد المنتجات حسب الفئة
+      const categoryCounts: { [key: string]: number } = {};
+      featuredProducts.forEach((product: any) => {
+        const category = product.categoryName || 'Unknown';
+        categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+      });
+      
+      console.log('📦 Products by Category:');
+      Object.entries(categoryCounts).forEach(([category, count]) => {
+        console.log(`   - ${category}: ${count} products`);
+      });
+    }
+  }, [featuredProducts]);
+  
   // State للبروفايل (للاستخدام المستقبلي)
   const [userProfile] = useState<any>(null);
 
@@ -476,7 +496,7 @@ export default function HomeScreen() {
 
         {/* Exchange Rate Display */}
         <LinearGradient
-          colors={['#7C3AED', '#3B82F6', '#0EA5E9']}
+          colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.exchangeRateContainer}
@@ -878,7 +898,7 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.md,
     marginTop: 8,
     gap: 6,
-    shadowColor: '#7C3AED',
+    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,

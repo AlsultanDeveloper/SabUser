@@ -73,11 +73,11 @@ export default function OrdersScreen() {
       >
         <View style={styles.orderHeader}>
           <View style={styles.orderHeaderLeft}>
-            <Feather name="package" size={22} color="#8B5CF6" />
+            <Feather name="package" size={22} color={Colors.primary} />
             <Text style={styles.orderNumber} numberOfLines={1}>{item.orderNumber}</Text>
           </View>
           <View style={styles.statusBadge}>
-            <Feather name="package" size={12} color="#8B5CF6" />
+            <Feather name="package" size={12} color={Colors.primary} />
             <Text style={styles.statusText}>{t('order.new')}</Text>
           </View>
         </View>
@@ -115,7 +115,7 @@ export default function OrdersScreen() {
         
         {/* Gradient Header */}
         <LinearGradient
-          colors={['#8B5CF6', '#6366F1']}
+          colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.gradientHeader}
@@ -156,7 +156,7 @@ export default function OrdersScreen() {
         
         {/* Gradient Header */}
         <LinearGradient
-          colors={['#8B5CF6', '#6366F1']}
+          colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.gradientHeader}
@@ -186,7 +186,7 @@ export default function OrdersScreen() {
         
         {/* Gradient Header */}
         <LinearGradient
-          colors={['#8B5CF6', '#6366F1']}
+          colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.gradientHeader}
@@ -229,7 +229,7 @@ export default function OrdersScreen() {
       
       {/* Gradient Header */}
       <LinearGradient
-        colors={['#8B5CF6', '#6366F1']}
+        colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradientHeader}
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#8B5CF6' + '15',
+    backgroundColor: Colors.primary + '15',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 12,
@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 11,
     fontWeight: '600' as const,
-    color: '#8B5CF6',
+    color: Colors.primary,
   },
   orderInfo: {
     marginBottom: 12,
@@ -353,14 +353,14 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: FontSizes.lg,
     fontWeight: 'bold' as const,
-    color: '#8B5CF6',
+    color: Colors.primary,
   },
   viewDetailsButton: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: Colors.primary,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
-    shadowColor: '#8B5CF6',
+    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,

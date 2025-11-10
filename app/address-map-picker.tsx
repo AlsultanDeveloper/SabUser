@@ -301,10 +301,10 @@ export default function AddressMapPickerScreen() {
             left: 50%;
             transform: translate(-50%, -100%);
             font-size: 44px;
-            color: #7C3AED;
+            color: #0EA5E9;
             z-index: 1000;
             pointer-events: none;
-            filter: drop-shadow(0 3px 8px rgba(124, 58, 237, 0.4));
+            filter: drop-shadow(0 3px 8px rgba(14, 165, 233, 0.4));
             transition: transform 0.15s ease-out;
           }
           .marker-animating {
@@ -568,7 +568,7 @@ export default function AddressMapPickerScreen() {
       
       {/* Gradient Header */}
       <LinearGradient
-        colors={['#8B5CF6', '#6366F1']}
+        colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradientHeader}
@@ -1065,9 +1065,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 16,
-    backgroundColor: '#8B5CF6',
+    backgroundColor: Colors.primary,
     borderRadius: 14,
-    shadowColor: '#8B5CF6',
+    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

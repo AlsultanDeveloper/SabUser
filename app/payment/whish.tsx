@@ -119,7 +119,7 @@ export default function WhishPaymentScreen() {
       
       {/* Header */}
       <LinearGradient
-        colors={['#6366F1', '#8B5CF6']}
+        colors={['#E91E63', '#D32F2F']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
@@ -213,7 +213,7 @@ export default function WhishPaymentScreen() {
               activeOpacity={0.8}
             >
               <LinearGradient
-                colors={['#6366F1', '#8B5CF6']}
+                colors={['#E91E63', '#D32F2F']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.requestGradient}
@@ -259,7 +259,7 @@ export default function WhishPaymentScreen() {
           <View style={styles.featuresCard}>
             <View style={styles.feature}>
               <View style={styles.featureIcon}>
-                <Feather name="zap" size={20} color="#6366F1" />
+                <Feather name="zap" size={20} color="#E91E63" />
               </View>
               <View style={styles.featureContent}>
                 <Text style={styles.featureTitle}>
@@ -275,7 +275,7 @@ export default function WhishPaymentScreen() {
 
             <View style={styles.feature}>
               <View style={styles.featureIcon}>
-                <Feather name="shield" size={20} color="#6366F1" />
+                <Feather name="shield" size={20} color="#E91E63" />
               </View>
               <View style={styles.featureContent}>
                 <Text style={styles.featureTitle}>
@@ -291,7 +291,7 @@ export default function WhishPaymentScreen() {
 
             <View style={styles.feature}>
               <View style={styles.featureIcon}>
-                <Feather name="dollar-sign" size={20} color="#6366F1" />
+                <Feather name="dollar-sign" size={20} color="#E91E63" />
               </View>
               <View style={styles.featureContent}>
                 <Text style={styles.featureTitle}>
@@ -309,7 +309,7 @@ export default function WhishPaymentScreen() {
           {/* How it works */}
           <View style={styles.instructionsCard}>
             <View style={styles.instructionsHeader}>
-              <Feather name="info" size={20} color="#6366F1" />
+              <Feather name="info" size={20} color="#E91E63" />
               <Text style={styles.instructionsTitle}>
                 {language === 'ar' ? 'كيف يعمل؟' : 'How it works?'}
               </Text>
@@ -370,7 +370,7 @@ export default function WhishPaymentScreen() {
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={['#6366F1', '#8B5CF6']}
+              colors={['#E91E63', '#D32F2F']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.submitGradient}
@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#6366F1',
+    backgroundColor: '#E91E63',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1,
@@ -458,24 +458,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   amountCard: {
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#FCE4EC',
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     alignItems: 'center',
     marginBottom: Spacing.lg,
     borderWidth: 1,
-    borderColor: '#C7D2FE',
+    borderColor: '#F8BBD0',
   },
   amountLabel: {
     fontSize: FontSizes.sm,
-    color: '#4338CA',
+    color: '#C2185B',
     marginBottom: Spacing.xs,
     fontWeight: FontWeights.semibold,
   },
   amountValue: {
     fontSize: 32,
     fontWeight: FontWeights.bold,
-    color: '#6366F1',
+    color: '#E91E63',
   },
   form: {
     gap: Spacing.lg,
@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#EEF2FF',
     borderWidth: 1,
-    borderColor: '#6366F1',
+    borderColor: '#E91E63',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
@@ -599,7 +599,7 @@ const styles = StyleSheet.create({
   stepNumberText: {
     fontSize: FontSizes.xs,
     fontWeight: FontWeights.bold,
-    color: '#6366F1',
+    color: '#E91E63',
   },
   stepText: {
     flex: 1,

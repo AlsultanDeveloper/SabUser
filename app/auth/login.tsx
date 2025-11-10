@@ -538,7 +538,7 @@ export default function LoginScreen() {
             activeOpacity={0.7}
             style={styles.websiteLink}
           >
-            <Feather name="globe" size={14} color={'#8B5CF6'} />
+            <Feather name="globe" size={14} color={Colors.primary} />
             <Text style={styles.websiteText}>www.sab-store.com</Text>
           </TouchableOpacity>
 
@@ -956,7 +956,7 @@ const styles = StyleSheet.create({
       },
       websiteText: {
         fontSize: 10,
-        color: '#8B5CF6',
+        color: Colors.primary,
         fontWeight: '600' as const,
       },
       footerCopyright: {

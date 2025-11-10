@@ -29,7 +29,7 @@ export default function OrderTrackingScreen() {
       <View style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
         <LinearGradient
-          colors={['#8B5CF6', '#6366F1']}
+          colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.gradientHeader}
@@ -113,7 +113,7 @@ export default function OrderTrackingScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       
       <LinearGradient
-        colors={['#8B5CF6', '#6366F1']}
+        colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradientHeader}
@@ -133,7 +133,7 @@ export default function OrderTrackingScreen() {
         {/* Order Info Card */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Feather name="navigation" size={24} color="#8B5CF6" />
+            <Feather name="navigation" size={24} color={Colors.primary} />
             <Text style={styles.cardTitle}>{t('order.trackingNumber')}</Text>
           </View>
           <Text style={styles.trackingNumber}>{order.trackingNumber}</Text>
@@ -153,7 +153,7 @@ export default function OrderTrackingScreen() {
         {/* Status Timeline Card */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Feather name="activity" size={24} color="#8B5CF6" />
+            <Feather name="activity" size={24} color={Colors.primary} />
             <Text style={styles.cardTitle}>{t('order.status')}</Text>
           </View>
           <View style={styles.timeline}>
@@ -224,7 +224,7 @@ export default function OrderTrackingScreen() {
         {/* Delivery Address Card */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Feather name="map-pin" size={24} color="#8B5CF6" />
+            <Feather name="map-pin" size={24} color={Colors.primary} />
             <Text style={styles.cardTitle}>{t('order.deliveryAddress')}</Text>
           </View>
           <Text style={styles.addressName}>{order.address.fullName}</Text>
@@ -240,7 +240,7 @@ export default function OrderTrackingScreen() {
         {/* Products Summary Card */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Feather name="package" size={24} color="#8B5CF6" />
+            <Feather name="package" size={24} color={Colors.primary} />
             <Text style={styles.cardTitle}>{t('order.products')}</Text>
           </View>
           <View style={styles.summaryRow}>
@@ -272,7 +272,7 @@ export default function OrderTrackingScreen() {
             onPress={() => router.push(`/order/${order.id}` as any)}
             activeOpacity={0.8}
           >
-            <Feather name="file-text" size={20} color="#8B5CF6" />
+            <Feather name="file-text" size={20} color={Colors.primary} />
             <Text style={styles.secondaryButtonText}>{t('order.viewOrderDetails')}</Text>
           </TouchableOpacity>
         </View>
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
   trackingNumber: {
     fontSize: 18,
     fontWeight: 'bold' as const,
-    color: '#8B5CF6',
+    color: Colors.primary,
     textAlign: 'center',
     marginBottom: Spacing.sm,
   },
@@ -479,7 +479,7 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: 18,
     fontWeight: 'bold' as const,
-    color: '#8B5CF6',
+    color: Colors.primary,
   },
   
   // Action Buttons
@@ -508,12 +508,12 @@ const styles = StyleSheet.create({
   secondaryButton: {
     backgroundColor: Colors.white,
     borderWidth: 2,
-    borderColor: '#8B5CF6',
+    borderColor: Colors.primary,
   },
   secondaryButtonText: {
     fontSize: FontSizes.md,
     fontWeight: 'bold' as const,
-    color: '#8B5CF6',
+    color: Colors.primary,
   },
   
   // Empty State

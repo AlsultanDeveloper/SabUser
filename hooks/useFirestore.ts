@@ -753,29 +753,108 @@ export function useFeaturedProducts(limitCount: number = 10) {
       try {
         const productsRef = collection(db, 'products');
         
-        // ✅ OPTIMIZED: جلب من Sab Market فقط (2,190 منتج بدلاً من 26,372)
-        // هذا يسرّع الـ query ويعرض منتجات ذات صلة للمستخدم
-        const q = query(
-          productsRef,
-          where('categoryId', '==', 'cwt28D5gjoLno8SFqoxQ'), // Sab Market category
-          limit(limitCount) // ✅ جلب 10 فقط من Firebase
-        );
-        
-        const querySnapshot = await getDocs(q);
-        
-        const products: any[] = [];
-        querySnapshot.forEach((docSnap) => {
-          const data = docSnap.data();
-          products.push({ 
-            id: docSnap.id, 
-            ...data,
-            // ✅ تأكد من وجود صورة (fallback للصور المفقودة)
-            image: data.image || data.images?.[0] || '',
-          });
-        });
+        // ✅ جلب 2 منتجات من كل فئة (إجمالي 10 منتجات)
+        // استخدام subcategoryId لـ Women Tops وcategoryId للباقي
+        const categories = [
+          { name: 'SAB MARKET', type: 'category', id: 'cwt28D5gjoLno8SFqoxQ' },
+          { name: 'WOMEN TOPS', type: 'subcategory', id: 'PQMIdt0RsQU1zv0NvTIH' }, // Women Tops subcategory
+          { name: 'MEN FASHION', type: 'category', id: 'rQHqjYp40tLDCCPzGTgL' },
+          { name: 'BAGS', type: 'category', id: 'l2OsNMzQ7z5u66E5Y0xK' },
+          { name: 'KIDS', type: 'category', id: 'RdnhFj3MlvHY1Ee1xQ4t' }
+        ];
 
-        console.log(`⚡ Optimized: fetched ${products.length} products from Sab Market (${querySnapshot.size} docs)`);
-        return products;
+        const allProducts: any[] = [];
+        const productsPerCategory = 2; // عدد المنتجات المطلوبة من كل فئة
+        
+        // جلب منتجات من كل فئة
+        for (const category of categories) {
+          try {
+            // استخدام الحقل المناسب (categoryId أو subcategoryId)
+            const fieldName = category.type === 'subcategory' ? 'subcategoryId' : 'categoryId';
+            
+            const q = query(
+              productsRef,
+              where(fieldName, '==', category.id),
+              limit(100) // ✅ جلب 100 منتج لضمان وجود منتجات كافية
+            );
+            
+            const querySnapshot = await getDocs(q);
+            const categoryProducts: any[] = [];
+            
+            querySnapshot.forEach((docSnap) => {
+              const data = docSnap.data();
+              // ✅ قبول المنتجات حتى لو لم تكن لها صورة (سيتم عرض placeholder)
+              categoryProducts.push({ 
+                id: docSnap.id, 
+                ...data,
+                image: data.image || data.images?.[0] || '',
+                categoryName: category.name,
+              });
+            });
+
+            if (categoryProducts.length > 0) {
+              // اختيار 2 منتجات عشوائياً من هذه الفئة
+              const shuffled = categoryProducts.sort(() => Math.random() - 0.5);
+              const selectedProducts = shuffled.slice(0, productsPerCategory);
+              
+              console.log(`✅ ${category.name}: selected ${selectedProducts.length} products (from ${categoryProducts.length} available)`);
+              allProducts.push(...selectedProducts);
+            } else {
+              console.warn(`⚠️ ${category.name}: no products found!`);
+            }
+          } catch (error) {
+            console.warn(`⚠️ Error fetching ${category.name}:`, error);
+          }
+        }
+
+        // ✅ إذا لم نحصل على 10 منتجات، نجلب المزيد من SAB MARKET
+        if (allProducts.length < 10) {
+          console.log(`📦 Only ${allProducts.length} products found, fetching more from SAB MARKET...`);
+          try {
+            const extraQuery = query(
+              productsRef,
+              where('categoryId', '==', 'cwt28D5gjoLno8SFqoxQ'), // SAB MARKET
+              limit(20)
+            );
+            const extraSnapshot = await getDocs(extraQuery);
+            const extraProducts: any[] = [];
+            
+            extraSnapshot.forEach((docSnap) => {
+              const data = docSnap.data();
+              // تجنب التكرار
+              if (!allProducts.find(p => p.id === docSnap.id)) {
+                extraProducts.push({
+                  id: docSnap.id,
+                  ...data,
+                  image: data.image || data.images?.[0] || '',
+                  categoryName: 'SAB MARKET',
+                });
+              }
+            });
+            
+            const needed = 10 - allProducts.length;
+            const shuffled = extraProducts.sort(() => Math.random() - 0.5);
+            allProducts.push(...shuffled.slice(0, needed));
+            console.log(`✅ Added ${Math.min(needed, shuffled.length)} extra products from SAB MARKET`);
+          } catch (error) {
+            console.error('❌ Error fetching extra products:', error);
+          }
+        }
+
+        // خلط المنتجات النهائية لعرض عشوائي
+        const finalProducts = allProducts.sort(() => Math.random() - 0.5);
+        
+        console.log(`⚡ Total featured products: ${finalProducts.length} products ready to display`);
+        console.log(`📊 Products breakdown:`);
+        const breakdown = finalProducts.reduce((acc: any, p: any) => {
+          acc[p.categoryName] = (acc[p.categoryName] || 0) + 1;
+          return acc;
+        }, {});
+        Object.entries(breakdown).forEach(([cat, count]) => {
+          console.log(`   - ${cat}: ${count} products`);
+        });
+        
+        return finalProducts.slice(0, 10); // التأكد من عدم تجاوز 10 منتجات
       } catch (error: any) {
         // Silently handle permission errors
         if (error?.code === 'permission-denied' || error?.message?.includes('permissions')) {
@@ -786,11 +865,11 @@ export function useFeaturedProducts(limitCount: number = 10) {
         return [];
       }
     },
-    staleTime: 5 * 60 * 1000, // ✅ زيادة من 2 إلى 5 دقائق - تقليل الـ requests
-    gcTime: 15 * 60 * 1000, // ✅ زيادة من 10 إلى 15 دقيقة - كاش أطول
-    refetchOnWindowFocus: false, // عدم إعادة التحميل عند العودة للتطبيق
-    refetchOnMount: false, // عدم إعادة التحميل عند mount إذا كان الكاش صالح
-    retry: 1, // ✅ تقليل من 2 إلى 1 - أسرع في حالة الفشل
-    retryDelay: 1000, // تأخير قصير 1 ثانية
+    staleTime: 2 * 60 * 1000, // 2 دقيقة - تحديث أسرع للحصول على منتجات جديدة
+    gcTime: 10 * 60 * 1000, // 10 دقائق cache
+    refetchOnWindowFocus: false,
+    refetchOnMount: true, // ✅ تحديث عند mount للحصول على منتجات عشوائية جديدة
+    retry: 1,
+    retryDelay: 1000,
   });
 }

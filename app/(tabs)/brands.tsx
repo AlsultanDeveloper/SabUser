@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Stack, router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useApp } from '@/contexts/AppContext';
 import { Colors, Spacing, FontSizes, FontWeights } from '@/constants/theme';
@@ -13,23 +14,59 @@ export default function BrandsScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>{t('brands.loading')}</Text>
+      <View style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        
+        {/* Gradient Header */}
+        <LinearGradient
+          colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.header}
+        >
+          <SafeAreaView edges={['top']}>
+            <View style={styles.headerContent}>
+              <Text style={styles.headerTitle}>{t('tabs.brands')}</Text>
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+        
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>{t('brands.loading')}</Text>
+        </View>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={[styles.container, styles.centered]}>
-        <Feather name="alert-circle" size={64} color={Colors.error} />
-        <Text style={styles.errorTitle}>{t('brands.error')}</Text>
-        <Text style={styles.errorText}>{t('brands.errorLoadingBrands')}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={refetch}>
-          <Feather name="refresh-cw" size={20} color={Colors.white} />
-          <Text style={styles.retryButtonText}>{t('brands.tryAgain')}</Text>
-        </TouchableOpacity>
+      <View style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        
+        {/* Gradient Header */}
+        <LinearGradient
+          colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.header}
+        >
+          <SafeAreaView edges={['top']}>
+            <View style={styles.headerContent}>
+              <Text style={styles.headerTitle}>{t('tabs.brands')}</Text>
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+        
+        <View style={styles.centered}>
+          <Feather name="alert-circle" size={64} color={Colors.error} />
+          <Text style={styles.errorTitle}>{t('brands.error')}</Text>
+          <Text style={styles.errorText}>{t('brands.errorLoadingBrands')}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={refetch}>
+            <Feather name="refresh-cw" size={20} color={Colors.white} />
+            <Text style={styles.retryButtonText}>{t('brands.tryAgain')}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -37,11 +74,27 @@ export default function BrandsScreen() {
   if (brands.length === 0) {
     return (
       <View style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        
+        {/* Gradient Header */}
+        <LinearGradient
+          colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.header}
+        >
+          <SafeAreaView edges={['top']}>
+            <View style={styles.headerContent}>
+              <Text style={styles.headerTitle}>{t('tabs.brands')}</Text>
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+        
         <View style={styles.comingSoonContainer}>
           <View style={styles.comingSoonContent}>
             {/* Gift Icon with Gradient */}
             <LinearGradient
-              colors={['#8B5CF6', '#6366F1']}
+              colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.iconContainer}
@@ -61,6 +114,22 @@ export default function BrandsScreen() {
 
   return (
       <View style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        
+        {/* Gradient Header */}
+        <LinearGradient
+          colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.header}
+        >
+          <SafeAreaView edges={['top']}>
+            <View style={styles.headerContent}>
+              <Text style={styles.headerTitle}>{t('tabs.brands')}</Text>
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+        
         <ScrollView showsVerticalScrollIndicator={false}>
           <View style={styles.grid}>
             {brands.map((brand) => (
@@ -109,7 +178,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  header: {
+    paddingBottom: Spacing.md,
+  },
+  headerContent: {
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  headerTitle: {
+    fontSize: FontSizes.xl,
+    fontWeight: FontWeights.bold,
+    color: Colors.white,
+  },
   centered: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing.xl,
@@ -179,7 +262,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.xl,
-    shadowColor: '#8B5CF6',
+    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,

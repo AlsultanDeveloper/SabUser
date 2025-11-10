@@ -13,11 +13,12 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { Colors } from '@/constants/theme';
 import * as Location from 'expo-location';
 import MapPicker from '@/components/MapPicker';
 import { useOrders } from '@/contexts/OrderContext';
@@ -280,7 +281,27 @@ export default function CheckoutDetailsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <View style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
+      
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientHeader}
+      >
+        <SafeAreaView edges={['top']}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <Feather name="arrow-left" size={24} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Checkout</Text>
+            <View style={styles.headerPlaceholder} />
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Order Summary Card */}
         <View style={styles.summaryCard}>
@@ -305,7 +326,7 @@ export default function CheckoutDetailsScreen() {
         {/* Shipping Address Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <MaterialCommunityIcons name="truck-delivery" size={24} color="#8B5CF6" />
+            <MaterialCommunityIcons name="truck-delivery" size={24} color="Colors.primary" />
             <Text style={styles.sectionTitle}>Shipping Address</Text>
           </View>
 
@@ -316,7 +337,7 @@ export default function CheckoutDetailsScreen() {
               onPress={() => setShowSavedAddresses(!showSavedAddresses)}
             >
               <View style={styles.savedAddressToggleLeft}>
-                <MaterialCommunityIcons name="bookmark-multiple" size={22} color="#8B5CF6" />
+                <MaterialCommunityIcons name="bookmark-multiple" size={22} color="Colors.primary" />
                 <Text style={styles.savedAddressToggleText}>
                   {showSavedAddresses ? 'Hide' : 'Use'} Saved Addresses ({savedAddresses.length})
                 </Text>
@@ -348,7 +369,7 @@ export default function CheckoutDetailsScreen() {
                     <MaterialCommunityIcons 
                       name={savedAddr.label === 'Home' ? 'home' : savedAddr.label === 'Work' ? 'briefcase' : 'map-marker'}
                       size={20}
-                      color={selectedSavedAddress?.id === savedAddr.id ? '#8B5CF6' : '#6B7280'}
+                      color={selectedSavedAddress?.id === savedAddr.id ? 'Colors.primary' : '#6B7280'}
                     />
                   </View>
                   <View style={styles.savedAddressContent}>
@@ -367,7 +388,7 @@ export default function CheckoutDetailsScreen() {
                   </View>
                   {selectedSavedAddress?.id === savedAddr.id && (
                     <View style={styles.selectedCheckmark}>
-                      <Feather name="check-circle" size={24} color="#8B5CF6" />
+                      <Feather name="check-circle" size={24} color="Colors.primary" />
                     </View>
                   )}
                 </TouchableOpacity>
@@ -420,7 +441,7 @@ export default function CheckoutDetailsScreen() {
               onPress={handleGetCurrentLocation}
               activeOpacity={0.7}
             >
-              <MaterialCommunityIcons name="crosshairs-gps" size={20} color="#8B5CF6" />
+              <MaterialCommunityIcons name="crosshairs-gps" size={20} color="Colors.primary" />
               <Text style={styles.locationButtonText}>Use Current Location</Text>
             </TouchableOpacity>
 
@@ -429,7 +450,7 @@ export default function CheckoutDetailsScreen() {
               onPress={handleOpenMaps}
               activeOpacity={0.7}
             >
-              <MaterialCommunityIcons name="map-marker" size={20} color="#8B5CF6" />
+              <MaterialCommunityIcons name="map-marker" size={20} color="Colors.primary" />
               <Text style={styles.locationButtonText}>Pick on Map</Text>
             </TouchableOpacity>
           </View>
@@ -470,7 +491,7 @@ export default function CheckoutDetailsScreen() {
         {/* Payment Method Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <MaterialCommunityIcons name="credit-card" size={24} color="#8B5CF6" />
+            <MaterialCommunityIcons name="credit-card" size={24} color="Colors.primary" />
             <Text style={styles.sectionTitle}>Payment Method</Text>
           </View>
 
@@ -482,7 +503,7 @@ export default function CheckoutDetailsScreen() {
               <MaterialCommunityIcons 
                 name="cash" 
                 size={24} 
-                color={paymentMethod === 'cash' ? '#8B5CF6' : '#6B7280'} 
+                color={paymentMethod === 'cash' ? 'Colors.primary' : '#6B7280'} 
               />
               <Text style={[styles.paymentText, paymentMethod === 'cash' && styles.paymentTextActive]}>
                 Cash on Delivery
@@ -519,12 +540,12 @@ export default function CheckoutDetailsScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.cardDetailsContent}>
-                <Feather name="credit-card" size={20} color="#8B5CF6" />
+                <Feather name="credit-card" size={20} color="Colors.primary" />
                 <Text style={styles.cardDetailsText}>
                   {language === 'ar' ? 'إدخال بيانات البطاقة' : 'Enter Card Details'}
                 </Text>
               </View>
-              <Feather name="arrow-right" size={20} color="#8B5CF6" />
+              <Feather name="arrow-right" size={20} color="Colors.primary" />
             </TouchableOpacity>
           )}
 
@@ -591,12 +612,12 @@ export default function CheckoutDetailsScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.cardDetailsContent}>
-                <Feather name="zap" size={20} color="#6366F1" />
-                <Text style={[styles.cardDetailsText, { color: '#6366F1' }]}>
+                <Feather name="zap" size={20} color={Colors.primary} />
+                <Text style={[styles.cardDetailsText, { color: Colors.primary }]}>
                   {language === 'ar' ? 'الدفع عبر Whish Money' : 'Pay with Whish Money'}
                 </Text>
               </View>
-              <Feather name="arrow-right" size={20} color="#6366F1" />
+              <Feather name="arrow-right" size={20} color={Colors.primary} />
             </TouchableOpacity>
           )}
         </View>
@@ -618,9 +639,9 @@ export default function CheckoutDetailsScreen() {
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={['#8B5CF6', '#EC4899']}
+              colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
               start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
+              end={{ x: 1, y: 1 }}
               style={styles.placeOrderGradient}
             >
               <Text style={styles.placeOrderText}>Place Order</Text>
@@ -637,7 +658,7 @@ export default function CheckoutDetailsScreen() {
         onLocationSelected={handleLocationSelected}
         initialLocation={latitude && longitude ? { latitude, longitude } : undefined}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -645,6 +666,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
+  },
+  gradientHeader: {
+    paddingBottom: 12,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold' as const,
+    color: '#FFF',
+  },
+  headerPlaceholder: {
+    width: 40,
   },
   summaryCard: {
     backgroundColor: '#FFF',
@@ -703,7 +748,7 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#8B5CF6',
+    color: 'Colors.primary',
   },
   inputContainer: {
     marginBottom: 12,
@@ -746,12 +791,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3E8FF',
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#8B5CF6',
+    borderColor: 'Colors.primary',
   },
   locationButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#8B5CF6',
+    color: 'Colors.primary',
     marginLeft: 6,
   },
   locationInfo: {
@@ -780,7 +825,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
   },
   paymentOptionActive: {
-    borderColor: '#8B5CF6',
+    borderColor: 'Colors.primary',
     backgroundColor: '#F3E8FF',
   },
   paymentLeft: {
@@ -818,7 +863,7 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   paymentTextActive: {
-    color: '#8B5CF6',
+    color: 'Colors.primary',
   },
   radio: {
     width: 22,
@@ -830,13 +875,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   radioActive: {
-    borderColor: '#8B5CF6',
+    borderColor: 'Colors.primary',
   },
   radioDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#8B5CF6',
+    backgroundColor: 'Colors.primary',
   },
   comingSoon: {
     flexDirection: 'row',
@@ -870,7 +915,7 @@ const styles = StyleSheet.create({
   cardDetailsText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#8B5CF6',
+    color: 'Colors.primary',
   },
   omtButton: {
     borderColor: '#FFD7B5',
@@ -942,7 +987,7 @@ const styles = StyleSheet.create({
   savedAddressToggleText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#7C3AED',
+    color: Colors.primary,
     marginLeft: 10,
   },
   savedAddressesList: {
@@ -958,7 +1003,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   savedAddressCardSelected: {
-    borderColor: '#8B5CF6',
+    borderColor: 'Colors.primary',
     backgroundColor: '#F9F5FF',
   },
   savedAddressIcon: {

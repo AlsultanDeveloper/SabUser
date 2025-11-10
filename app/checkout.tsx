@@ -18,6 +18,7 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { Colors } from '@/constants/theme';
 import SafeImage from '@/components/SafeImage';
 import { calculateShipping, getDefaultShipping } from '@/utils/shippingCalculator';
 import * as Location from 'expo-location';
@@ -135,9 +136,9 @@ export default function ModernCartScreen() {
             onPress={() => router.push('/(tabs)/home' as any)}
           >
             <LinearGradient
-              colors={['#8B5CF6', '#EC4899']}
+              colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
               start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
+              end={{ x: 1, y: 1 }}
               style={styles.gradientButton}
             >
               <Text style={styles.shopButtonText}>Start Shopping</Text>
@@ -170,7 +171,7 @@ export default function ModernCartScreen() {
         {remainingForFreeShipping > 0 ? (
           <View style={styles.shippingCard}>
             <View style={styles.shippingHeader}>
-              <MaterialCommunityIcons name="truck-delivery-outline" size={24} color="#8B5CF6" />
+              <MaterialCommunityIcons name="truck-delivery-outline" size={24} color="Colors.primary" />
               <Text style={styles.shippingText}>
                 Add <Text style={styles.shippingAmount}>{formatPrice(remainingForFreeShipping)}</Text> for FREE shipping
               </Text>
@@ -360,9 +361,9 @@ export default function ModernCartScreen() {
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={['#8B5CF6', '#EC4899']}
+              colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
               start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
+              end={{ x: 1, y: 1 }}
               style={styles.checkoutGradient}
             >
               <Text style={styles.checkoutButtonText}>Proceed to Checkout</Text>
@@ -432,7 +433,7 @@ const styles = StyleSheet.create({
   },
   shippingAmount: {
     fontWeight: '700',
-    color: '#8B5CF6',
+    color: 'Colors.primary',
   },
   progressBarContainer: {
     height: 6,
@@ -442,7 +443,7 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#8B5CF6',
+    backgroundColor: 'Colors.primary',
     borderRadius: 3,
   },
   freeShippingBadge: {
@@ -502,7 +503,7 @@ const styles = StyleSheet.create({
   currentPrice: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#8B5CF6',
+    color: 'Colors.primary',
     marginRight: 8,
   },
   originalPrice: {
@@ -597,7 +598,7 @@ const styles = StyleSheet.create({
     color: '#1F2937',
   },
   applyButton: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: 'Colors.primary',
     paddingHorizontal: 24,
     borderRadius: 8,
     justifyContent: 'center',
@@ -662,7 +663,7 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#8B5CF6',
+    color: 'Colors.primary',
   },
   bottomContainer: {
     position: 'absolute',

@@ -7,8 +7,11 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import { useApp } from '@/contexts/AppContext';
+import { Colors, Spacing, FontSizes, FontWeights, BorderRadius } from '@/constants/theme';
 import { useCategory } from '@/hooks/useFirestore';
 import SafeImage from '@/components/SafeImage';
 import type { Subcategory } from '@/types';
@@ -64,7 +67,7 @@ const CATEGORIES_WITHOUT_SUBCATEGORIES = [
 ];
 
 export default function CategoryDetails() {
-  const [language] = useState('en'); // ثابت على الإنجليزية
+  const { language, t } = useApp();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { category, loading, error, refetch } = useCategory(id || '');
 
@@ -118,25 +121,34 @@ export default function CategoryDetails() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
       
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color="#000" />
-        </TouchableOpacity>
-        {loading ? (
-          <View style={styles.headerTitleContainer}>
-            <View style={styles.skeletonHeaderText} />
+      {/* Header with Gradient */}
+      <LinearGradient
+        colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <SafeAreaView edges={['top']}>
+          <View style={styles.headerContent}>
+            <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+              <Feather name="arrow-left" size={24} color={Colors.white} />
+            </TouchableOpacity>
+            {loading ? (
+              <View style={styles.headerTitleContainer}>
+                <View style={styles.skeletonHeaderText} />
+              </View>
+            ) : (
+              <Text style={styles.headerTitle} numberOfLines={1}>
+                {categoryName}
+              </Text>
+            )}
+            <View style={styles.headerSpacer} />
           </View>
-        ) : (
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            {categoryName}
-          </Text>
-        )}
-        <View style={styles.headerSpacer} />
-      </View>
+        </SafeAreaView>
+      </LinearGradient>
 
       {/* Content */}
       <ScrollView 
@@ -170,20 +182,15 @@ export default function CategoryDetails() {
           </View>
         ) : category?.subcategories && category.subcategories.length > 0 ? (
           // Subcategories Grid
-          <View>
-            <Text style={styles.sectionTitle}>
-              {language === 'ar' ? 'الفئات الفرعية' : 'Subcategories'}
-            </Text>
-            <View style={styles.subcategoriesGrid}>
-              {category.subcategories.map((subcategory) => (
-                <SubcategoryCard
-                  key={subcategory.id}
-                  subcategory={subcategory}
-                  language={language}
-                  onPress={() => handleSubcategoryPress(subcategory)}
-                />
-              ))}
-            </View>
+          <View style={styles.subcategoriesGrid}>
+            {category.subcategories.map((subcategory) => (
+              <SubcategoryCard
+                key={subcategory.id}
+                subcategory={subcategory}
+                language={language}
+                onPress={() => handleSubcategoryPress(subcategory)}
+              />
+            ))}
           </View>
         ) : (
           // No subcategories
@@ -198,65 +205,58 @@ export default function CategoryDetails() {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.background,
   },
   header: {
+    paddingBottom: Spacing.md,
+  },
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
   },
   backButton: {
     padding: 8,
-    marginLeft: -8,
   },
   headerTitle: {
     flex: 1,
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
+    fontSize: FontSizes.xl,
+    fontWeight: FontWeights.bold,
+    color: Colors.white,
     textAlign: 'center',
-    marginHorizontal: 16,
+    marginHorizontal: Spacing.md,
   },
   headerTitleContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: 16,
+    marginHorizontal: Spacing.md,
   },
   skeletonHeaderText: {
     width: 120,
     height: 20,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: BorderRadius.sm,
   },
   headerSpacer: {
-    width: 40, // نفس عرض زر الرجوع للتوازن
+    width: 40,
   },
   scrollContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.background,
   },
   scrollContent: {
-    padding: 16,
+    padding: Spacing.md,
     paddingBottom: 32,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 16,
   },
   // Subcategories Grid - 2 columns for better visibility
   subcategoriesGrid: {
@@ -265,14 +265,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   subcategoryCard: {
-    width: '48%', // 2 columns with gap
-    marginBottom: 16,
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    width: '48%',
+    marginBottom: Spacing.md,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.white,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: Colors.border.light,
     overflow: 'hidden',
-    // Amazon card shadow
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -283,7 +282,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   subcategoryImageContainer: {
-    height: 160, // ارتفاع 160
+    height: 160,
     backgroundColor: '#E8F4FD',
     justifyContent: 'center',
     alignItems: 'center',
@@ -293,23 +292,23 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   subcategoryContent: {
-    padding: 12,
+    padding: Spacing.sm,
   },
   subcategoryTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#000',
+    fontSize: FontSizes.sm,
+    fontWeight: FontWeights.medium,
+    color: Colors.text.primary,
     textAlign: 'center',
     lineHeight: 18,
   },
   // Loading skeleton styles
   skeletonImage: {
-    backgroundColor: '#E0E0E0',
+    backgroundColor: Colors.gray[200],
   },
   skeletonText: {
     height: 16,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 4,
+    backgroundColor: Colors.gray[200],
+    borderRadius: BorderRadius.sm,
   },
   // Error state styles
   errorContainer: {
@@ -319,31 +318,31 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   errorTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginTop: 16,
-    marginBottom: 8,
+    fontSize: FontSizes.lg,
+    fontWeight: FontWeights.semibold,
+    color: Colors.text.primary,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   errorText: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: FontSizes.sm,
+    color: Colors.text.secondary,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: Spacing.lg,
   },
   retryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#007185',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    gap: 8,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    gap: Spacing.sm,
   },
   retryText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '500',
+    color: Colors.white,
+    fontSize: FontSizes.sm,
+    fontWeight: FontWeights.medium,
   },
   // Empty state styles
   emptyContainer: {
@@ -353,16 +352,16 @@ const styles = StyleSheet.create({
     paddingVertical: 80,
   },
   emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#666',
-    marginTop: 16,
+    fontSize: FontSizes.lg,
+    fontWeight: FontWeights.semibold,
+    color: Colors.text.secondary,
+    marginTop: Spacing.md,
     textAlign: 'center',
   },
   emptySubtext: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 8,
+    fontSize: FontSizes.sm,
+    color: Colors.text.secondary,
+    marginTop: Spacing.sm,
     textAlign: 'center',
   },
 });

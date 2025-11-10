@@ -69,7 +69,7 @@ export default function AccountScreen() {
         
         {/* Gradient Header */}
         <LinearGradient
-          colors={[Colors.gradient.start, Colors.gradient.ocean]}
+          colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.loginRequiredHeader}
@@ -85,33 +85,37 @@ export default function AccountScreen() {
 
         <View style={styles.notAuthenticatedContainer}>
           <View style={styles.notAuthenticatedContent}>
-            {/* SAB STORE Logo with Gradient */}
-            <LinearGradient
-              colors={[Colors.gradient.start, Colors.gradient.ocean]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.logoContainer}
-            >
-              <Text style={styles.logoText}>SAB STORE</Text>
-            </LinearGradient>
+            {/* SAB STORE Logo with enhanced design */}
+            <View style={styles.logoWrapper}>
+              <LinearGradient
+                colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.logoContainer}
+              >
+                <Text style={styles.logoText}>SAB STORE</Text>
+              </LinearGradient>
+            </View>
 
-            <Text style={styles.notAuthenticatedTitle}>{t('account.loginRequired')}</Text>
-            <Text style={styles.notAuthenticatedDescription}>
-              {t('account.loginRequiredDescription')}
-            </Text>
+            <View style={styles.textContainer}>
+              <Text style={styles.notAuthenticatedTitle}>{t('account.loginRequired')}</Text>
+              <Text style={styles.notAuthenticatedDescription}>
+                {t('account.loginRequiredDescription')}
+              </Text>
+            </View>
             
             <TouchableOpacity
               style={styles.loginRequiredButtonWrapper}
               onPress={() => router.push('/auth/login' as any)}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
             >
               <LinearGradient
-                colors={[Colors.gradient.start, Colors.gradient.ocean]}
+                colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.loginRequiredButton}
               >
-                <Feather name="log-in" size={20} color={Colors.white} />
+                <Feather name="log-in" size={22} color={Colors.white} />
                 <Text style={styles.loginRequiredButtonText}>{t('account.signIn')}</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -127,7 +131,7 @@ export default function AccountScreen() {
       
       {/* Gradient Header */}
       <LinearGradient
-        colors={[Colors.gradient.start, Colors.gradient.ocean]}
+        colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradientHeader}
@@ -148,7 +152,7 @@ export default function AccountScreen() {
               onPress={() => router.push('/profile/edit' as any)}
               activeOpacity={0.8}
             >
-              <Feather name="edit-2" size={14} color={Colors.primary} />
+              <Feather name="edit-2" size={15} color={Colors.white} />
               <Text style={styles.editProfileButtonText}>{t('profile.editProfile')}</Text>
             </TouchableOpacity>
           </View>
@@ -393,10 +397,10 @@ export default function AccountScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: Colors.background,
   },
   gradientHeader: {
-    paddingBottom: 16,
+    paddingBottom: 20,
   },
   loginRequiredHeader: {
     paddingBottom: 0,
@@ -406,7 +410,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
   },
   backButton: {
     width: 40,
@@ -414,51 +418,63 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold' as const,
-    color: '#FFF',
+    fontSize: 22,
+    fontWeight: '800' as const,
+    color: Colors.white,
+    letterSpacing: 0.3,
   },
   scrollView: {
     flex: 1,
   },
   profileSection: {
     alignItems: 'center',
-    paddingVertical: Spacing.xs,
+    paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.sm,
+    paddingBottom: Spacing.md,
   },
   userName: {
-    fontSize: FontSizes.md,
-    fontWeight: 'bold' as const,
-    color: '#FFF',
+    fontSize: FontSizes.lg,
+    fontWeight: '700' as const,
+    color: Colors.white,
     marginTop: 4,
+    letterSpacing: 0.2,
   },
   userEmail: {
-    fontSize: FontSizes.xs,
-    color: '#F3F4F6',
-    marginTop: 2,
+    fontSize: FontSizes.sm,
+    color: 'rgba(255, 255, 255, 0.85)',
+    marginTop: 4,
   },
   section: {
     backgroundColor: Colors.white,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
     paddingVertical: Spacing.xs,
+    borderRadius: 16,
+    marginHorizontal: Spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   sectionTitle: {
-    fontSize: 11,
-    fontWeight: '600' as const,
-    color: '#9CA3AF',
+    fontSize: 13,
+    fontWeight: '700' as const,
+    color: Colors.text.secondary,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     paddingTop: Spacing.sm,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.md + 2,
+    borderRadius: 12,
+    marginHorizontal: Spacing.xs,
+    marginVertical: 2,
   },
   menuItemLeft: {
     flexDirection: 'row',
@@ -471,9 +487,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   menuItemText: {
-    fontSize: FontSizes.lg,
-    color: '#111827',
-    fontWeight: '500' as const,
+    fontSize: FontSizes.md,
+    color: Colors.text.primary,
+    fontWeight: '600' as const,
+    letterSpacing: 0.1,
   },
   valueText: {
     fontSize: FontSizes.sm,
@@ -482,12 +499,14 @@ const styles = StyleSheet.create({
   },
   versionContainer: {
     alignItems: 'center',
-    paddingVertical: Spacing.lg,
+    paddingVertical: Spacing.xl,
     marginBottom: Spacing.xl,
   },
   versionText: {
     fontSize: FontSizes.xs,
-    color: '#9CA3AF',
+    color: Colors.text.secondary,
+    fontWeight: '500' as const,
+    letterSpacing: 0.3,
   },
   signInButton: {
     backgroundColor: Colors.primary,
@@ -505,41 +524,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginTop: Spacing.xs,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: Spacing.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   editProfileButtonText: {
-    color: Colors.primary,
-    fontSize: 12,
-    fontWeight: '600' as const,
+    color: Colors.white,
+    fontSize: 13,
+    fontWeight: '700' as const,
+    letterSpacing: 0.3,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: Spacing.md,
+    padding: Spacing.lg,
   },
   modalContent: {
     backgroundColor: Colors.white,
-    borderRadius: 20,
+    borderRadius: 24,
     padding: Spacing.lg,
     width: '100%',
-    maxWidth: 400,
+    maxWidth: 420,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
+    elevation: 12,
   },
   modalTitle: {
     fontSize: FontSizes.xl,
-    fontWeight: 'bold' as const,
-    color: '#111827',
-    marginBottom: Spacing.md,
+    fontWeight: '800' as const,
+    color: Colors.text.primary,
+    letterSpacing: 0.2,
   },
   modalOption: {
     flexDirection: 'row',
@@ -575,38 +597,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.md + 2,
+    borderRadius: 12,
+    marginHorizontal: Spacing.xs,
+    marginVertical: 2,
   },
   helpMenuModal: {
     backgroundColor: Colors.white,
-    borderRadius: 20,
+    borderRadius: 24,
     padding: Spacing.lg,
     width: '100%',
-    maxWidth: 400,
-    maxHeight: '70%',
+    maxWidth: 420,
+    maxHeight: '75%',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
+    elevation: 12,
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: Spacing.md,
-    paddingBottom: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1.5,
+    borderBottomColor: Colors.gray[100],
   },
   helpMenuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: 12,
+    paddingHorizontal: Spacing.md,
+    borderRadius: 14,
     marginBottom: Spacing.xs,
+    backgroundColor: Colors.gray[50],
   },
   helpMenuItemLeft: {
     flexDirection: 'row',
@@ -616,79 +642,84 @@ const styles = StyleSheet.create({
   },
   helpMenuItemText: {
     fontSize: FontSizes.md,
-    color: '#111827',
-    fontWeight: '500' as const,
+    color: Colors.text.primary,
+    fontWeight: '600' as const,
+    letterSpacing: 0.1,
   },
   notAuthenticatedContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing.lg,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: Colors.background,
   },
   notAuthenticatedContent: {
     alignItems: 'center',
     maxWidth: 400,
+    width: '100%',
+  },
+  logoWrapper: {
+    marginBottom: Spacing.lg,
   },
   logoContainer: {
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.xl,
-    marginBottom: Spacing.xl,
+    borderRadius: 16,
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
     shadowRadius: 12,
     elevation: 8,
   },
   logoText: {
-    fontSize: FontSizes.xxl,
-    fontWeight: 'bold' as const,
+    fontSize: 24,
+    fontWeight: '900' as const,
     color: Colors.white,
-    letterSpacing: 1,
+    letterSpacing: 1.5,
+    textAlign: 'center',
   },
-  lockIconContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: Colors.primary + '20',
-    justifyContent: 'center',
-    alignItems: 'center',
+  textContainer: {
     marginBottom: Spacing.lg,
+    paddingHorizontal: Spacing.md,
   },
   notAuthenticatedTitle: {
-    fontSize: FontSizes.xl,
-    fontWeight: 'bold' as const,
-    color: '#111827',
+    fontSize: 20,
+    fontWeight: '800' as const,
+    color: Colors.text.primary,
     textAlign: 'center',
     marginBottom: Spacing.sm,
+    letterSpacing: -0.5,
   },
   notAuthenticatedDescription: {
-    fontSize: FontSizes.sm,
-    color: '#6B7280',
+    fontSize: FontSizes.md,
+    color: Colors.text.secondary,
     textAlign: 'center',
-    marginBottom: Spacing.xl,
-    lineHeight: 22,
+    lineHeight: 24,
+    paddingHorizontal: Spacing.sm,
   },
   loginRequiredButtonWrapper: {
-    borderRadius: BorderRadius.lg,
+    borderRadius: 12,
     overflow: 'hidden',
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
     elevation: 6,
+    width: '100%',
+    maxWidth: 240,
   },
   loginRequiredButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
+    justifyContent: 'center',
+    gap: Spacing.sm,
     paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm + 4,
   },
   loginRequiredButtonText: {
     color: Colors.white,
     fontSize: FontSizes.md,
-    fontWeight: 'bold' as const,
+    fontWeight: '700' as const,
+    letterSpacing: 0.3,
   },
 });

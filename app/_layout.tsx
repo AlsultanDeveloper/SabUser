@@ -15,6 +15,7 @@ import {
   addNotificationReceivedListener,
   addNotificationResponseReceivedListener,
 } from '@/constants/notifications';
+import { autoCheckForUpdates, logUpdateInfo } from '@/utils/updateManager';
 
 // Ignore Firebase WebChannel warnings - they are normal and Firebase reconnects automatically
 LogBox.ignoreLogs([
@@ -97,6 +98,16 @@ export default function RootLayout() {
 
   useEffect(() => {
     SplashScreen.hideAsync();
+    
+    // طباعة معلومات التحديث
+    logUpdateInfo();
+    
+    // التحقق التلقائي من التحديثات عند فتح التطبيق
+    if (Platform.OS !== 'web') {
+      autoCheckForUpdates().catch(error => {
+        console.error('❌ Auto-update check failed:', error);
+      });
+    }
     
     if (Platform.OS === 'web') {
       return;

@@ -92,7 +92,7 @@ export default function OrderDetailsScreen() {
       
       {/* Gradient Header */}
       <LinearGradient
-        colors={['#8B5CF6', '#6366F1']}
+        colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradientHeader}
@@ -143,7 +143,7 @@ export default function OrderDetailsScreen() {
         {/* Products Card */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Feather name="shopping-bag" size={20} color="#8B5CF6" />
+            <Feather name="shopping-bag" size={20} color={Colors.primary} />
             <Text style={styles.cardTitle}>{t('order.products')}</Text>
           </View>
           {order.items.map((item, index) => (
@@ -154,9 +154,16 @@ export default function OrderDetailsScreen() {
               />
               <View style={styles.productInfo}>
                 <Text style={styles.productName} numberOfLines={2}>
-                  {typeof item.product.name === 'string'
-                    ? item.product.name
-                    : (item.product.name?.[language] || item.product.name?.en || 'Product')}
+                  {(() => {
+                    if (typeof item.product.name === 'string') {
+                      return item.product.name;
+                    }
+                    if (typeof item.product.name === 'object' && item.product.name !== null) {
+                      const localizedName = item.product.name[language] || item.product.name.en;
+                      return typeof localizedName === 'string' ? localizedName : 'Product';
+                    }
+                    return 'Product';
+                  })()}
                 </Text>
                 
                 {/* Product Details Badges */}
@@ -164,7 +171,7 @@ export default function OrderDetailsScreen() {
                   <View style={styles.productBadges}>
                     {(item as any).selectedSize && (
                       <View style={styles.badge}>
-                        <Feather name="maximize-2" size={10} color="#6366F1" />
+                        <Feather name="maximize-2" size={10} color={Colors.primary} />
                         <Text style={styles.badgeText}>{(item as any).selectedSize}</Text>
                       </View>
                     )}
@@ -182,7 +189,7 @@ export default function OrderDetailsScreen() {
                     )}
                     {(item as any).selectedAge && (
                       <View style={styles.badge}>
-                        <Feather name="user" size={10} color="#6366F1" />
+                        <Feather name="user" size={10} color={Colors.primary} />
                         <Text style={styles.badgeText}>{(item as any).selectedAge}</Text>
                       </View>
                     )}
@@ -324,7 +331,7 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   statusBadge: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: Colors.primary,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 16,
@@ -467,7 +474,7 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 12,
-    color: '#8B5CF6',
+    color: Colors.primary,
     fontWeight: '600' as const,
   },
   colorDot: {
@@ -524,7 +531,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 11,
-    color: '#6366F1',
+    color: Colors.primary,
     fontWeight: '600' as const,
   },
   productMeta: {
@@ -552,7 +559,7 @@ const styles = StyleSheet.create({
   totalAmount: {
     fontSize: 18,
     fontWeight: 'bold' as const,
-    color: '#8B5CF6',
+    color: Colors.primary,
   },
   infoBlock: {
     gap: 4,
@@ -618,7 +625,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#10B981',
   },
   trackButton: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: Colors.primary,
   },
   actionButtonText: {
     fontSize: 14,

@@ -15,6 +15,7 @@ import { WebView } from 'react-native-webview';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
+import { Colors } from '@/constants/theme';
 
 interface MapPickerProps {
   visible: boolean;
@@ -551,9 +552,9 @@ export default function MapPicker({
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={['#8B5CF6', '#EC4899']}
+              colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
               start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
+              end={{ x: 1, y: 1 }}
               style={styles.confirmGradient}
             >
               {loading ? (

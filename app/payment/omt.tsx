@@ -118,7 +118,7 @@ export default function OMTPaymentScreen() {
       
       {/* Header */}
       <LinearGradient
-        colors={['#FF6B00', '#FF8C00']}
+        colors={['#FFD700', '#FFA500']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
@@ -126,7 +126,7 @@ export default function OMTPaymentScreen() {
         <SafeAreaView edges={['top']}>
           <View style={styles.headerContent}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <Feather name="arrow-left" size={24} color={Colors.white} />
+              <Feather name="arrow-left" size={24} color="#000000" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>
               {language === 'ar' ? 'الدفع عبر OMT' : 'OMT Payment'}
@@ -217,12 +217,12 @@ export default function OMTPaymentScreen() {
               activeOpacity={0.8}
             >
               <LinearGradient
-                colors={['#FF6B00', '#FF8C00']}
+                colors={['#FFD700', '#FFA500']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.sendCodeGradient}
               >
-                <Feather name="send" size={20} color={Colors.white} />
+                <Feather name="send" size={20} color="#000000" />
                 <Text style={styles.sendCodeText}>
                   {language === 'ar' ? 'إرسال رمز التحقق' : 'Send Verification Code'}
                 </Text>
@@ -270,7 +270,7 @@ export default function OMTPaymentScreen() {
           {/* How it works */}
           <View style={styles.instructionsCard}>
             <View style={styles.instructionsHeader}>
-              <Feather name="info" size={20} color="#FF6B00" />
+              <Feather name="info" size={20} color="#FFD700" />
               <Text style={styles.instructionsTitle}>
                 {language === 'ar' ? 'كيف يعمل؟' : 'How it works?'}
               </Text>
@@ -331,7 +331,7 @@ export default function OMTPaymentScreen() {
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={['#FF6B00', '#FF8C00']}
+              colors={['#FFD700', '#FFA500']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.submitGradient}
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: FontSizes.xl,
     fontWeight: FontWeights.bold,
-    color: Colors.white,
+    color: '#000000',
   },
   content: {
     flex: 1,
@@ -380,24 +380,24 @@ const styles = StyleSheet.create({
   },
   logoCard: {
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.xl,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
     alignItems: 'center',
-    marginBottom: Spacing.lg,
-    ...Shadows.md,
+    marginBottom: Spacing.md,
+    ...Shadows.sm,
   },
   logoContainer: {
     marginBottom: Spacing.md,
   },
   logoImage: {
-    width: 100,
-    height: 100,
+    width: 90,
+    height: 90,
   },
   omtLogo: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#FF6B00',
+    backgroundColor: '#FFD700',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1,
@@ -419,24 +419,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   amountCard: {
-    backgroundColor: '#FFF7ED',
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
+    backgroundColor: '#FFFACD',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
     alignItems: 'center',
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
     borderWidth: 1,
-    borderColor: '#FFD7B5',
+    borderColor: '#FFD700',
   },
   amountLabel: {
-    fontSize: FontSizes.sm,
-    color: '#C2410C',
-    marginBottom: Spacing.xs,
+    fontSize: FontSizes.xs,
+    color: '#000000',
+    marginBottom: 4,
     fontWeight: FontWeights.semibold,
   },
   amountValue: {
-    fontSize: 32,
+    fontSize: 24,
     fontWeight: FontWeights.bold,
-    color: '#FF6B00',
+    color: '#FFD700',
   },
   form: {
     gap: Spacing.lg,
@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
   sendCodeText: {
     fontSize: FontSizes.lg,
     fontWeight: FontWeights.bold,
-    color: Colors.white,
+    color: '#000000',
   },
   verificationSection: {
     gap: Spacing.md,
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
   },
   resendText: {
     fontSize: FontSizes.sm,
-    color: '#FF6B00',
+    color: '#FFD700',
     fontWeight: FontWeights.semibold,
     textDecorationLine: 'underline',
   },
@@ -528,9 +528,9 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#FFF7ED',
+    backgroundColor: '#FFFACD',
     borderWidth: 1,
-    borderColor: '#FF6B00',
+    borderColor: '#FFD700',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
@@ -538,7 +538,7 @@ const styles = StyleSheet.create({
   stepNumberText: {
     fontSize: FontSizes.xs,
     fontWeight: FontWeights.bold,
-    color: '#FF6B00',
+    color: '#FFD700',
   },
   stepText: {
     flex: 1,
@@ -580,11 +580,11 @@ const styles = StyleSheet.create({
   submitText: {
     fontSize: FontSizes.lg,
     fontWeight: FontWeights.bold,
-    color: Colors.white,
+    color: '#000000',
   },
   submitAmount: {
     fontSize: FontSizes.xl,
     fontWeight: FontWeights.bold,
-    color: Colors.white,
+    color: '#000000',
   },
 });

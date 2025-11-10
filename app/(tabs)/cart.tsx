@@ -16,6 +16,7 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { Colors } from '@/constants/theme';
 import SafeImage from '@/components/SafeImage';
 import { getProductImageUrl } from '@/utils/imageHelper';
 
@@ -54,7 +55,23 @@ export default function NewCartScreen() {
   // Empty Cart State
   if (!cart || cart.length === 0) {
     return (
-      <SafeAreaView style={styles.container} edges={[]}>
+      <View style={styles.container}>
+        {/* Gradient Header */}
+        <LinearGradient
+          colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradientHeader}
+        >
+          <SafeAreaView edges={['top']}>
+            <View style={styles.headerView}>
+              <View style={styles.headerPlaceholder} />
+              <Text style={styles.gradientHeaderTitle}>{t('cart.title')}</Text>
+              <View style={styles.headerPlaceholder} />
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+
         <View style={styles.emptyContainer}>
           <MaterialCommunityIcons name="cart-outline" size={120} color="#E0E0E0" />
           <Text style={styles.emptyTitle}>{t('cart.empty')}</Text>
@@ -66,9 +83,9 @@ export default function NewCartScreen() {
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={['#8B5CF6', '#EC4899']}
+              colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
               start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
+              end={{ x: 1, y: 1 }}
               style={styles.gradientButton}
             >
               <Text style={styles.shopButtonText}>{t('common.shopNow')}</Text>
@@ -76,25 +93,32 @@ export default function NewCartScreen() {
             </LinearGradient>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={[]}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header - مصغّر */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <MaterialCommunityIcons name="cart" size={22} color="#8B5CF6" />
-            <Text style={styles.headerTitle}>{t('cart.title')}</Text>
+    <View style={styles.container}>
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientHeader}
+      >
+        <SafeAreaView edges={['top']}>
+          <View style={styles.headerView}>
+            <View style={styles.headerPlaceholder} />
+            <Text style={styles.gradientHeaderTitle}>{t('cart.title')}</Text>
+            <View style={styles.headerRight}>
+              <Text style={styles.itemCountBadge}>{cart.length}</Text>
+            </View>
           </View>
-          <View style={styles.headerRight}>
-            <Text style={styles.itemCount}>{cart.length} {cart.length === 1 ? t('common.item') : t('common.items')}</Text>
-          </View>
-        </View>
+        </SafeAreaView>
+      </LinearGradient>
 
-        {/* Cart Items - مع الصور */}
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Cart Items */}
         <View style={styles.itemsContainer}>
           {cart.map((item) => (
             <View key={item.product.id} style={styles.cartItem}>
@@ -110,28 +134,35 @@ export default function NewCartScreen() {
               
               <View style={styles.itemDetails}>
                 <Text style={styles.productName} numberOfLines={2}>
-                  {item.product.displayName || (
-                    typeof item.product.name === 'object' && item.product.name !== null
-                      ? (language === 'ar' ? item.product.name.ar : item.product.name.en)
-                      : typeof item.product.name === 'string' 
-                        ? item.product.name
-                        : 'Product'
-                  )}
+                  {(() => {
+                    const displayName = (item.product as any).displayName;
+                    if (displayName && typeof displayName === 'string') {
+                      return displayName;
+                    }
+                    if (typeof item.product.name === 'object' && item.product.name !== null) {
+                      const localizedName = language === 'ar' ? item.product.name.ar : item.product.name.en;
+                      return typeof localizedName === 'string' ? localizedName : 'Product';
+                    }
+                    if (typeof item.product.name === 'string') {
+                      return item.product.name;
+                    }
+                    return 'Product';
+                  })()}
                 </Text>
                 
                 <View style={styles.priceContainer}>
                   <Text style={styles.currentPrice}>
-                    {formatPrice(item.product.finalPrice || item.product.price)}
+                    {formatPrice((item.product as any).finalPrice || item.product.price)}
                   </Text>
                   {/* Show weight or pieces info */}
-                  {item.product.selectedWeight && (
+                  {(item.product as any).selectedWeight && (
                     <Text style={styles.unitInfo}>
-                      {item.product.selectedWeight} {language === 'ar' ? 'كغ' : 'kg'}
+                      {(item.product as any).selectedWeight} {language === 'ar' ? 'كغ' : 'kg'}
                     </Text>
                   )}
-                  {item.product.selectedPieces && (
+                  {(item.product as any).selectedPieces && (
                     <Text style={styles.unitInfo}>
-                      {item.product.selectedPieces} {language === 'ar' ? 'قطعة' : 'pcs'}
+                      {(item.product as any).selectedPieces} {language === 'ar' ? 'قطعة' : 'pcs'}
                     </Text>
                   )}
                 </View>
@@ -217,9 +248,9 @@ export default function NewCartScreen() {
           activeOpacity={0.8}
         >
           <LinearGradient
-            colors={['#8B5CF6', '#EC4899']}
+            colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
             start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
+            end={{ x: 1, y: 1 }}
             style={styles.checkoutGradient}
           >
             <Text style={styles.checkoutButtonText}>{t('cart.proceedToCheckout')}</Text>
@@ -227,7 +258,7 @@ export default function NewCartScreen() {
           </LinearGradient>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -235,6 +266,35 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
+  },
+  gradientHeader: {
+    paddingBottom: 12,
+  },
+  headerView: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  headerPlaceholder: {
+    width: 40,
+  },
+  gradientHeaderTitle: {
+    fontSize: 20,
+    fontWeight: 'bold' as const,
+    color: '#FFF',
+  },
+  itemCountBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: 'bold' as const,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    minWidth: 32,
+    textAlign: 'center',
   },
   emptyContainer: {
     flex: 1,
@@ -261,7 +321,7 @@ const styles = StyleSheet.create({
     marginTop: 40,
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#8B5CF6',
+    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -384,7 +444,7 @@ const styles = StyleSheet.create({
   currentPrice: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#8B5CF6',
+    color: Colors.primary,
   },
   quantityContainer: {
     flexDirection: 'row',
@@ -426,7 +486,7 @@ const styles = StyleSheet.create({
   },
   brandText: {
     fontSize: 11,
-    color: '#8B5CF6',
+    color: Colors.primary,
     fontWeight: '600',
   },
   separator: {
@@ -521,7 +581,7 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#8B5CF6',
+    color: Colors.primary,
   },
   bottomContainer: {
     position: 'absolute',
@@ -546,7 +606,7 @@ const styles = StyleSheet.create({
   checkoutButton: {
     borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: '#8B5CF6',
+    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.25,
     shadowRadius: 6,
