@@ -180,52 +180,56 @@ export default function ProfessionalCartScreen() {
   // Empty cart state
   if (currentCart.length === 0) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <LinearGradient
-          colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
+          colors={[Colors.gradient.start, Colors.gradient.middle]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.gradientHeader}
+          style={styles.modernHeader}
         >
-          <SafeAreaView edges={['top']}>
-            <View style={[styles.headerView, isRTL && styles.rowReverse]}>
-              <View style={styles.headerPlaceholder} />
-              <Text style={[styles.gradientHeaderTitle, isRTL && styles.rtlText]}>
-                {isRTL ? 'السلة' : 'Cart'}
-              </Text>
-              <View style={styles.headerPlaceholder} />
-            </View>
-          </SafeAreaView>
+          <View style={[styles.headerContent, isRTL && styles.rowReverse]}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <ArrowLeft size={24} color="#fff" />
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, isRTL && styles.rtlText]}>
+              {isRTL ? 'عربة التسوق' : 'Shopping Cart'}
+            </Text>
+            <View style={styles.headerPlaceholder} />
+          </View>
         </LinearGradient>
 
         <View style={styles.emptyContainer}>
-          <ShoppingCart size={120} color="#E0E0E0" strokeWidth={1.5} />
+          <View style={styles.emptyIconCircle}>
+            <ShoppingCart size={80} color={Colors.primary} strokeWidth={1.5} />
+          </View>
           <Text style={[styles.emptyTitle, isRTL && styles.rtlText]}>
-            {isRTL ? 'السلة فارغة' : 'Your Cart is Empty'}
+            {isRTL ? 'عربتك فارغة!' : 'Your cart is empty!'}
           </Text>
           <Text style={[styles.emptySubtitle, isRTL && styles.rtlText]}>
-            {isRTL ? 'ابدأ التسوق الآن وأضف منتجات مميزة!' : 'Start shopping and add amazing products!'}
+            {isRTL 
+              ? 'أضف منتجات رائعة إلى عربتك وابدأ التسوق الآن' 
+              : 'Add amazing products to your cart and start shopping now'}
           </Text>
           
           <TouchableOpacity
-            style={styles.shopButton}
+            style={styles.startShoppingButton}
             onPress={() => router.push('/(tabs)/home' as any)}
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
+              colors={[Colors.gradient.start, Colors.gradient.middle]}
               start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.gradientButton}
+              end={{ x: 1, y: 0 }}
+              style={styles.startShoppingGradient}
             >
-              <Package size={20} color="#fff" />
-              <Text style={styles.shopButtonText}>
+              <Package size={22} color="#fff" />
+              <Text style={styles.startShoppingText}>
                 {isRTL ? 'ابدأ التسوق' : 'Start Shopping'}
               </Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
