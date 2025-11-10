@@ -12,7 +12,7 @@ import {
   GoogleAuthProvider,
   Auth,
 } from "firebase/auth";
-import { getFirestore, Firestore, connectFirestoreEmulator } from "firebase/firestore";
+import { getFirestore, initializeFirestore, Firestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getStorage, FirebaseStorage, connectStorageEmulator } from "firebase/storage";
 import { getFunctions, Functions, connectFunctionsEmulator } from "firebase/functions";
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -107,10 +107,24 @@ try {
     console.log('✅ Firebase Auth initialized with automatic AsyncStorage persistence');
   }
 
-  db = getFirestore(app);
+  const shouldUseLongPolling = Platform.OS !== "web";
+
+  if (shouldUseLongPolling) {
+    try {
+      db = initializeFirestore(app, {
+        experimentalForceLongPolling: true,
+      });
+      console.log('✅ Firestore initialized with forced long polling for React Native');
+    } catch (firestoreInitError) {
+      console.warn('⚠️ Falling back to default Firestore initialization:', firestoreInitError);
+      db = getFirestore(app);
+    }
+  } else {
+    db = getFirestore(app);
+    console.log('✅ Firestore initialized with default web settings');
+  }
   
   // تحسين إعدادات Firestore لتجنب أخطاء الاتصال
-  console.log('✅ Firestore initialized with optimized settings');
   
   storage = getStorage(app);
   
@@ -133,6 +147,7 @@ try {
     projectId: firebaseConfig.projectId,
     platform: Platform.OS,
     emulators: USE_EMULATORS,
+    longPolling: shouldUseLongPolling,
   });
 } catch (error) {
   console.error("✗ Firebase initialization error:", error);

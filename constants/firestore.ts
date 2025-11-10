@@ -69,6 +69,19 @@ export async function getDocuments<T = DocumentData>(
       console.warn('Firebase is not configured. Please check your .env file.');
       return [];
     }
+    
+    // ✅ Enhanced auth check for protected collections
+    const authRequiredCollections = ['orders', 'addresses', 'reviews', 'userNotifications'];
+    if (authRequiredCollections.includes(collectionName)) {
+      const { auth } = await import('./firebase');
+      const currentUser = auth?.currentUser;
+      
+      if (!currentUser) {
+        console.log(`ℹ️ Skipping ${collectionName} fetch - user not authenticated`);
+        return [];
+      }
+    }
+    
     const collectionRef = collection(db, collectionName);
     const q = constraints.length > 0 ? query(collectionRef, ...constraints) : collectionRef;
     const querySnapshot = await getDocs(q);
@@ -80,7 +93,7 @@ export async function getDocuments<T = DocumentData>(
   } catch (error: any) {
     // Silently handle permission errors - return empty array instead of throwing
     if (error?.code === 'permission-denied' || error?.message?.includes('permissions')) {
-      console.warn(`⚠️ Permission denied accessing ${collectionName}, returning empty array`);
+      console.warn(`⚠️ Permission denied accessing ${collectionName} - user may need to log in`);
       return [];
     }
     console.error('Error getting documents:', error);

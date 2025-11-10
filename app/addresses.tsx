@@ -145,36 +145,91 @@ export default function AddressesScreen() {
       return;
     }
 
-    if (Platform.OS !== 'web') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }
-
     try {
+      console.log('📝 Saving address for user:', user.uid);
+      
+      // ✅ Verify authentication token before saving
+      const { auth } = await import('@/constants/firebase');
+      const currentUser = auth?.currentUser;
+      
+      if (!currentUser) {
+        console.error('❌ User not authenticated - auth.currentUser is null');
+        Alert.alert('Error', 'Please sign in again to save address');
+        return;
+      }
+      
+      // Refresh token to ensure it's valid
+      try {
+        const token = await currentUser.getIdToken(true);
+        console.log('✅ Token refreshed successfully, length:', token?.length || 0);
+        
+        // Small delay to ensure token propagates
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (tokenError) {
+        console.error('❌ Token refresh failed:', tokenError);
+        Alert.alert('Error', 'Authentication expired. Please sign in again.');
+        return;
+      }
+      
       const addressData = {
         userId: user.uid,
-        label: formData.label || undefined,
+        label: formData.label || '',
         fullName: formData.fullName,
         phoneNumber: formData.phoneNumber,
         address: formData.address,
         city: formData.city,
-        postalCode: formData.postalCode,
+        postalCode: formData.postalCode || '',
         country: 'Saudi Arabia',
-        latitude: formData.latitude,
-        longitude: formData.longitude,
+        latitude: formData.latitude || null,
+        longitude: formData.longitude || null,
         isDefault: addresses.length === 0,
       };
 
+      console.log('📦 Address data to save:', JSON.stringify(addressData, null, 2));
+
       if (editingAddress) {
+        console.log('✏️ Updating existing address:', editingAddress.id);
         await updateDocument(collections.addresses, editingAddress.id, addressData);
       } else {
+        console.log('➕ Creating new address...');
         await createDocument(collections.addresses, addressData);
       }
 
+      console.log('✅ Address saved successfully!');
+      
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      
       await loadAddresses();
       setModalVisible(false);
-    } catch (error) {
-      console.error('Error saving address:', error);
-      Alert.alert('Error', 'Failed to save address');
+      setEditingAddress(null);
+      setFormData({
+        label: '',
+        fullName: '',
+        phoneNumber: '',
+        address: '',
+        city: '',
+        postalCode: '',
+      });
+      
+      Alert.alert('Success', 'Address saved successfully!');
+    } catch (error: any) {
+      console.error('❌ Error saving address:', error);
+      console.error('❌ Error code:', error?.code);
+      console.error('❌ Error message:', error?.message);
+      console.error('❌ Full error:', JSON.stringify(error, null, 2));
+      
+      // Show more detailed error message
+      let errorMessage = 'Failed to save address';
+      
+      if (error?.code === 'permission-denied') {
+        errorMessage = 'Permission denied. Please check your authentication.';
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      Alert.alert('Error', errorMessage);
     }
   };
 

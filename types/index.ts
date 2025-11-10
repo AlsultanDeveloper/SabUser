@@ -36,6 +36,7 @@ export interface Product {
   reviews: number;
   inStock: boolean;
   discount?: number;
+  finalPrice?: number;
   
   // Additional product details
   brandName?: string;
@@ -53,11 +54,10 @@ export interface Product {
   gender?: 'Boy' | 'Girl' | 'Unisex-Kids' | 'Men' | 'Women' | 'Unisex';
   season?: 'Summer' | 'Winter' | 'All-Season';
   deliveryTime?: string;
-  shippingCost?: number; // سعر التوصيل للمنتج (يتم تحديده من لوحة التحكم)
+  shippingCost?: number; 
   stock?: number;
   available?: boolean;
   
-  // Product specifications
   material?: string;
   careInstructions?: string;
   features?: string[];

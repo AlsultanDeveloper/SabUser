@@ -41,17 +41,24 @@ export default function NotificationsScreen() {
   // جلب الإشعارات من Firestore
   useEffect(() => {
     const fetchNotifications = async () => {
+      // ✅ CRITICAL CHECK: Only fetch if user is authenticated
       if (!user?.uid) {
+        console.log('ℹ️ User not authenticated, skipping notifications fetch');
+        setNotifications([]);
         setLoading(false);
         return;
       }
 
       try {
         setLoading(true);
+        console.log('📡 Fetching notifications for user:', user.uid);
+        
         const userNotifs = await getDocuments(collections.userNotifications, [
           where('userId', '==', user.uid),
           orderBy('createdAt', 'asc'),
         ]);
+
+        console.log(`✅ Fetched ${userNotifs.length} notifications`);
 
         const formattedNotifs: Notification[] = userNotifs.reverse().map((notif: any) => ({
           id: notif.id,
@@ -66,7 +73,8 @@ export default function NotificationsScreen() {
 
         setNotifications(formattedNotifs);
       } catch (error) {
-        console.error('Error fetching notifications:', error);
+        console.error('❌ Error fetching notifications:', error);
+        setNotifications([]);
       } finally {
         setLoading(false);
       }

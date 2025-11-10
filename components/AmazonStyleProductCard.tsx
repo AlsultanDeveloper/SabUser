@@ -136,7 +136,7 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
           {((product?.brandName && typeof product.brandName === 'string' && product.brandName.trim()) || 
             (product?.brand && typeof product.brand === 'string' && product.brand.trim())) ? (
             <Text style={styles.brandText} numberOfLines={1}>
-              {(product.brandName && product.brandName.trim()) || (product.brand && product.brand.trim()) || ''}
+              {product.brandName?.trim() || product.brand?.trim() || ''}
             </Text>
           ) : null}
 
@@ -150,17 +150,17 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
                 {renderStars()}
               </View>
               <Text style={styles.ratingText}>
-                {typeof product.rating === 'number' && !isNaN(product.rating) 
+                {(typeof product.rating === 'number' && !isNaN(product.rating) 
                   ? product.rating.toFixed(1) 
-                  : '0.0'}
+                  : '0.0')}
               </Text>
-              {(product.reviews || product.reviewsCount) && (
+              {(product.reviews || product.reviewsCount) ? (
                 <Text style={styles.reviewsText}>
-                  ({typeof (product.reviews || product.reviewsCount) === 'number' 
+                  {`(${typeof (product.reviews || product.reviewsCount) === 'number' 
                     ? (product.reviews || product.reviewsCount).toLocaleString() 
-                    : '0'})
+                    : '0'})`}
                 </Text>
-              )}
+              ) : null}
             </View>
           ) : null}
 
@@ -192,7 +192,7 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
               </View>
               
               {/* Add to Cart Button */}
-              {onAddToCart && (
+              {onAddToCart ? (
                 <TouchableOpacity
                   style={styles.addToCartButton}
                   onPress={(e) => {
@@ -203,7 +203,7 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
                 >
                   <Feather name="shopping-cart" size={16} color="#000" />
                 </TouchableOpacity>
-              )}
+              ) : null}
             </View>
           </View>
         </View>
