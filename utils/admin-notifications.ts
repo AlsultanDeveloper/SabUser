@@ -1,6 +1,7 @@
 // admin-notifications.ts - dummy content
 import { getDocument, getDocuments, collections, where } from '@/constants/firestore';
 import { sendPushNotification, sendBulkPushNotifications } from './notifications';
+import { auth } from '@/constants/firebase';
 
 export async function notifyUserAboutOrderUpdate(
   orderId: string,
@@ -8,6 +9,12 @@ export async function notifyUserAboutOrderUpdate(
   body: string
 ): Promise<boolean> {
   try {
+    // ✅ التحقق من تسجيل الدخول
+    if (!auth.currentUser) {
+      console.warn('⚠️ User not authenticated - cannot access user data');
+      return false;
+    }
+
     const order = await getDocument(collections.orders, orderId);
     
     if (!order) {
@@ -48,6 +55,12 @@ export async function sendBulkNotificationToAllUsers(
   data?: Record<string, any>
 ): Promise<boolean> {
   try {
+    // ✅ التحقق من تسجيل الدخول
+    if (!auth.currentUser) {
+      console.warn('⚠️ User not authenticated - cannot access user data');
+      return false;
+    }
+
     const users = await getDocuments(collections.users, [
       where('pushToken', '!=', null),
     ]);
@@ -77,6 +90,12 @@ export async function sendNotificationToUsersWithOrders(
   data?: Record<string, any>
 ): Promise<boolean> {
   try {
+    // ✅ التحقق من تسجيل الدخول
+    if (!auth.currentUser) {
+      console.warn('⚠️ User not authenticated - cannot access user data');
+      return false;
+    }
+
     const orders = await getDocuments(collections.orders, [
       where('status', 'in', ['pending', 'processing', 'shipped', 'out_for_delivery']),
     ]);

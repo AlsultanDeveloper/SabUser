@@ -32,7 +32,6 @@ import {
   ShoppingCart,
   Star,
   Truck,
-  Shield,
   RotateCcw,
   ChevronDown,
   Check,
@@ -56,6 +55,7 @@ export default function ProductDetailsScreen() {
   // States
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [weight, setWeight] = useState(0.5); // للمنتجات بالوزن
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<any>(null);
   const [selectedAge, setSelectedAge] = useState<string | null>(null);
@@ -68,6 +68,11 @@ export default function ProductDetailsScreen() {
   // Auto-select first available option
   useEffect(() => {
     if (product) {
+      // Set initial weight for weight-based products
+      if (product.soldByWeight && product.minWeight) {
+        setWeight(product.minWeight);
+      }
+      
       if (product.sizes && product.sizes.length > 0 && !selectedSize) {
         setSelectedSize(product.sizes[0]);
       }
@@ -125,19 +130,26 @@ export default function ProductDetailsScreen() {
       return;
     }
 
-    addToCart(product, quantity, {
+    // Use weight or quantity based on product type
+    const finalQuantity = product.soldByWeight ? weight : quantity;
+
+    addToCart(product, finalQuantity, {
       size: selectedSize,
       color: selectedColor,
       age: selectedAge,
     });
 
+    const displayText = product.soldByWeight 
+      ? `${weight.toFixed(1)} ${product.unit === 'kg' ? (isRTL ? 'كيلو' : 'kg') : product.unit}`
+      : `${quantity}`;
+
     Toast.show({
       type: 'success',
       text1: isRTL ? 'تمت الإضافة إلى السلة' : 'Added to cart',
-      text2: `${typeof product.name === 'object' ? (isRTL ? product.name.ar : product.name.en) : product.name} × ${quantity}`,
+      text2: `${typeof product.name === 'object' ? (isRTL ? product.name.ar : product.name.en) : product.name} × ${displayText}`,
       position: 'top',
     });
-  }, [product, quantity, selectedSize, selectedColor, selectedAge, addToCart, isRTL]);
+  }, [product, quantity, weight, selectedSize, selectedColor, selectedAge, addToCart, isRTL]);
 
   const toggleFavorite = useCallback(() => {
     setIsFavorite(!isFavorite);
@@ -198,7 +210,18 @@ export default function ProductDetailsScreen() {
 
   const images = product.images && product.images.length > 0 ? product.images : (product.image ? [product.image] : []);
   const hasDiscount = product.discount && product.discount > 0;
-  const finalPrice = hasDiscount ? product.price * (1 - product.discount! / 100) : (product.price || 0);
+  
+  // Calculate price based on weight or quantity
+  let basePrice = product.soldByWeight && product.pricePerUnit 
+    ? product.pricePerUnit 
+    : (product.price || 0);
+  
+  const finalPrice = hasDiscount ? basePrice * (1 - product.discount! / 100) : basePrice;
+  
+  // Total price calculation
+  const totalPrice = product.soldByWeight 
+    ? finalPrice * weight 
+    : finalPrice * quantity;
 
   return (
     <View style={styles.container}>
@@ -353,9 +376,16 @@ export default function ProductDetailsScreen() {
 
           {/* Price */}
           <View style={[styles.priceContainer, isRTL && styles.rowReverse]}>
-            <Text style={[styles.price, isRTL && styles.rtlText]}>
-              {formatPrice(finalPrice)}
-            </Text>
+            <View style={styles.priceWrapper}>
+              <Text style={[styles.price, isRTL && styles.rtlText]}>
+                {formatPrice(finalPrice)}
+              </Text>
+              {product.soldByWeight && product.unit ? (
+                <Text style={[styles.priceUnit, isRTL && styles.rtlText]}>
+                  {`/${product.unit === 'kg' ? (isRTL ? 'كيلو' : 'kg') : product.unit}`}
+                </Text>
+              ) : null}
+            </View>
             {hasDiscount ? (
               <Text style={[styles.oldPrice, isRTL && styles.rtlText]}>
                 {formatPrice(product.price || 0)}
@@ -374,11 +404,23 @@ export default function ProductDetailsScreen() {
             </Text>
           </View>
 
+          {/* Weight Info for weight-based products */}
+          {product.soldByWeight && product.minWeight ? (
+            <View style={styles.weightInfo}>
+              <Text style={[styles.weightInfoText, isRTL && styles.rtlText]}>
+                {isRTL 
+                  ? `الحد الأدنى للطلب: ${product.minWeight} ${product.unit === 'kg' ? 'كيلو' : product.unit}`
+                  : `Minimum order: ${product.minWeight} ${product.unit || 'kg'}`
+                }
+              </Text>
+            </View>
+          ) : null}
+
           {/* Divider */}
           <View style={styles.divider} />
 
           {/* Color Selection */}
-          {product.colors && product.colors.length > 0 ? (
+          {product.colors && Array.isArray(product.colors) && product.colors.length > 0 ? (
             <View style={styles.optionSection}>
               <View style={[styles.optionLabelContainer, isRTL && styles.rowReverse]}>
                 <Text style={[styles.optionLabel, isRTL && styles.rtlText]}>
@@ -412,7 +454,7 @@ export default function ProductDetailsScreen() {
           ) : null}
 
           {/* Size Selection */}
-          {product.sizes && product.sizes.length > 0 ? (
+          {product.sizes && Array.isArray(product.sizes) && product.sizes.length > 0 ? (
             <View style={styles.optionSection}>
               <View style={[styles.optionLabelContainer, isRTL && styles.rowReverse]}>
                 <Text style={[styles.optionLabel, isRTL && styles.rtlText]}>
@@ -445,7 +487,7 @@ export default function ProductDetailsScreen() {
           ) : null}
 
           {/* Age Range Selection */}
-          {product.ageRange && product.ageRange.length > 0 ? (
+          {product.ageRange && Array.isArray(product.ageRange) && product.ageRange.length > 0 ? (
             <View style={styles.optionSection}>
               <View style={[styles.optionLabelContainer, isRTL && styles.rowReverse]}>
                 <Text style={[styles.optionLabel, isRTL && styles.rtlText]}>
@@ -482,22 +524,32 @@ export default function ProductDetailsScreen() {
 
           {/* Features */}
           <View style={styles.featuresContainer}>
+            {/* Delivery */}
             <FeatureItem 
               icon={<Truck size={20} color={Colors.primary} />}
-              title={isRTL ? 'توصيل مجاني' : 'Free Delivery'}
-              subtitle={product.deliveryTime || (isRTL ? 'خلال 2-5 أيام' : 'Within 2-5 days')}
+              title={isRTL ? 'التوصيل' : 'Delivery'}
+              subtitle={product.deliveryTime || (isRTL ? 'حسب الموقع' : 'Based on location')}
               isRTL={isRTL}
             />
-            <FeatureItem 
-              icon={<Shield size={20} color={Colors.primary} />}
-              title={isRTL ? 'ضمان الجودة' : 'Quality Guarantee'}
-              subtitle={isRTL ? '100% أصلي' : '100% Authentic'}
-              isRTL={isRTL}
-            />
+            
+            {/* Shipping Cost */}
+            {product.shippingCost !== undefined && product.shippingCost !== null ? (
+              <FeatureItem 
+                icon={<Truck size={20} color={Colors.primary} />}
+                title={isRTL ? 'رسوم التوصيل' : 'Shipping Cost'}
+                subtitle={product.shippingCost === 0 
+                  ? (isRTL ? 'مجاناً' : 'Free') 
+                  : formatPrice(product.shippingCost)
+                }
+                isRTL={isRTL}
+              />
+            ) : null}
+            
+            {/* Returns - Only if damage */}
             <FeatureItem 
               icon={<RotateCcw size={20} color={Colors.primary} />}
-              title={isRTL ? 'إرجاع سهل' : 'Easy Returns'}
-              subtitle={isRTL ? 'خلال 14 يوم' : 'Within 14 days'}
+              title={isRTL ? 'الإرجاع' : 'Returns'}
+              subtitle={isRTL ? 'في حالة التلف فقط' : 'Only if damaged'}
               isRTL={isRTL}
             />
           </View>
@@ -570,23 +622,47 @@ export default function ProductDetailsScreen() {
       {/* Bottom Bar */}
       <BlurView intensity={90} tint="light" style={styles.bottomBar}>
         <View style={styles.bottomBarContent}>
-          {/* Quantity Selector */}
-          <View style={[styles.quantityContainer, isRTL && styles.rowReverse]}>
-            <TouchableOpacity
-              style={styles.quantityButton}
-              onPress={() => setQuantity(Math.max(1, quantity - 1))}
-              disabled={quantity <= 1}
-            >
-              <Minus size={18} color={quantity <= 1 ? Colors.gray[400] : Colors.text.primary} />
-            </TouchableOpacity>
-            <Text style={styles.quantityText}>{quantity}</Text>
-            <TouchableOpacity
-              style={styles.quantityButton}
-              onPress={() => setQuantity(quantity + 1)}
-            >
-              <Plus size={18} color={Colors.text.primary} />
-            </TouchableOpacity>
-          </View>
+          {/* Quantity/Weight Selector */}
+          {product.soldByWeight ? (
+            // Weight Selector for products sold by weight
+            <View style={[styles.quantityContainer, isRTL && styles.rowReverse]}>
+              <TouchableOpacity
+                style={styles.quantityButton}
+                onPress={() => setWeight(Math.max(product.minWeight || 0.5, weight - (product.weightStep || 0.5)))}
+                disabled={weight <= (product.minWeight || 0.5)}
+              >
+                <Minus size={18} color={weight <= (product.minWeight || 0.5) ? Colors.gray[400] : Colors.text.primary} />
+              </TouchableOpacity>
+              <View style={styles.weightDisplay}>
+                <Text style={styles.quantityText}>{weight.toFixed(1)}</Text>
+                <Text style={styles.weightUnit}>{product.unit === 'kg' ? (isRTL ? 'كيلو' : 'kg') : product.unit}</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.quantityButton}
+                onPress={() => setWeight(weight + (product.weightStep || 0.5))}
+              >
+                <Plus size={18} color={Colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            // Quantity Selector for regular products
+            <View style={[styles.quantityContainer, isRTL && styles.rowReverse]}>
+              <TouchableOpacity
+                style={styles.quantityButton}
+                onPress={() => setQuantity(Math.max(1, quantity - 1))}
+                disabled={quantity <= 1}
+              >
+                <Minus size={18} color={quantity <= 1 ? Colors.gray[400] : Colors.text.primary} />
+              </TouchableOpacity>
+              <Text style={styles.quantityText}>{quantity}</Text>
+              <TouchableOpacity
+                style={styles.quantityButton}
+                onPress={() => setQuantity(quantity + 1)}
+              >
+                <Plus size={18} color={Colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Add to Cart Button */}
           <TouchableOpacity
@@ -889,10 +965,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.md,
   },
+  priceWrapper: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
   price: {
     fontSize: FontSizes.xxxl,
     fontWeight: FontWeights.extrabold,
     color: Colors.primary,
+    marginRight: Spacing.md,
+  },
+  priceUnit: {
+    fontSize: FontSizes.lg,
+    fontWeight: FontWeights.semibold,
+    color: Colors.text.secondary,
+    marginLeft: Spacing.xs,
     marginRight: Spacing.md,
   },
   oldPrice: {
@@ -924,6 +1011,18 @@ const styles = StyleSheet.create({
   },
   stockTextOutOfStock: {
     color: Colors.error,
+  },
+  weightInfo: {
+    backgroundColor: Colors.primary + '10',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.md,
+  },
+  weightInfoText: {
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
+    fontWeight: FontWeights.medium,
   },
   divider: {
     height: 1,
@@ -1122,6 +1221,18 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     minWidth: 40,
     textAlign: 'center',
+  },
+  weightDisplay: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    minWidth: 60,
+    justifyContent: 'center',
+    gap: 4,
+  },
+  weightUnit: {
+    fontSize: FontSizes.sm,
+    fontWeight: FontWeights.medium,
+    color: Colors.text.secondary,
   },
   addToCartButton: {
     flex: 1,

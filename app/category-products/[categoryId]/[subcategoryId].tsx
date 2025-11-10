@@ -32,8 +32,7 @@ export default function CategoryProductsScreen() {
   const { language, formatPrice: appFormatPrice } = useApp();
   
   // State for pagination
-  const [displayLimit, setDisplayLimit] = useState(20); // عرض 20 منتج في البداية
-  const [showLoadMore, setShowLoadMore] = useState(false);
+  const [currentLimit, setCurrentLimit] = useState(100);
   
   // State for nested subcategories
   const [nestedSubcategories, setNestedSubcategories] = useState<any[]>([]);
@@ -55,10 +54,11 @@ export default function CategoryProductsScreen() {
   
   // جلب جميع المنتجات مرة واحدة (بدون limit)
   // React Query سيخزنها في الذاكرة ولن يعيد جلبها
+  // جلب المنتجات مع حد ديناميكي
   const { products, loading, error, refetch } = useProducts({
     categoryId: categoryId,
     subcategoryId: subcategoryId,
-    // No limit - fetch all products once, then paginate locally
+    limit: currentLimit, // ✅ استخدام الحد الديناميكي
   });
 
   // الحصول على اسم الفئة الفرعية
@@ -83,6 +83,11 @@ export default function CategoryProductsScreen() {
     
     return typeof name === 'string' && name.trim() ? name.trim() : '';
   }, [category, subcategoryId, language]);
+
+  // Reset limit when category/subcategory changes
+  useEffect(() => {
+    setCurrentLimit(100);
+  }, [categoryId, subcategoryId]);
 
   // Fetch nested subcategories
   useEffect(() => {
@@ -204,28 +209,8 @@ export default function CategoryProductsScreen() {
     return products.filter(p => p && typeof p === 'object' && p.id);
   }, [products]);
   
-  // Products to display based on limit
-  const displayedProducts = useMemo(() => {
-    const result = validProducts.slice(0, displayLimit);
-    console.log(`📊 Displaying ${result.length} of ${validProducts.length} products (limit: ${displayLimit})`);
-    return result;
-  }, [validProducts, displayLimit]);
-  
-  // Check if there are more products to load
-  useEffect(() => {
-    setShowLoadMore(validProducts.length > displayLimit);
-  }, [validProducts.length, displayLimit]);
-  
-  // Reset display limit when category/subcategory changes
-  useEffect(() => {
-    setDisplayLimit(20);
-  }, [categoryId, subcategoryId]);
-  
-  // Load more handler
-  const handleLoadMore = useCallback(() => {
-    console.log(`🔄 Loading more products... Current limit: ${displayLimit} → New limit: ${displayLimit + 20}`);
-    setDisplayLimit(prev => prev + 20);
-  }, [displayLimit]);
+  // عرض جميع المنتجات المحملة (50) مباشرة - لا داعي للتقسيم المحلي
+  const displayedProducts = validProducts;
   
   // Keep for future use if needed
   // const productsCount = validProducts?.length || 0;
@@ -432,17 +417,25 @@ export default function CategoryProductsScreen() {
               />
             }
             ListFooterComponent={
-              showLoadMore ? (
+              displayedProducts.length >= currentLimit ? (
                 <View style={styles.loadMoreContainer}>
                   <TouchableOpacity 
                     style={styles.loadMoreButton}
-                    onPress={handleLoadMore}
+                    onPress={() => {
+                      console.log(`📈 Loading more... ${currentLimit} → ${currentLimit + 100}`);
+                      setCurrentLimit(prev => prev + 100);
+                    }}
                   >
+                    <Feather name="chevron-down" size={20} color={Colors.primary} style={{ marginRight: 8 }} />
                     <Text style={styles.loadMoreText}>
-                      {language === 'ar' ? 'عرض المزيد' : 'Load More'}
+                      {language === 'ar' ? 'تحميل المزيد' : 'Load More'}
                     </Text>
-                    <Feather name="chevron-down" size={20} color={Colors.primary} />
                   </TouchableOpacity>
+                  <Text style={styles.loadMoreHint}>
+                    {language === 'ar' 
+                      ? `عرض ${displayedProducts.length} منتج` 
+                      : `Showing ${displayedProducts.length} products`}
+                  </Text>
                 </View>
               ) : null
             }
@@ -635,5 +628,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.primary,
     marginRight: 8,
+  },
+  loadMoreHint: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 8,
+    textAlign: 'center',
   },
 });

@@ -14,9 +14,24 @@ import {
 } from 'firebase/firestore';
 import { db, isConfigured } from '@/constants/firebase';
 import type { Category, Product, Banner, Brand } from '@/types';
+import { CacheManager } from '@/utils/cacheManager';
 
 
 async function fetchCategories(): Promise<Category[]> {
+  // ✅ 1. محاولة التحميل من الكاش أولاً
+  const cachedCategories = await CacheManager.getCategories();
+  if (cachedCategories && cachedCategories.length > 0) {
+    console.log(`⚡ Loaded ${cachedCategories.length} categories from cache`);
+    // إرجاع الكاش فوراً + جلب بيانات جديدة في الخلفية
+    setTimeout(() => fetchCategoriesFromFirebase(), 0);
+    return cachedCategories;
+  }
+
+  // ✅ 2. إذا لم يوجد كاش، جلب من Firebase
+  return fetchCategoriesFromFirebase();
+}
+
+async function fetchCategoriesFromFirebase(): Promise<Category[]> {
   if (!isConfigured || !db) {
     console.error('❌ Firebase not configured');
     throw new Error('Firebase not configured');
@@ -123,6 +138,10 @@ async function fetchCategories(): Promise<Category[]> {
     });
 
     console.log('✅ Categories loaded from Firestore:', loadedCategories.length);
+    
+    // ✅ حفظ في الكاش
+    await CacheManager.setCategories(loadedCategories);
+    
     return loadedCategories;
   } catch (err) {
     console.warn('⚠️ Could not load categories from Firebase, using empty array:', err);
@@ -257,23 +276,22 @@ async function fetchProducts(options: UseProductsOptions = {}): Promise<Product[
   
   const constraints: QueryConstraint[] = [];
   
+  // ✅ أولاً: إضافة فلاتر categoryId و subcategoryId
   if (options.categoryId) {
     constraints.push(where('categoryId', '==', options.categoryId));
-    // تعطيل orderBy مؤقتاً لاختبار المشكلة
-    // constraints.push(orderBy('createdAt', 'desc'));
-  } else if (options.featured) {
-    // جلب المنتجات المميزة فقط
-    constraints.push(where('featured', '==', true));
-    // constraints.push(orderBy('createdAt', 'desc'));
-  } else {
-    // جلب جميع المنتجات بدون شرط featured
-    // تعطيل orderBy مؤقتاً لاختبار المشكلة
-    // constraints.push(orderBy('createdAt', 'desc'));
   }
   
-  if (options.limit) {
-    constraints.push(limit(options.limit));
+  if (options.subcategoryId && options.subcategoryId !== 'all') {
+    constraints.push(where('subcategoryId', '==', options.subcategoryId));
   }
+  
+  if (options.featured) {
+    constraints.push(where('featured', '==', true));
+  }
+  
+  // ✅ ثانياً: إضافة limit بعد الفلاتر
+  const productLimit = options.limit || 100; // زيادة إلى 100 منتج
+  constraints.push(limit(productLimit));
   
   const q = query(productsRef, ...constraints);
   const querySnapshot = await getDocs(q);
@@ -285,19 +303,7 @@ async function fetchProducts(options: UseProductsOptions = {}): Promise<Product[
   querySnapshot.forEach((docSnap) => {
     const data = docSnap.data();
     
-    // Filter by subcategory if specified (يدعم كلاً من subcategoryId و subcategoryName)
-    if (options.subcategoryId && options.subcategoryId !== 'all') {
-      if (!data.subcategoryId || data.subcategoryId !== options.subcategoryId) {
-        console.log(`⏭️  Skipping product ${docSnap.id}: subcategoryId mismatch (expected: ${options.subcategoryId}, got: ${data.subcategoryId})`);
-        return; // Skip products that don't match the subcategory ID
-      }
-    }
-    
-    if (options.subcategoryName && options.subcategoryName !== 'all') {
-      if (!data.subcategoryName || data.subcategoryName !== options.subcategoryName) {
-        return; // Skip products that don't match the subcategory name
-      }
-    }
+    // ✅ تمت إزالة الفلترة المحلية - الآن نستخدم where() في Firebase مباشرة
     
     const imageUrl = data.image && typeof data.image === 'string' && data.image.trim() && data.image !== 'undefined' ? data.image.trim() : undefined;
     
@@ -739,64 +745,104 @@ export async function searchProducts(searchQuery: string): Promise<Product[]> {
   }
 }
 
-// Hook للمنتجات مع React Query للكاش السريع - Amazon Style
-// ✅ OPTIMIZED: جلب منتجات Sab Market فقط بدلاً من أي منتجات عشوائية
-export function useFeaturedProducts(limitCount: number = 10) {
-  return useQuery({
-    queryKey: ['featured-products', limitCount],
-    queryFn: async () => {
-      if (!isConfigured || !db) {
-        console.warn('⚠️ Firebase not configured, returning empty products');
-        return [];
-      }
+// ✅ دالة منفصلة لجلب المنتجات المميزة من Firebase
+async function fetchFeaturedProductsFromFirebase(limitCount: number): Promise<any[]> {
+  if (!isConfigured || !db) {
+    console.warn('⚠️ Firebase not configured, returning empty products');
+    return [];
+  }
 
-      try {
-        const productsRef = collection(db, 'products');
-        
-        // ✅ جلب منتجات عشوائية من SAB MARKET فقط (بدلاً من البحث في categories فارغة)
-        console.log('📦 جلب منتجات متنوعة من SAB MARKET (26,000 منتج)...');
-        
-        const q = query(
-          productsRef,
-          where('categoryId', '==', 'cwt28D5gjoLno8SFqoxQ'), // SAB MARKET
-          limit(1000) // جلب 1000 منتج للتنوع
-        );
-        
-        const querySnapshot = await getDocs(q);
-        const allProducts: any[] = [];
-        
-        querySnapshot.forEach((docSnap) => {
-          const data = docSnap.data();
-          allProducts.push({ 
+  try {
+    const productsRef = collection(db, 'products');
+    
+    // ✅ استراتيجية ذكية: جلب منتجات مميزة (featured) أولاً
+    console.log(`📦 جلب ${limitCount} منتج مميز...`);
+    
+    const q = query(
+      productsRef,
+      where('featured', '==', true),
+      limit(limitCount * 2) // جلب ضعف العدد للاحتياط
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const products: any[] = [];
+    
+    querySnapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      products.push({ 
+        id: docSnap.id, 
+        ...data,
+        image: data.image || data.images?.[0] || '',
+      });
+    });
+
+    console.log(`✅ وجدنا ${products.length} منتج مميز`);
+
+    // إذا لم نجد منتجات كافية، نجلب من SAB MARKET
+    if (products.length < limitCount) {
+      console.log(`⚡ جلب ${limitCount - products.length} منتج إضافي من SAB MARKET...`);
+      
+      const fallbackQ = query(
+        productsRef,
+        where('categoryId', '==', 'cwt28D5gjoLno8SFqoxQ'),
+        limit(limitCount)
+      );
+      
+      const fallbackSnapshot = await getDocs(fallbackQ);
+      fallbackSnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (!products.find(p => p.id === docSnap.id)) {
+          products.push({ 
             id: docSnap.id, 
             ...data,
             image: data.image || data.images?.[0] || '',
           });
-        });
-
-        console.log(`✅ تم جلب ${allProducts.length} منتج`);
-
-        // ✅ اختيار 10 منتجات عشوائية
-        const shuffled = allProducts.sort(() => Math.random() - 0.5);
-        const selectedProducts = shuffled.slice(0, 10);
-        
-        console.log(`✅ عرض ${selectedProducts.length} منتج في الصفحة الرئيسية`);
-
-        return selectedProducts;
-      } catch (error: any) {
-        // Silently handle permission errors
-        if (error?.code === 'permission-denied' || error?.message?.includes('permissions')) {
-          console.warn('⚠️ Permission denied fetching products, returning empty array');
-          return [];
         }
-        console.error('❌ Error fetching products:', error);
-        return [];
+      });
+    }
+
+    // اختيار العدد المطلوب فقط
+    const selectedProducts = products.slice(0, limitCount);
+    
+    console.log(`✅ عرض ${selectedProducts.length} منتج في الصفحة الرئيسية`);
+    
+    // ✅ حفظ في الكاش
+    await CacheManager.setFeaturedProducts(selectedProducts);
+
+    return selectedProducts;
+  } catch (error: any) {
+    // Silently handle permission errors
+    if (error?.code === 'permission-denied' || error?.message?.includes('permissions')) {
+      console.warn('⚠️ Permission denied fetching products, returning empty array');
+      return [];
+    }
+    console.error('❌ Error fetching products:', error);
+    return [];
+  }
+}
+
+// Hook للمنتجات مع React Query للكاش السريع - Amazon Style
+// ✅ OPTIMIZED: استخدام featured field بدلاً من جلب 1000 منتج
+export function useFeaturedProducts(limitCount: number = 10) {
+  return useQuery({
+    queryKey: ['featured-products', limitCount],
+    queryFn: async () => {
+      // ✅ 1. محاولة التحميل من الكاش أولاً
+      const cachedProducts = await CacheManager.getFeaturedProducts();
+      if (cachedProducts && cachedProducts.length >= limitCount) {
+        console.log(`⚡ Loaded ${cachedProducts.length} products from cache`);
+        // جلب بيانات جديدة في الخلفية بدون انتظار
+        fetchFeaturedProductsFromFirebase(limitCount);
+        return cachedProducts.slice(0, limitCount);
       }
+
+      // ✅ 2. إذا لم يوجد كاش كافي، جلب من Firebase
+      return fetchFeaturedProductsFromFirebase(limitCount);
     },
-    staleTime: 2 * 60 * 1000, // 2 دقيقة - تحديث أسرع للحصول على منتجات جديدة
-    gcTime: 10 * 60 * 1000, // 10 دقائق cache
+    staleTime: 30 * 60 * 1000, // ✅ 30 دقيقة - كاش طويل للسرعة
+    gcTime: 60 * 60 * 1000, // ✅ ساعة واحدة - احتفظ بالبيانات
     refetchOnWindowFocus: false,
-    refetchOnMount: true, // ✅ تحديث عند mount للحصول على منتجات عشوائية جديدة
+    refetchOnMount: false, // ✅ لا تُعيد الجلب عند mount - استخدم الكاش!
     retry: 1,
     retryDelay: 1000,
   });

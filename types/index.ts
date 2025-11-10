@@ -65,6 +65,17 @@ export interface Product {
   
   // Unit (وحدة القياس)
   unit?: string; // e.g. "kg", "gram", "piece", "liter", "bottle", "box", "pack"
+  
+  // Weight-based products (منتجات الوزن)
+  soldByWeight?: boolean; // هل المنتج يباع بالوزن؟
+  minWeight?: number; // الحد الأدنى للوزن (مثلاً 0.5 كيلو)
+  weightStep?: number; // خطوة الزيادة (مثلاً 0.5 كيلو)
+  pricePerUnit?: number; // السعر لكل وحدة (مثلاً سعر الكيلو)
+  
+  // Product Source (مصدر المنتج)
+  source?: 'sab-market' | 'other'; // نوع المنتج: من Sab Market أو من مصادر أخرى
+  vendorId?: string; // معرف البائع (إذا كان من مصدر آخر)
+  vendorName?: string; // اسم البائع
 }
 
 export interface Subcategory {

@@ -12,7 +12,14 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const [language, setLanguage] = useState<Language>('en');
   // Fixed currency: USD only
   const currency = 'USD' as const;
+  
+  // Two separate carts
+  const [sabMarketCart, setSabMarketCart] = useState<CartItem[]>([]); // سلة Sab Market
+  const [otherCart, setOtherCart] = useState<CartItem[]>([]); // سلة المنتجات الأخرى
+  
+  // Backward compatibility - combined cart view
   const [cart, setCart] = useState<CartItem[]>([]);
+  
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -32,9 +39,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
   const loadSettings = async () => {
     try {
-      const [storedLanguage, storedCart] = await Promise.all([
+      const [storedLanguage, storedSabCart, storedOtherCart] = await Promise.all([
         AsyncStorage.getItem('language'),
-        AsyncStorage.getItem('cart'),
+        AsyncStorage.getItem('sabMarketCart'),
+        AsyncStorage.getItem('otherCart'),
       ]);
 
       if (storedLanguage) {
@@ -42,8 +50,14 @@ export const [AppProvider, useApp] = createContextHook(() => {
         i18n.locale = storedLanguage;
       }
 
-      if (storedCart) {
-        setCart(JSON.parse(storedCart));
+      if (storedSabCart) {
+        const parsedSabCart = JSON.parse(storedSabCart);
+        setSabMarketCart(parsedSabCart);
+      }
+      
+      if (storedOtherCart) {
+        const parsedOtherCart = JSON.parse(storedOtherCart);
+        setOtherCart(parsedOtherCart);
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -121,8 +135,41 @@ export const [AppProvider, useApp] = createContextHook(() => {
       age?: string | null;
     }
   ) => {
+    // ✅ Ensure product has source field - default to 'sab-market'
+    if (!product.source) {
+      product.source = 'sab-market';
+    }
+    
+    const isSabMarket = product.source === 'sab-market';
+    
+    // 🚫 Check if cart has products from different source
+    const hasOtherProducts = isSabMarket ? otherCart.length > 0 : sabMarketCart.length > 0;
+    
+    if (hasOtherProducts) {
+      const isRTL = language === 'ar';
+      const otherSourceName = isSabMarket 
+        ? (isRTL ? 'منتجات أخرى' : 'other products')
+        : (isRTL ? 'منتجات Sab Market' : 'Sab Market products');
+      
+      Toast.show({
+        type: 'error',
+        text1: isRTL ? '⚠️ لا يمكن خلط المنتجات' : '⚠️ Cannot Mix Products',
+        text2: isRTL 
+          ? `لديك ${otherSourceName} في السلة. يرجى إتمام الطلب أو مسح السلة أولاً.`
+          : `You have ${otherSourceName} in cart. Please checkout or clear cart first.`,
+        visibilityTime: 4000,
+        position: 'top',
+      });
+      return; // Don't add to cart
+    }
+    
+    // Determine which cart to use
+    const currentCart = isSabMarket ? sabMarketCart : otherCart;
+    const setCurrentCart = isSabMarket ? setSabMarketCart : setOtherCart;
+    const cartKey = isSabMarket ? 'sabMarketCart' : 'otherCart';
+    
     // Find existing item with same product AND same options
-    const existingItem = cart.find((item) => {
+    const existingItem = currentCart.find((item) => {
       if (item.product.id !== product.id) return false;
       
       // Check if options match
@@ -136,7 +183,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     let newCart: CartItem[];
 
     if (existingItem) {
-      newCart = cart.map((item) => {
+      newCart = currentCart.map((item) => {
         const sameProduct = item.product.id === product.id;
         const sameSize = (item as any).selectedSize === options?.size;
         const sameColor = JSON.stringify((item as any).selectedColor) === JSON.stringify(options?.color);
@@ -147,7 +194,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
           : item;
       });
     } else {
-      newCart = [...cart, { 
+      newCart = [...currentCart, { 
         product, 
         quantity,
         ...(options?.size && { selectedSize: options.size }),
@@ -156,51 +203,111 @@ export const [AppProvider, useApp] = createContextHook(() => {
       } as any];
     }
 
-    setCart(newCart);
+    setCurrentCart(newCart);
+    
+    // Update combined cart for backward compatibility
+    const combinedCart = isSabMarket 
+      ? [...newCart, ...otherCart]
+      : [...sabMarketCart, ...newCart];
+    setCart(combinedCart);
+    
     try {
-      await AsyncStorage.setItem('cart', JSON.stringify(newCart));
+      await AsyncStorage.setItem(cartKey, JSON.stringify(newCart));
+      await AsyncStorage.setItem('cart', JSON.stringify(combinedCart));
     } catch (error) {
       console.error('Error saving cart:', error);
     }
-  }, [cart]);
+  }, [sabMarketCart, otherCart]);
 
-  const updateCartItemQuantity = useCallback(async (productId: string, quantity: number) => {
+  const updateCartItemQuantity = useCallback(async (productId: string, quantity: number, cartType?: 'sab-market' | 'other') => {
+    // Auto-detect cart type if not provided
+    let isSabMarket = cartType === 'sab-market';
+    if (!cartType) {
+      // Find which cart contains this product
+      isSabMarket = sabMarketCart.some(item => item.product.id === productId);
+    }
+    
+    const currentCart = isSabMarket ? sabMarketCart : otherCart;
+    const setCurrentCart = isSabMarket ? setSabMarketCart : setOtherCart;
+    const cartKey = isSabMarket ? 'sabMarketCart' : 'otherCart';
+    
     let newCart: CartItem[];
     
     if (quantity <= 0) {
-      newCart = cart.filter((item) => item.product.id !== productId);
+      newCart = currentCart.filter((item) => item.product.id !== productId);
     } else {
-      newCart = cart.map((item) =>
+      newCart = currentCart.map((item) =>
         item.product.id === productId ? { ...item, quantity } : item
       );
     }
 
-    setCart(newCart);
+    setCurrentCart(newCart);
+    
+    // Update combined cart
+    const combinedCart = isSabMarket 
+      ? [...newCart, ...otherCart]
+      : [...sabMarketCart, ...newCart];
+    setCart(combinedCart);
+    
     try {
-      await AsyncStorage.setItem('cart', JSON.stringify(newCart));
+      await AsyncStorage.setItem(cartKey, JSON.stringify(newCart));
+      await AsyncStorage.setItem('cart', JSON.stringify(combinedCart));
     } catch (error) {
       console.error('Error updating cart:', error);
     }
-  }, [cart]);
+  }, [sabMarketCart, otherCart]);
 
-  const removeFromCart = useCallback(async (productId: string) => {
-    const newCart = cart.filter((item) => item.product.id !== productId);
-    setCart(newCart);
+  const removeFromCart = useCallback(async (productId: string, cartType?: 'sab-market' | 'other') => {
+    // Auto-detect cart type if not provided
+    let isSabMarket = cartType === 'sab-market';
+    if (!cartType) {
+      isSabMarket = sabMarketCart.some(item => item.product.id === productId);
+    }
+    
+    const currentCart = isSabMarket ? sabMarketCart : otherCart;
+    const setCurrentCart = isSabMarket ? setSabMarketCart : setOtherCart;
+    const cartKey = isSabMarket ? 'sabMarketCart' : 'otherCart';
+    
+    const newCart = currentCart.filter((item) => item.product.id !== productId);
+    setCurrentCart(newCart);
+    
+    // Update combined cart
+    const combinedCart = isSabMarket 
+      ? [...newCart, ...otherCart]
+      : [...sabMarketCart, ...newCart];
+    setCart(combinedCart);
+    
     try {
-      await AsyncStorage.setItem('cart', JSON.stringify(newCart));
+      await AsyncStorage.setItem(cartKey, JSON.stringify(newCart));
+      await AsyncStorage.setItem('cart', JSON.stringify(combinedCart));
     } catch (error) {
       console.error('Error removing from cart:', error);
     }
-  }, [cart]);
+  }, [sabMarketCart, otherCart]);
 
-  const clearCart = useCallback(async () => {
-    setCart([]);
-    try {
-      await AsyncStorage.removeItem('cart');
-    } catch (error) {
-      console.error('Error clearing cart:', error);
+  const clearCart = useCallback(async (cartType?: 'sab-market' | 'other' | 'both') => {
+    const clearType = cartType || 'both';
+    
+    if (clearType === 'both' || clearType === 'sab-market') {
+      setSabMarketCart([]);
+      await AsyncStorage.removeItem('sabMarketCart');
     }
-  }, []);
+    
+    if (clearType === 'both' || clearType === 'other') {
+      setOtherCart([]);
+      await AsyncStorage.removeItem('otherCart');
+    }
+    
+    if (clearType === 'both') {
+      setCart([]);
+      await AsyncStorage.removeItem('cart');
+    } else {
+      // Update combined cart
+      const combinedCart = clearType === 'sab-market' ? otherCart : sabMarketCart;
+      setCart(combinedCart);
+      await AsyncStorage.setItem('cart', JSON.stringify(combinedCart));
+    }
+  }, [sabMarketCart, otherCart]);
 
   // Format price in USD only - Safe version
   const formatPrice = useCallback((price: number | undefined | null) => {
@@ -251,7 +358,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
   return useMemo(() => ({
     language,
     currency,
-    cart,
+    cart, // Combined cart for backward compatibility
+    sabMarketCart, // Sab Market cart
+    otherCart, // Other vendors cart
     isLoading,
     cartTotal,
     cartItemsCount,
@@ -263,5 +372,22 @@ export const [AppProvider, useApp] = createContextHook(() => {
     clearCart,
     formatPrice,
     t,
-  }), [language, currency, cart, isLoading, cartTotal, cartItemsCount, isRTL, changeLanguage, addToCart, updateCartItemQuantity, removeFromCart, clearCart, formatPrice, t]);
+  }), [
+    language, 
+    currency, 
+    cart, 
+    sabMarketCart,
+    otherCart,
+    isLoading, 
+    cartTotal, 
+    cartItemsCount, 
+    isRTL, 
+    changeLanguage, 
+    addToCart, 
+    updateCartItemQuantity, 
+    removeFromCart, 
+    clearCart, 
+    formatPrice, 
+    t
+  ]);
 });
