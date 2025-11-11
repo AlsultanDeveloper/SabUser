@@ -755,41 +755,26 @@ async function fetchFeaturedProductsFromFirebase(limitCount: number): Promise<an
   try {
     const productsRef = collection(db, 'products');
     
-    // ✅ استراتيجية ذكية: جلب منتجات مميزة (featured) أولاً
-    console.log(`📦 جلب ${limitCount} منتج مميز...`);
+    // ✅ استراتيجية جديدة: جلب منتجات Fashion فقط
+    console.log(`📦 جلب ${limitCount} منتج من Fashion...`);
     
-    const q = query(
-      productsRef,
-      where('featured', '==', true),
-      limit(limitCount * 2) // جلب ضعف العدد للاحتياط
-    );
-    
-    const querySnapshot = await getDocs(q);
+    // Women Fashion ID: YbTFyzVimq62ylBwCd9Q
+    // Men Fashion ID: bkmGcNXqVTDJErbzFSiQ
+    const fashionCategoryIds = ['YbTFyzVimq62ylBwCd9Q', 'bkmGcNXqVTDJErbzFSiQ'];
     const products: any[] = [];
     
-    querySnapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-      products.push({ 
-        id: docSnap.id, 
-        ...data,
-        image: data.image || data.images?.[0] || '',
-      });
-    });
-
-    console.log(`✅ وجدنا ${products.length} منتج مميز`);
-
-    // إذا لم نجد منتجات كافية، نجلب من SAB MARKET
-    if (products.length < limitCount) {
-      console.log(`⚡ جلب ${limitCount - products.length} منتج إضافي من SAB MARKET...`);
+    // جلب منتجات من كل فئة Fashion
+    for (const categoryId of fashionCategoryIds) {
+      if (products.length >= limitCount) break;
       
-      const fallbackQ = query(
+      const q = query(
         productsRef,
-        where('categoryId', '==', 'cwt28D5gjoLno8SFqoxQ'),
-        limit(limitCount)
+        where('categoryId', '==', categoryId),
+        limit(Math.ceil(limitCount / 2))
       );
       
-      const fallbackSnapshot = await getDocs(fallbackQ);
-      fallbackSnapshot.forEach((docSnap) => {
+      const querySnapshot = await getDocs(q);
+      querySnapshot.forEach((docSnap) => {
         const data = docSnap.data();
         if (!products.find(p => p.id === docSnap.id)) {
           products.push({ 
@@ -800,6 +785,8 @@ async function fetchFeaturedProductsFromFirebase(limitCount: number): Promise<an
         }
       });
     }
+
+    console.log(`✅ وجدنا ${products.length} منتج من Fashion`);
 
     // اختيار العدد المطلوب فقط
     const selectedProducts = products.slice(0, limitCount);
@@ -827,22 +814,14 @@ export function useFeaturedProducts(limitCount: number = 10) {
   return useQuery({
     queryKey: ['featured-products', limitCount],
     queryFn: async () => {
-      // ✅ 1. محاولة التحميل من الكاش أولاً
-      const cachedProducts = await CacheManager.getFeaturedProducts();
-      if (cachedProducts && cachedProducts.length >= limitCount) {
-        console.log(`⚡ Loaded ${cachedProducts.length} products from cache`);
-        // جلب بيانات جديدة في الخلفية بدون انتظار
-        fetchFeaturedProductsFromFirebase(limitCount);
-        return cachedProducts.slice(0, limitCount);
-      }
-
-      // ✅ 2. إذا لم يوجد كاش كافي، جلب من Firebase
+      // ✅ تجاهل الكاش وجلب بيانات جديدة من Firebase مباشرة
+      console.log('🔄 جلب منتجات Fashion من Firebase...');
       return fetchFeaturedProductsFromFirebase(limitCount);
     },
-    staleTime: 30 * 60 * 1000, // ✅ 30 دقيقة - كاش طويل للسرعة
-    gcTime: 60 * 60 * 1000, // ✅ ساعة واحدة - احتفظ بالبيانات
+    staleTime: 5 * 60 * 1000, // ✅ 5 دقائق - كاش قصير لإعادة الجلب بسرعة
+    gcTime: 10 * 60 * 1000, // ✅ 10 دقائق
     refetchOnWindowFocus: false,
-    refetchOnMount: false, // ✅ لا تُعيد الجلب عند mount - استخدم الكاش!
+    refetchOnMount: true, // ✅ أعد الجلب عند mount للحصول على بيانات جديدة
     retry: 1,
     retryDelay: 1000,
   });

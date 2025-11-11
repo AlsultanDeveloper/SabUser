@@ -84,11 +84,12 @@ export default function AddressMapPickerScreen() {
       }
     } catch (error) {
       console.error('Error getting current location:', error);
-      const defaultCoords = {
-        latitude: 24.7136,
-        longitude: 46.6753,
-      };
-      setLocation(defaultCoords);
+      Alert.alert(
+        'Location Error',
+        'Unable to get your current location. Please enable location services and try again.',
+        [{ text: 'OK' }]
+      );
+      setLocation(null);
     } finally {
       setLoading(false);
     }

@@ -23,7 +23,8 @@ export const collections = {
   users: 'users',
   products: 'products',
   categories: 'categories',
-  orders: 'orders',
+  orders: 'orders', // SAB Store orders
+  marketOrders: 'marketOrders', // SAB Market orders
   addresses: 'addresses',
   reviews: 'reviews',
   cart: 'carts',
@@ -71,7 +72,7 @@ export async function getDocuments<T = DocumentData>(
     }
     
     // ✅ Enhanced auth check for protected collections
-    const authRequiredCollections = ['orders', 'addresses', 'reviews', 'userNotifications'];
+    const authRequiredCollections = ['orders', 'marketOrders', 'addresses', 'reviews', 'userNotifications'];
     if (authRequiredCollections.includes(collectionName)) {
       const { auth } = await import('./firebase');
       const currentUser = auth?.currentUser;
@@ -113,7 +114,7 @@ export async function createDocument<T extends WithFieldValue<DocumentData>>(
     }
     
     // Check if user is authenticated (for collections that require auth)
-    const authRequiredCollections = ['orders', 'addresses', 'reviews', 'userNotifications'];
+    const authRequiredCollections = ['orders', 'marketOrders', 'addresses', 'reviews', 'userNotifications'];
     if (authRequiredCollections.includes(collectionName)) {
       const { auth } = await import('./firebase');
       const currentUser = auth?.currentUser;
@@ -200,7 +201,7 @@ export async function deleteDocument(
     }
     
     // Check if user is authenticated (for collections that require auth)
-    const authRequiredCollections = ['orders', 'addresses', 'reviews', 'userNotifications'];
+    const authRequiredCollections = ['orders', 'marketOrders', 'addresses', 'reviews', 'userNotifications'];
     if (authRequiredCollections.includes(collectionName)) {
       const { auth } = await import('./firebase');
       const currentUser = auth?.currentUser;
@@ -269,8 +270,38 @@ export async function getUserOrders(userId: string) {
   ]);
 }
 
+export async function getUserMarketOrders(userId: string) {
+  return getDocuments(collections.marketOrders, [
+    where('userId', '==', userId),
+    orderBy('createdAt', 'desc'),
+  ]);
+}
+
+export async function getAllUserOrders(userId: string) {
+  // Get both SAB Store and SAB Market orders
+  const [storeOrders, marketOrders] = await Promise.all([
+    getUserOrders(userId),
+    getUserMarketOrders(userId),
+  ]);
+  
+  // Combine and sort by date
+  const allOrders = [...storeOrders, ...marketOrders].sort((a: any, b: any) => {
+    const dateA = new Date(a.createdAt).getTime();
+    const dateB = new Date(b.createdAt).getTime();
+    return dateB - dateA;
+  });
+  
+  return allOrders;
+}
+
 export async function getOrder(orderId: string) {
-  return getDocument(collections.orders, orderId);
+  // Try SAB Store orders first
+  let order = await getDocument(collections.orders, orderId);
+  if (order) return order;
+  
+  // Try SAB Market orders
+  order = await getDocument(collections.marketOrders, orderId);
+  return order;
 }
 
 export async function getUserAddresses(userId: string) {

@@ -32,7 +32,7 @@ export default function OrderDetailsScreen() {
         <SafeAreaView style={styles.headerContainer} edges={['top']}>
           <View style={styles.header}>
             <TouchableOpacity 
-              onPress={() => router.replace('/(tabs)/orders' as any)} 
+              onPress={() => router.back()} 
               style={styles.backButton}
             >
               <Feather name="arrow-left" size={24} color={Colors.text.primary} />
@@ -100,7 +100,7 @@ export default function OrderDetailsScreen() {
         <SafeAreaView edges={['top']}>
           <View style={styles.header}>
             <TouchableOpacity 
-              onPress={() => router.replace('/(tabs)/orders' as any)} 
+              onPress={() => router.back()} 
               style={styles.backButton}
             >
               <Feather name="arrow-left" size={24} color="#FFF" />
@@ -116,11 +116,18 @@ export default function OrderDetailsScreen() {
                 <Text style={styles.orderLabel}>{t('order.orderNumber')}</Text>
                 <Text style={styles.orderNumber}>{order.orderNumber}</Text>
               </View>
-              <View style={styles.statusBadge}>
-                <Text style={styles.statusText}>
-                  {order.status === 'pending' && (language === 'ar' ? 'جديد' : 'New')}
-                  {order.status === 'delivered' && (language === 'ar' ? 'تم التوصيل' : 'Delivered')}
-                </Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {(order as any).isSabMarket && (
+                  <View style={styles.sabMarketBadge}>
+                    <Text style={styles.sabMarketText}>SAB Market</Text>
+                  </View>
+                )}
+                <View style={styles.statusBadge}>
+                  <Text style={styles.statusText}>
+                    {order.status === 'pending' && (language === 'ar' ? 'جديد' : 'New')}
+                    {order.status === 'delivered' && (language === 'ar' ? 'تم التوصيل' : 'Delivered')}
+                  </Text>
+                </View>
               </View>
             </View>
             <View style={styles.orderMetaRow}>
@@ -225,7 +232,10 @@ export default function OrderDetailsScreen() {
             <View style={styles.deliveryEstimate}>
               <Feather name="clock" size={16} color="#F59E0B" />
               <Text style={styles.deliveryText}>
-                {language === 'ar' ? 'التوصيل المتوقع' : 'Est. Delivery'}: {formatDate(order.estimatedDelivery)}
+                {(order as any).isSabMarket 
+                  ? (language === 'ar' ? '⚡ توصيل سريع: 30 دقيقة' : '⚡ Express Delivery: 30 Minutes')
+                  : `${language === 'ar' ? 'التوصيل المتوقع' : 'Est. Delivery'}: ${formatDate(order.estimatedDelivery)}`
+                }
               </Text>
             </View>
           )}
@@ -337,6 +347,18 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   statusText: {
+    color: '#FFF',
+    fontSize: 11,
+    fontWeight: '600' as const,
+  },
+  sabMarketBadge: {
+    backgroundColor: '#FF6B35',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 16,
+    marginLeft: 8,
+  },
+  sabMarketText: {
     color: '#FFF',
     fontSize: 11,
     fontWeight: '600' as const,

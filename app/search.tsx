@@ -10,22 +10,30 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, Stack } from 'expo-router';
+import { useRouter, Stack, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMarket } from '@/contexts/MarketContext';
 import { Colors, Spacing, BorderRadius, FontSizes } from '@/constants/theme';
-import AmazonStyleProductCard from '@/components/AmazonStyleProductCard';
 import type { Product } from '@/types';
+import { Dimensions, Image } from 'react-native';
+
+const { width } = Dimensions.get('window');
+const CARD_WIDTH = (width - 48) / 2;
 
 export default function SearchScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const { language, formatPrice } = useApp();
   const { user } = useAuth();
+  const { addToMarketCart, marketCartCount } = useMarket();
   
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(params.query ? String(params.query) : '');
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
+  const [marketOnly] = useState(params.marketOnly === 'true');
   const displayLimit = 20; // ثابت - نعرض 20 منتج دائماً
   
   // ✅ OPTIMIZED: بحث مباشر في Firebase بدون تحميل كل المنتجات
@@ -105,35 +113,56 @@ export default function SearchScreen() {
   // المستخدم يمكنه تحسين البحث بكلمات أكثر دقة
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
       
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Feather name="arrow-left" size={24} color={Colors.text.primary} />
-        </TouchableOpacity>
-        
-        <View style={styles.searchContainer}>
-          <Feather name="search" size={20} color={Colors.gray[400]} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder={language === 'ar' ? 'ابحث عن المنتجات...' : 'Search for products...'}
-            placeholderTextColor={Colors.gray[400]}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoFocus
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Feather name="x" size={20} color={Colors.gray[400]} />
+      <LinearGradient
+        colors={marketOnly ? ['#FF6B35', '#F7931E', '#FF4500'] : ['#0EA5E9', '#0284C7', '#0369A1']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <SafeAreaView edges={['top']}>
+          <View style={styles.header}>
+            <TouchableOpacity 
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <Feather name="arrow-left" size={24} color={Colors.white} />
             </TouchableOpacity>
-          )}
+            
+            <View style={styles.searchContainer}>
+              <Feather name="search" size={20} color={Colors.gray[400]} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder={marketOnly 
+                  ? (language === 'ar' ? 'ابحث في المواد الغذائية...' : 'Search for groceries...') 
+                  : (language === 'ar' ? 'ابحث عن المنتجات...' : 'Search for products...')
+                }
+                placeholderTextColor={Colors.gray[400]}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoFocus
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <Feather name="x" size={20} color={Colors.gray[400]} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+      
+      {/* Market Badge */}
+      {marketOnly && (
+        <View style={styles.marketBadge}>
+          <Text style={styles.marketBadgeText}>
+            🛒 {language === 'ar' ? 'البحث في SAB Market فقط' : 'Searching in SAB Market only'}
+          </Text>
         </View>
-      </View>
+      )}
 
       {/* Content */}
       {loading ? (
@@ -177,18 +206,74 @@ export default function SearchScreen() {
           data={searchResults}
           keyExtractor={(item) => item.id}
           numColumns={2}
-          columnWrapperStyle={styles.row}
+          columnWrapperStyle={styles.columnWrapper}
           contentContainerStyle={styles.list}
-          renderItem={({ item }) => (
-            <View style={styles.productWrapper}>
-              <AmazonStyleProductCard
-                product={item}
+          renderItem={({ item }) => {
+            const productName = typeof item.name === 'object' 
+              ? (language === 'ar' && item.name.ar ? item.name.ar : item.name.en || item.name.ar || 'Product')
+              : (item.name || 'Product');
+            
+            const imageUrl = item.image || item.images?.[0] || '';
+            const weightText = (item as any).weight ? String((item as any).weight) + ((item as any).unit ? ' ' + (item as any).unit : '') : '';
+            
+            const originalPrice = item.price || 0;
+            const discount = item.discount || 0;
+            const finalPrice = discount > 0 ? originalPrice * (1 - discount / 100) : originalPrice;
+            
+            const finalPriceText = '$' + finalPrice.toFixed(2);
+            const originalPriceText = discount > 0 ? '$' + originalPrice.toFixed(2) : '';
+            const hasDiscount = discount > 0;
+            const discountText = hasDiscount ? '-' + String(Math.round(discount)) + '%' : '';
+
+            return (
+              <TouchableOpacity 
+                style={styles.productCard}
                 onPress={() => router.push(`/product/${item.id}` as any)}
-                formatPrice={formatPrice}
-                language={language}
-              />
-            </View>
-          )}
+                activeOpacity={0.8}
+              >
+                <View style={styles.imageContainer}>
+                  {imageUrl ? (
+                    <Image 
+                      source={{ uri: imageUrl }} 
+                      style={styles.productImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={styles.placeholderImage}>
+                      <Text style={styles.placeholderText}>🍎</Text>
+                    </View>
+                  )}
+                  
+                  {hasDiscount ? (
+                    <View style={styles.discountBadge}>
+                      <Text style={styles.discountText}>{discountText}</Text>
+                    </View>
+                  ) : null}
+                </View>
+                
+                <View style={styles.productInfo}>
+                  <Text style={styles.productName} numberOfLines={2}>{productName}</Text>
+                  {weightText ? <Text style={styles.productWeight}>{weightText}</Text> : null}
+                  
+                  <View style={styles.priceRow}>
+                    <View>
+                      <Text style={styles.productPrice}>{finalPriceText}</Text>
+                      {hasDiscount ? (
+                        <Text style={styles.originalPrice}>{originalPriceText}</Text>
+                      ) : null}
+                    </View>
+
+                    <TouchableOpacity 
+                      style={styles.addButton}
+                      onPress={() => addToMarketCart(item)}
+                    >
+                      <Text style={styles.addButtonText}>+</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          }}
           ListHeaderComponent={
             searchResults.length > 0 ? (
               <View style={styles.resultsHeader}>
@@ -215,7 +300,7 @@ export default function SearchScreen() {
           }
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -224,20 +309,26 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  headerGradient: {
+    paddingBottom: Spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    padding: Spacing.md,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border.light,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
   },
   backButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.gray[100],
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -245,7 +336,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.gray[100],
+    backgroundColor: Colors.white,
     borderRadius: BorderRadius.xl,
     paddingHorizontal: Spacing.md,
     height: 44,
@@ -288,52 +379,138 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   list: {
-    padding: Spacing.md,
-    paddingBottom: Spacing.xl,
+    padding: 16,
+  },
+  columnWrapper: {
+    gap: 16,
+    marginBottom: 16,
+  },
+  productCard: {
+    width: CARD_WIDTH,
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    elevation: 3,
+    shadowColor: '#FF6B35',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
+  imageContainer: {
+    width: '100%',
+    height: 140,
+    backgroundColor: '#F9FAFB',
+    position: 'relative',
+  },
+  productImage: {
+    width: '100%',
+    height: '100%',
+  },
+  placeholderImage: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+  },
+  placeholderText: {
+    fontSize: 48,
+  },
+  discountBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  discountText: {
+    color: '#FFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  productInfo: {
+    padding: 12,
+  },
+  productName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 4,
+    lineHeight: 18,
+  },
+  productWeight: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  productPrice: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FF6B35',
+  },
+  originalPrice: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    textDecorationLine: 'line-through',
+    marginTop: 2,
+  },
+  addButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FF6B35',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#FF6B35',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  addButtonText: {
+    color: '#FFF',
+    fontSize: 20,
+    fontWeight: '600',
+    lineHeight: 22,
   },
   resultsHeader: {
-    marginBottom: Spacing.md,
+    marginBottom: 12,
   },
   count: {
-    fontSize: FontSizes.lg,
+    fontSize: 18,
     fontWeight: '700',
-    color: Colors.text.primary,
-  },
-  loadMoreButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    marginTop: Spacing.md,
-    marginBottom: Spacing.xl,
-    marginHorizontal: Spacing.md,
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.primary,
-  },
-  loadMoreText: {
-    fontSize: FontSizes.md,
-    fontWeight: '600',
-    color: Colors.primary,
+    color: '#1F2937',
   },
   endMessage: {
     alignItems: 'center',
-    paddingVertical: Spacing.xl,
-    paddingHorizontal: Spacing.md,
+    paddingVertical: 24,
+    paddingHorizontal: 16,
   },
   endMessageText: {
-    fontSize: FontSizes.sm,
-    color: Colors.text.secondary,
+    fontSize: 14,
+    color: '#6B7280',
     textAlign: 'center',
   },
-  row: {
-    justifyContent: 'space-between',
-    marginBottom: Spacing.md,
+  marketBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderLeftWidth: 3,
+    borderLeftColor: '#F59E0B',
   },
-  productWrapper: {
-    width: '48%',
+  marketBadgeText: {
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
+    color: '#92400E',
   },
 });

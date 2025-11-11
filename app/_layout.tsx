@@ -10,6 +10,7 @@ import { AppProvider } from '@/contexts/AppContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { OrderProvider } from '@/contexts/OrderContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
+import { MarketProvider } from '@/contexts/MarketContext';
 import { 
   registerForPushNotificationsAsync,
   addNotificationReceivedListener,
@@ -72,6 +73,13 @@ function RootLayoutNav() {
             fontSize: 20,
           },
           headerShadowVisible: true,
+        }}
+      />
+      <Stack.Screen
+        name="cart"
+        options={{
+          presentation: 'card',
+          headerShown: false,
         }}
       />
       <Stack.Screen
@@ -153,10 +161,12 @@ export default function RootLayout() {
         <NotificationProvider>
           <AppProvider>
             <OrderProvider>
-              <GestureHandlerRootView style={styles.rootContainer}>
-                <RootLayoutNav />
-                <Toast />
-              </GestureHandlerRootView>
+              <MarketProvider>
+                <GestureHandlerRootView style={styles.rootContainer}>
+                  <RootLayoutNav />
+                  <Toast />
+                </GestureHandlerRootView>
+              </MarketProvider>
             </OrderProvider>
           </AppProvider>
         </NotificationProvider>

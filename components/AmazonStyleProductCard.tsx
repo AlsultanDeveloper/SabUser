@@ -11,6 +11,7 @@ import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import SafeImage from './SafeImage';
 import { getProductImageUrl } from '@/utils/imageHelper';
+import { Colors } from '@/constants/theme';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2; // 16px margin on each side + 16px gap
@@ -35,6 +36,29 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
   if (!product || typeof product !== 'object') {
     return null;
   }
+
+  // Calculate delivery date range (25-30 days from today)
+  const getDeliveryDateRange = () => {
+    const today = new Date();
+    const minDays = 25;
+    const maxDays = 30;
+    
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() + minDays);
+    
+    const endDate = new Date(today);
+    endDate.setDate(today.getDate() + maxDays);
+    
+    const formatDate = (date: Date) => {
+      const months = language === 'ar'
+        ? ['يناير', 'فبراير', 'مارس', 'إبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
+        : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      
+      return `${date.getDate()} ${months[date.getMonth()]}`;
+    };
+    
+    return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+  };
   
   const handleAddToCart = () => {
     if (Platform.OS === 'ios') {
@@ -185,9 +209,12 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
 
             <View style={styles.shippingRow}>
               <View style={styles.shippingContainer}>
-                <Feather name="truck" size={12} color="#007185" />
+                <Feather name="truck" size={14} color={Colors.primary} />
                 <Text style={styles.shippingText}>
-                  {language === 'ar' ? 'شحن مجاني' : 'FREE Shipping'}
+                  {language === 'ar' ? 'التوصيل ' : 'Delivery '}
+                  <Text style={styles.shippingDate}>
+                    {getDeliveryDateRange()}
+                  </Text>
                 </Text>
               </View>
               
@@ -332,12 +359,17 @@ const styles = StyleSheet.create({
   shippingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
   },
   shippingText: {
     color: '#007185',
-    fontSize: 10,
-    fontWeight: '500',
-    marginLeft: 3,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  shippingDate: {
+    color: '#007185',
+    fontSize: 11,
+    fontWeight: '400',
   },
   addToCartButton: {
     paddingVertical: 4,

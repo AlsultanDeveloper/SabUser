@@ -1,3 +1,4 @@
+// SAB Market Cart Screen
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -11,42 +12,52 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ShoppingBag, Trash2, Plus, Minus, Info, ArrowLeft, ArrowRight } from '@/components/lucide-shim';
+import { ShoppingBag, Trash2, Plus, Minus, Info, ArrowLeft, ArrowRight } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useApp } from '@/contexts/AppContext';
+import { useMarket } from '@/contexts/MarketContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
 import { Colors, Spacing, BorderRadius, FontSizes, Shadows } from '@/constants/theme';
 import SafeImage from '@/components/SafeImage';
-import type { CartItem as CartItemType } from '@/types';
 import * as Location from 'expo-location';
 import { calculateShipping, getDefaultShipping } from '@/utils/shippingCalculator';
 
+interface MarketCartItem {
+  id: string;
+  name: any;
+  price: number;
+  image: string;
+  weight?: string;
+  quantity: number;
+  discount?: number;
+}
+
 interface CartItemCardProps {
-  item: CartItemType;
+  item: MarketCartItem;
   language: string;
-  formatPrice: (price: number) => string;
   onRemove: (productId: string) => void;
   onQuantityChange: (productId: string, quantity: number) => void;
   isRTL: boolean;
 }
 
-function CartItemCard({ item, language, formatPrice, onRemove, onQuantityChange, isRTL }: CartItemCardProps) {
-  const finalPrice = item.product.discount
-    ? item.product.price * (1 - item.product.discount / 100)
-    : item.product.price;
+function CartItemCard({ item, language, onRemove, onQuantityChange, isRTL }: CartItemCardProps) {
+  const finalPrice = item.discount
+    ? item.price * (1 - item.discount / 100)
+    : item.price;
 
-  const hasVariants = item.product.colors || item.product.sizes || item.product.ageRange || item.product.unit;
+  const productName = typeof item.name === 'string' 
+    ? item.name 
+    : item.name?.[language as 'en' | 'ar'] || item.name?.en || 'Product';
 
   return (
     <View style={styles.cartItem}>
       <View style={styles.cartItemContent}>
         <View style={styles.imageContainer}>
-          <SafeImage uri={item.product.image} style={styles.productImage} />
-          {(item.product.discount ?? 0) > 0 && (
+          <SafeImage uri={item.image} style={styles.productImage} />
+          {(item.discount ?? 0) > 0 && (
             <View style={styles.discountBadge}>
-              <Text style={styles.discountText}>-{item.product.discount}%</Text>
+              <Text style={styles.discountText}>-{item.discount}%</Text>
             </View>
           )}
         </View>
@@ -54,7 +65,7 @@ function CartItemCard({ item, language, formatPrice, onRemove, onQuantityChange,
         <View style={styles.productInfo}>
           <View style={styles.productHeader}>
             <Text style={styles.productName} numberOfLines={2}>
-              {item.product.name[language as 'en' | 'ar']}
+              {productName}
             </Text>
             <TouchableOpacity
               style={styles.removeButton}
@@ -62,7 +73,7 @@ function CartItemCard({ item, language, formatPrice, onRemove, onQuantityChange,
                 if (Platform.OS !== 'web') {
                   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
                 }
-                onRemove(item.product.id);
+                onRemove(item.id);
               }}
               activeOpacity={0.7}
             >
@@ -70,38 +81,20 @@ function CartItemCard({ item, language, formatPrice, onRemove, onQuantityChange,
             </TouchableOpacity>
           </View>
 
-          {item.product.brand && (
+          {item.weight && (
             <Text style={styles.brandText} numberOfLines={1}>
-              {item.product.brand}
+              {item.weight}
             </Text>
-          )}
-
-          {hasVariants && (
-            <View style={styles.variantsContainer}>
-              {item.product.colors && item.product.colors.length > 0 && (
-                <View style={styles.variantChip}>
-                  <View style={[styles.colorDot, { backgroundColor: item.product.colors[0].hex }]} />
-                  <Text style={styles.variantText} numberOfLines={1}>
-                    {item.product.colors[0][language as 'en' | 'ar']}
-                  </Text>
-                </View>
-              )}
-              {item.product.sizes && item.product.sizes.length > 0 && (
-                <View style={styles.variantChip}>
-                  <Text style={styles.variantText}>{item.product.sizes[0]}</Text>
-                </View>
-              )}
-            </View>
           )}
 
           <View style={styles.bottomRow}>
             <View style={styles.priceContainer}>
-              {(item.product.discount ?? 0) > 0 && (
+              {(item.discount ?? 0) > 0 && (
                 <Text style={styles.originalPrice}>
-                  {formatPrice(item.product.price)}
+                  ${item.price.toFixed(2)}
                 </Text>
               )}
-              <Text style={styles.productPrice}>{formatPrice(finalPrice)}</Text>
+              <Text style={styles.productPrice}>${finalPrice.toFixed(2)}</Text>
             </View>
 
             <View style={styles.quantityControls}>
@@ -111,7 +104,7 @@ function CartItemCard({ item, language, formatPrice, onRemove, onQuantityChange,
                   if (Platform.OS !== 'web') {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   }
-                  onQuantityChange(item.product.id, item.quantity - 1);
+                  onQuantityChange(item.id, item.quantity - 1);
                 }}
                 activeOpacity={0.7}
                 disabled={item.quantity <= 1}
@@ -129,7 +122,7 @@ function CartItemCard({ item, language, formatPrice, onRemove, onQuantityChange,
                   if (Platform.OS !== 'web') {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   }
-                  onQuantityChange(item.product.id, item.quantity + 1);
+                  onQuantityChange(item.id, item.quantity + 1);
                 }}
                 activeOpacity={0.7}
               >
@@ -143,10 +136,11 @@ function CartItemCard({ item, language, formatPrice, onRemove, onQuantityChange,
   );
 }
 
-export default function CartScreen() {
-  const { t, cart, cartTotal, formatPrice, updateCartItemQuantity, removeFromCart, language, isRTL } = useApp();
+export default function MarketCartScreen() {
+  const { marketCart, marketCartTotal, updateMarketCartQuantity, removeFromMarketCart, language } = useMarket();
   const { isAuthenticated } = useAuth();
   const router = useRouter();
+  const isRTL = language === 'ar';
 
   // Shipping state
   const [shippingCost, setShippingCost] = useState(5);
@@ -182,13 +176,22 @@ export default function CartScreen() {
   // Calculate shipping based on location
   useEffect(() => {
     const calculateShippingCost = async () => {
-      if (cart.length === 0) {
+      if (marketCart.length === 0) {
         setLoadingShipping(false);
         return;
       }
 
       try {
         setLoadingShipping(true);
+        
+        // Check if free shipping threshold is met
+        if (marketCartTotal >= 30) {
+          setShippingCost(0);
+          setEstimatedDays('2-3');
+          setShippingDistance(null);
+          setLoadingShipping(false);
+          return;
+        }
         
         // Request location permission
         const { status } = await Location.requestForegroundPermissionsAsync();
@@ -198,7 +201,7 @@ export default function CartScreen() {
           const shipping = await calculateShipping(
             location.coords.latitude,
             location.coords.longitude,
-            cartTotal
+            marketCartTotal
           );
           
           setShippingCost(shipping.cost);
@@ -206,14 +209,14 @@ export default function CartScreen() {
           setShippingDistance(shipping.distance);
         } else {
           // Use default shipping if no location permission
-          const defaultShipping = await getDefaultShipping(cartTotal);
+          const defaultShipping = await getDefaultShipping(marketCartTotal);
           setShippingCost(defaultShipping.cost);
           setEstimatedDays(defaultShipping.estimatedDays);
         }
       } catch (error) {
         console.log('Error calculating shipping:', error);
         // Use default shipping on error
-        const defaultShipping = await getDefaultShipping(cartTotal);
+        const defaultShipping = await getDefaultShipping(marketCartTotal);
         setShippingCost(defaultShipping.cost);
         setEstimatedDays(defaultShipping.estimatedDays);
       } finally {
@@ -222,43 +225,51 @@ export default function CartScreen() {
     };
 
     calculateShippingCost();
-  }, [cartTotal, cart.length]);
+  }, [marketCartTotal, marketCart.length]);
 
-  const FREE_SHIPPING_THRESHOLD = 100;
+  const FREE_SHIPPING_THRESHOLD = 30;
 
-  const subtotal = cartTotal;
-  const total = subtotal + shippingCost;
+  // Ensure valid numbers
+  const safeCartTotal = typeof marketCartTotal === 'number' && !isNaN(marketCartTotal) ? marketCartTotal : 0;
+  const safeShippingCost = typeof shippingCost === 'number' && !isNaN(shippingCost) ? shippingCost : 0;
+  
+  const subtotal = safeCartTotal;
+  const total = subtotal + safeShippingCost;
 
   const handleRemove = useCallback((productId: string) => {
-    removeFromCart(productId);
-  }, [removeFromCart]);
+    removeFromMarketCart(productId);
+  }, [removeFromMarketCart]);
 
   const handleQuantityChange = useCallback((productId: string, newQuantity: number) => {
-    updateCartItemQuantity(productId, newQuantity);
-  }, [updateCartItemQuantity]);
+    updateMarketCartQuantity(productId, newQuantity);
+  }, [updateMarketCartQuantity]);
 
-  if (cart.length === 0) {
+  if (marketCart.length === 0) {
     return (
       <View style={styles.container}>
-        {/* Gradient Header */}
-        <LinearGradient
-          colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradientHeader}
-        >
-          <SafeAreaView edges={['top']}>
-            <View style={styles.header}>
-              <View style={styles.headerPlaceholder} />
-              <Text style={styles.headerTitle}>
-                {language === 'ar' ? 'سلة التسوق' : 'My Cart'}
-              </Text>
-              <View style={styles.headerPlaceholder} />
-            </View>
-          </SafeAreaView>
-        </LinearGradient>
-
-        <View style={styles.emptyContainer}>
+        <Stack.Screen options={{ headerShown: false }} />
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={['#FF6B35', '#FF8C42', '#FFA95F']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientHeader}
+      >
+        <SafeAreaView edges={['top']}>
+          <View style={styles.header}>
+            <View style={styles.headerPlaceholder} />
+            <Text style={styles.headerTitle}>
+              {language === 'ar' ? 'سلة SAB Market' : 'SAB Market Cart'}
+            </Text>
+            <TouchableOpacity 
+              style={styles.backToStoreButtonHeader}
+              onPress={() => router.push('/' as any)}
+            >
+              <Text style={styles.backToStoreTextHeader}>Store</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </LinearGradient>        <View style={styles.emptyContainer}>
           {/* Animated Icon Container */}
           <Animated.View 
             style={[
@@ -281,12 +292,12 @@ export default function CartScreen() {
           </Animated.View>
 
           <Text style={styles.emptyTitle}>
-            {language === 'ar' ? 'انو بعدا فاضية "عبيا"' : 'Eno Ba3da Fadieh "3abia'}
+            {language === 'ar' ? 'السلة فارغة' : 'Cart is Empty'}
           </Text>
           <Text style={styles.emptyDescription}>
             {language === 'ar' 
-              ? 'أضف بعض المنتجات للبدء في التسوق' 
-              : 'Add some products to get started'}
+              ? 'أضف بعض المنتجات من SAB Market للبدء' 
+              : 'Add some products from SAB Market to get started'}
           </Text>
 
           {/* Action Button */}
@@ -296,12 +307,12 @@ export default function CartScreen() {
               if (Platform.OS !== 'web') {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               }
-              router.push('/(tabs)/home' as any);
+              router.push('/market' as any);
             }}
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={[Colors.primary, Colors.secondary]}
+              colors={['#FF6B35', '#E63946']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.continueButtonGradient}
@@ -312,63 +323,10 @@ export default function CartScreen() {
                 <ArrowLeft size={20} color={Colors.white} strokeWidth={2.5} />
               )}
               <Text style={styles.continueButtonText}>
-                {language === 'ar' ? 'ابدأ التسوق' : 'Continue Shopping'}
+                {language === 'ar' ? 'تصفح SAB Market' : 'Browse SAB Market'}
               </Text>
             </LinearGradient>
           </TouchableOpacity>
-
-          {/* Quick Links */}
-          <View style={styles.quickLinksContainer}>
-            <Text style={styles.quickLinksTitle}>
-              {language === 'ar' ? 'تصفح سريع' : 'Quick Browse'}
-            </Text>
-            <View style={styles.quickLinksRow}>
-              <TouchableOpacity 
-                style={styles.quickLinkItem}
-                onPress={() => {
-                  if (Platform.OS !== 'web') {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  }
-                  router.push('/(tabs)/categories' as any);
-                }}
-                activeOpacity={0.7}
-              >
-                <View style={styles.quickLinkIconImage}>
-                  <Image
-                    source={require('@/assets/images/categories-icon.png')}
-                    style={styles.quickLinkImageStyle}
-                    resizeMode="contain"
-                  />
-                </View>
-                <Text style={styles.quickLinkText}>
-                  {language === 'ar' ? 'الفئات' : 'Categories'}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.quickLinkItem}
-                onPress={() => {
-                  if (Platform.OS !== 'web') {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  }
-                  // Navigate to Sab Market category
-                  router.push('/category/cwt28D5gjoLno8SFqoxQ' as any);
-                }}
-                activeOpacity={0.7}
-              >
-                <View style={styles.quickLinkIconImage}>
-                  <Image
-                    source={require('@/assets/images/SAB-MARKET.png')}
-                    style={styles.quickLinkImageStyle}
-                    resizeMode="contain"
-                  />
-                </View>
-                <Text style={styles.quickLinkText}>
-                  SAB
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
         </View>
       </View>
     );
@@ -376,9 +334,10 @@ export default function CartScreen() {
 
   return (
     <View style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
       {/* Gradient Header */}
       <LinearGradient
-        colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
+        colors={['#FF6B35', '#FF8C42', '#FFA95F']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradientHeader}
@@ -403,12 +362,12 @@ export default function CartScreen() {
             </TouchableOpacity>
             <View style={styles.headerTitleRow}>
               <Text style={styles.headerTitle}>
-                {language === 'ar' ? 'سلة التسوق' : 'My Cart'}
+                {language === 'ar' ? 'سلة SAB Market' : 'SAB Market Cart'}
               </Text>
             </View>
             <View style={styles.itemCountBadge}>
               <Text style={styles.itemCount}>
-                {cart.length}
+                {marketCart.length}
               </Text>
             </View>
           </View>
@@ -421,28 +380,16 @@ export default function CartScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.cartItemsContainer}>
-          {cart.map((item, index) => {
-            // Create a unique key combining product id, variant info, and index as fallback
-            const variantKey = [
-              item.product.colors?.[0]?.hex || '',
-              item.product.sizes?.[0] || '',
-              item.product.ageRange || '',
-              item.product.unit || ''
-            ].filter(Boolean).join('-');
-            const uniqueKey = `${item.product.id}-${variantKey || index}`;
-            
-            return (
-              <CartItemCard
-                key={uniqueKey}
-                item={item}
-                language={language}
-                formatPrice={formatPrice}
-                onRemove={handleRemove}
-                onQuantityChange={handleQuantityChange}
-                isRTL={isRTL}
-              />
-            );
-          })}
+          {marketCart.map((item) => (
+            <CartItemCard
+              key={item.id}
+              item={item}
+              language={language}
+              onRemove={handleRemove}
+              onQuantityChange={handleQuantityChange}
+              isRTL={isRTL}
+            />
+          ))}
         </View>
 
         {subtotal < FREE_SHIPPING_THRESHOLD && shippingCost > 0 && !loadingShipping && (
@@ -451,8 +398,8 @@ export default function CartScreen() {
               <Info size={16} color={Colors.primary} strokeWidth={2} />
               <Text style={styles.shippingProgressText}>
                 {language === 'ar' 
-                  ? `${formatPrice(FREE_SHIPPING_THRESHOLD - subtotal)} للشحن المجاني`
-                  : `${formatPrice(FREE_SHIPPING_THRESHOLD - subtotal)} to free shipping`
+                  ? `$${(FREE_SHIPPING_THRESHOLD - subtotal).toFixed(2)} للشحن المجاني`
+                  : `$${(FREE_SHIPPING_THRESHOLD - subtotal).toFixed(2)} to free shipping`
                 }
               </Text>
             </View>
@@ -467,7 +414,7 @@ export default function CartScreen() {
             <Text style={styles.summaryLabel}>
               {language === 'ar' ? 'المجموع الفرعي' : 'Subtotal'}
             </Text>
-            <Text style={styles.summaryValue}>{formatPrice(subtotal)}</Text>
+            <Text style={styles.summaryValue}>${subtotal.toFixed(2)}</Text>
           </View>
 
           <View style={styles.summaryRow}>
@@ -481,13 +428,13 @@ export default function CartScreen() {
             </Text>
             {loadingShipping ? (
               <ActivityIndicator size="small" color={Colors.primary} />
-            ) : shippingCost === 0 ? (
+            ) : safeShippingCost === 0 ? (
               <Text style={styles.freeShippingValue}>
                 {language === 'ar' ? 'مجاناً' : 'Free'}
               </Text>
             ) : (
               <View style={styles.shippingCostContainer}>
-                <Text style={styles.summaryValue}>{formatPrice(shippingCost)}</Text>
+                <Text style={styles.summaryValue}>${safeShippingCost.toFixed(2)}</Text>
                 {estimatedDays && (
                   <Text style={styles.estimatedDaysText}>
                     {estimatedDays} {language === 'ar' ? 'أيام' : 'days'}
@@ -503,7 +450,7 @@ export default function CartScreen() {
             <Text style={styles.totalLabel}>
               {language === 'ar' ? 'المجموع' : 'Total'}
             </Text>
-            <Text style={styles.totalAmount}>{formatPrice(total)}</Text>
+            <Text style={styles.totalAmount}>${total.toFixed(2)}</Text>
           </View>
 
           {/* Price includes TVA notice */}
@@ -531,11 +478,11 @@ export default function CartScreen() {
               return;
             }
             
-            router.push('/checkout-details' as any);
+            router.push('/market/checkout-details' as any);
           }}
         >
           <LinearGradient
-            colors={[Colors.primary, Colors.secondary]}
+            colors={['#FF6B35', '#E63946']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.checkoutButtonGradient}
@@ -545,7 +492,7 @@ export default function CartScreen() {
                 {language === 'ar' ? 'إتمام الطلب' : 'Checkout'}
               </Text>
               <View style={styles.checkoutButtonRight}>
-                <Text style={styles.checkoutButtonAmount}>{formatPrice(total)}</Text>
+                <Text style={styles.checkoutButtonAmount}>${total.toFixed(2)}</Text>
                 {isRTL ? (
                   <ArrowLeft size={18} color={Colors.white} strokeWidth={2.5} />
                 ) : (
@@ -591,6 +538,21 @@ const styles = StyleSheet.create({
     width: 40,
   },
 
+  backToStoreButtonHeader: {
+    backgroundColor: '#8B5CF6',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+
+  backToStoreTextHeader: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '700' as const,
+  },
+
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold' as const,
@@ -605,26 +567,10 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xl,
   },
 
-  headerSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.md,
-    backgroundColor: Colors.white,
-  },
-
   headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-  },
-
-  cartTitle: {
-    fontSize: FontSizes.xl,
-    fontWeight: '700' as const,
-    color: Colors.text.primary,
   },
 
   itemCountBadge: {
@@ -640,7 +586,7 @@ const styles = StyleSheet.create({
 
   itemCount: {
     fontSize: FontSizes.sm,
-    color: Colors.primary,
+    color: '#FF6B35',
     fontWeight: '700' as const,
   },
 
@@ -673,7 +619,7 @@ const styles = StyleSheet.create({
   emptyCartImage: {
     width: 200,
     height: 200,
-    tintColor: undefined, // تأكد من عدم وجود لون
+    tintColor: undefined,
   },
 
   decorativeCircle1: {
@@ -683,7 +629,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.secondary + '20',
+    backgroundColor: '#FF8C4220',
   },
 
   decorativeCircle2: {
@@ -693,7 +639,7 @@ const styles = StyleSheet.create({
     width: 25,
     height: 25,
     borderRadius: 12.5,
-    backgroundColor: Colors.accent + '30',
+    backgroundColor: '#E6394630',
   },
 
   emptyTitle: {
@@ -736,82 +682,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 
-  quickLinksContainer: {
-    marginTop: Spacing.xl + Spacing.md,
-    width: '100%',
-    maxWidth: 320,
-  },
-
-  quickLinksTitle: {
-    fontSize: FontSizes.sm,
-    color: Colors.text.tertiary,
-    textAlign: 'center',
-    marginBottom: Spacing.md,
-    fontWeight: '600' as const,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase' as const,
-  },
-
-  quickLinksRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: Spacing.lg,
-  },
-
-  quickLinkItem: {
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
-    minWidth: 100,
-  },
-
-  quickLinkIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.gray[50],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: Spacing.xs,
-  },
-
-  quickLinkIconImage: {
-    width: 85,
-    height: 85,
-    borderRadius: 42.5,
-    backgroundColor: 'transparent',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: Spacing.xs,
-    overflow: 'hidden',
-  },
-
-  quickLinkImageStyle: {
-    width: 85,
-    height: 85,
-  },
-
-  quickLinkText: {
-    fontSize: FontSizes.sm,
-    color: Colors.text.primary,
-    fontWeight: '600' as const,
-  },
   cartItem: {
     backgroundColor: Colors.white,
     marginHorizontal: Spacing.md,
     marginBottom: Spacing.sm,
     borderRadius: BorderRadius.md,
     ...Shadows.sm,
-  },
-
-  cartItemRTL: {
-    flexDirection: 'row-reverse',
-  },
-
-  itemTouchable: {
-    borderRadius: BorderRadius.lg,
-    overflow: 'hidden',
   },
 
   cartItemContent: {
@@ -824,11 +700,6 @@ const styles = StyleSheet.create({
     marginRight: Spacing.sm,
   },
 
-  imageContainerRTL: {
-    marginRight: 0,
-    marginLeft: Spacing.md,
-  },
-
   productImage: {
     width: 80,
     height: 80,
@@ -838,10 +709,6 @@ const styles = StyleSheet.create({
 
   productInfo: {
     flex: 1,
-  },
-
-  productInfoRTL: {
-    alignItems: 'flex-end',
   },
 
   productHeader: {
@@ -871,81 +738,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
 
-  variantsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 4,
-    marginBottom: 6,
-  },
-
-  variantChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.gray[100],
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
-  },
-
-  variantText: {
-    fontSize: 11,
-    color: Colors.text.primary,
-    fontWeight: '500' as const,
-  },
-
-  variantItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.gray[100],
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.sm,
-  },
-
-  variantLabel: {
-    fontSize: FontSizes.xs,
-    color: Colors.text.secondary,
-    fontWeight: '500' as const,
-  },
-
-  variantValue: {
-    fontSize: FontSizes.xs,
-    color: Colors.text.primary,
-    fontWeight: '600' as const,
-  },
-
-  colorDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: Colors.gray[300],
-  },
-
-  stockBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 4,
-    marginBottom: Spacing.sm,
-  },
-
-  stockText: {
-    fontSize: FontSizes.xs,
-    color: Colors.success,
-    fontWeight: '600' as const,
-  },
-
-  outOfStockBadge: {
-    opacity: 1,
-  },
-
-  outOfStockText: {
-    color: Colors.error,
-  },
-
   bottomRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -962,7 +754,7 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: FontSizes.md + 1,
     fontWeight: '700' as const,
-    color: Colors.primary,
+    color: '#FF6B35',
   },
 
   originalPrice: {
@@ -970,11 +762,12 @@ const styles = StyleSheet.create({
     color: Colors.text.tertiary,
     textDecorationLine: 'line-through',
   },
+
   discountBadge: {
     position: 'absolute',
     top: 4,
     left: 4,
-    backgroundColor: Colors.accent,
+    backgroundColor: '#E63946',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 8,
@@ -1018,114 +811,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  promoSection: {
-    backgroundColor: Colors.white,
-    marginHorizontal: Spacing.md,
-    marginTop: Spacing.sm,
-    padding: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    ...Shadows.sm,
-  },
-
-  promoIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.primary + '15',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  promoInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-
-  promoInput: {
-    flex: 1,
-    height: 40,
-    borderWidth: 1,
-    borderColor: Colors.gray[200],
-    borderRadius: 20,
-    paddingHorizontal: Spacing.md,
-    fontSize: FontSizes.sm,
-    color: Colors.text.primary,
-    backgroundColor: Colors.gray[50],
-  },
-
-  promoInputRTL: {
-    textAlign: 'right',
-  },
-
-  applyButton: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.md + 2,
-    paddingVertical: 10,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  applyButtonText: {
-    color: Colors.white,
-    fontSize: FontSizes.sm,
-    fontWeight: '600' as const,
-  },
-
-  promoError: {
-    fontSize: FontSizes.xs,
-    color: Colors.error,
-    marginTop: 6,
-    marginLeft: 48,
-  },
-
-  appliedPromoContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: Colors.success + '10',
-    padding: Spacing.sm,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Colors.success + '30',
-  },
-
-  appliedPromoLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-
-  sparkleContainer: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: Colors.success + '20',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  appliedPromoText: {
-    fontSize: FontSizes.sm,
-    color: Colors.success,
-    fontWeight: '700' as const,
-  },
-
-  appliedPromoDiscount: {
-    fontSize: FontSizes.xs,
-    color: Colors.success,
-    fontWeight: '600' as const,
-    backgroundColor: Colors.success + '20',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-
-  removePromoBtn: {
-    padding: 4,
-  },
-
   shippingProgressCard: {
     backgroundColor: Colors.white,
     marginHorizontal: Spacing.md,
@@ -1144,7 +829,7 @@ const styles = StyleSheet.create({
 
   shippingProgressText: {
     fontSize: FontSizes.xs,
-    color: Colors.primary,
+    color: '#FF6B35',
     fontWeight: '500' as const,
   },
 
@@ -1157,7 +842,7 @@ const styles = StyleSheet.create({
 
   progressBarFill: {
     height: '100%',
-    backgroundColor: Colors.primary,
+    backgroundColor: '#FF6B35',
     borderRadius: 2,
   },
 
@@ -1188,12 +873,6 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
   },
 
-  shippingLabelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-
   freeShippingValue: {
     fontSize: FontSizes.sm,
     fontWeight: '600' as const,
@@ -1214,35 +893,6 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     color: Colors.text.tertiary,
     marginTop: 2,
-  },
-
-  shippingInfoBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    backgroundColor: Colors.primary + '10',
-    padding: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.sm,
-  },
-
-  shippingInfoText: {
-    flex: 1,
-    fontSize: FontSizes.sm,
-    color: Colors.primary,
-    fontWeight: '500' as const,
-  },
-
-  discountLabel: {
-    fontSize: FontSizes.sm,
-    color: Colors.success,
-    fontWeight: '500' as const,
-  },
-
-  discountValue: {
-    fontSize: FontSizes.sm,
-    fontWeight: '600' as const,
-    color: Colors.success,
   },
 
   divider: {
@@ -1266,7 +916,7 @@ const styles = StyleSheet.create({
   totalAmount: {
     fontSize: FontSizes.xl,
     fontWeight: '700' as const,
-    color: Colors.primary,
+    color: '#FF6B35',
   },
 
   vatNoticeContainer: {

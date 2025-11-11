@@ -51,3 +51,6 @@ export const ShoppingCart = makeFeather("shopping-cart");
 export const Minus = makeFeather("minus");
 export const ArrowRight = makeFeather("arrow-right");
 export const Clock = makeFeather("clock");
+export const ShoppingBag = makeFeather("shopping-bag");
+export const Tag = makeFeather("tag");
+export const Sparkles = makeIon("sparkles");

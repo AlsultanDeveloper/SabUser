@@ -58,8 +58,8 @@ export default function TabLayout() {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-    // Navigate to Sab Market category
-    router.push('/category/cwt28D5gjoLno8SFqoxQ' as any);
+    // Navigate to SAB Market (separate app experience)
+    router.push('/market' as any);
   };
 
   return (
@@ -120,7 +120,7 @@ export default function TabLayout() {
           name="categories"
           options={{
             title: 'Categories',
-            headerTitle: 'Shop by category',
+            headerShown: false,
             tabBarIcon: ({ color, size }) => (
               <Feather name="grid" color={color} size={24} />
             ),

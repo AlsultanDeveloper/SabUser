@@ -183,7 +183,14 @@ export default function HomeScreen() {
     }
     
     if (banner.link?.type === 'category' && banner.link?.id) {
-      router.push(`/category/${banner.link.id}` as any);
+      // Check if it's SAB Market
+      if (banner.link.id === 'cwt28D5gjoLno8SFqoxQ') {
+        // Navigate to SAB Market (separate app)
+        router.push('/market' as any);
+      } else {
+        // Navigate to regular category
+        router.push(`/category/${banner.link.id}` as any);
+      }
     }
   }, [router]);
 
@@ -288,7 +295,7 @@ export default function HomeScreen() {
                 if (Platform.OS !== 'web') {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 }
-                router.push('/(tabs)/cart');
+                router.push('/cart' as any);
               }}
             >
               <Feather name="shopping-cart" size={20} color={Colors.white} />
@@ -422,6 +429,7 @@ export default function HomeScreen() {
           </View>
         )}
 
+        {/* Categories Section - Fashion Categories for SAB Store */}
         <View style={styles.categoriesSection}>
           <View style={styles.sectionHeader}>
             <View>
@@ -476,13 +484,9 @@ export default function HomeScreen() {
                   />
                 </View>
                 <Text style={styles.categoryName} numberOfLines={2}>
-                  {/* Keep "Sab Market" in English always */}
-                  {(typeof category.name === 'object' && (category.name.en === 'Sab Market' || category.name.ar === 'ساب ماركت'))
-                    ? 'Sab Market'
-                    : (typeof category.name === 'object'
-                      ? (language === 'ar' ? category.name.ar : category.name.en)
-                      : category.name || 'Category'
-                    )
+                  {typeof category.name === 'object'
+                    ? (language === 'ar' ? category.name.ar : category.name.en)
+                    : category.name || 'Category'
                   }
                 </Text>
               </TouchableOpacity>
@@ -491,11 +495,11 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Products Section - قسم المنتجات */}
+        {/* Products Section - Fashion Products for SAB Store */}
         <View style={styles.productsSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>
-              {language === 'ar' ? 'تصفح منتجاتنا المميزة' : 'Scroll to see our products'}
+              {language === 'ar' ? 'منتجات الأزياء' : 'Fashion Products'}
             </Text>
             <TouchableOpacity onPress={() => router.push('/featured-products')}>
               <Text style={styles.viewAllText}>

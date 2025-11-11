@@ -24,9 +24,13 @@ export const [OrderProvider, useOrders] = createContextHook(() => {
   const loadOrders = async (userId: string) => {
     try {
       setIsLoading(true);
-      const userOrders = await fetchUserOrders(userId) as Order[];
-      setOrders(userOrders);
-      console.log('✅ Orders loaded from Firestore:', userOrders.length);
+      // Load both SAB Store and SAB Market orders
+      const { getAllUserOrders } = await import('@/constants/firestore');
+      const allOrders = await getAllUserOrders(userId) as Order[];
+      setOrders(allOrders);
+      console.log('✅ All orders loaded from Firestore:', allOrders.length);
+      console.log('   - SAB Store orders:', allOrders.filter((o: any) => !o.isSabMarket).length);
+      console.log('   - SAB Market orders:', allOrders.filter((o: any) => o.isSabMarket).length);
     } catch (error) {
       console.error('❌ Error loading orders from Firestore:', error);
       setOrders([]);
@@ -51,11 +55,16 @@ export const [OrderProvider, useOrders] = createContextHook(() => {
     items: OrderItem[],
     total: number,
     address: OrderAddress,
-    paymentMethod: PaymentMethod
+    paymentMethod: PaymentMethod,
+    isSabMarket?: boolean // ✅ Add SAB Market flag
   ): Promise<Order> => {
     const now = new Date().toISOString();
-    // 20 days delivery: 20 days × 24 hours × 60 minutes × 60 seconds × 1000 ms
-    const estimatedDelivery = new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString();
+    
+    // ✅ SAB Market: 30 minutes delivery | SAB Store: 20 days delivery
+    const estimatedDelivery = isSabMarket 
+      ? new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 minutes
+      : new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString(); // 20 days
+    
     const orderNumber = generateOrderNumber();
     const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -129,11 +138,18 @@ export const [OrderProvider, useOrders] = createContextHook(() => {
       status: 'pending' as const,
       trackingNumber: generateTrackingNumber(),
       estimatedDelivery,
+      ...(isSabMarket && { 
+        isSabMarket: true,
+        deliveryType: 'express', // 30 minutes
+      }),
       statusHistory: [
         {
           status: 'pending' as const,
           timestamp: now,
-          description: {
+          description: isSabMarket ? {
+            en: 'Order received - Express delivery in 30 minutes',
+            ar: 'تم استلام الطلب - توصيل سريع خلال 30 دقيقة',
+          } : {
             en: 'Order received and is being processed',
             ar: 'تم استلام طلبك وجاري معالجته',
           },
@@ -149,8 +165,10 @@ export const [OrderProvider, useOrders] = createContextHook(() => {
     };
 
     try {
-      await createDocument(collections.orders, orderData, orderId);
-      console.log('✅ Order saved to Firestore:', orderId);
+      // ✅ Save to appropriate collection based on order type
+      const targetCollection = isSabMarket ? collections.marketOrders : collections.orders;
+      await createDocument(targetCollection, orderData, orderId);
+      console.log(`✅ Order saved to Firestore (${isSabMarket ? 'SAB Market' : 'SAB Store'}):`, orderId);
       
       const updatedOrders = [newOrder, ...orders];
       setOrders(updatedOrders);
@@ -161,13 +179,17 @@ export const [OrderProvider, useOrders] = createContextHook(() => {
           userId,
           orderId: newOrder.id,
           type: 'order',
-          title: 'Order Placed Successfully! 🎉',
-          message: {
+          title: isSabMarket ? 'SAB Market Order Placed! 🎉' : 'Order Placed Successfully! 🎉',
+          message: isSabMarket ? {
+            en: `Your SAB Market order ${orderNumber} has been confirmed - Delivery in 30 minutes!`,
+            ar: `تم تأكيد طلبك من ساب ماركت ${orderNumber} - التوصيل خلال 30 دقيقة!`,
+          } : {
             en: `Your order ${orderNumber} has been confirmed and is being processed.`,
             ar: `تم تأكيد طلبك ${orderNumber} وجاري معالجته.`,
           },
           read: false,
           createdAt: new Date(),
+          ...(isSabMarket && { isSabMarket: true }),
         };
         
         await createDocument(collections.userNotifications, notificationData);
@@ -188,8 +210,10 @@ export const [OrderProvider, useOrders] = createContextHook(() => {
         if (pushToken) {
           await sendPushNotification(
             pushToken as string,
-            '🎉 Order Placed Successfully',
-            `Your order ${orderNumber} has been received and is being processed.`,
+            isSabMarket ? '🎉 SAB Market Order Placed!' : '🎉 Order Placed Successfully',
+            isSabMarket 
+              ? `Your SAB Market order ${orderNumber} will arrive in 30 minutes!`
+              : `Your order ${orderNumber} has been received and is being processed.`,
             {
               type: 'order_placed',
               orderId: newOrder.id,
