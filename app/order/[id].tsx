@@ -78,6 +78,34 @@ export default function OrderDetailsScreen() {
     }
   };
 
+  const formatDateOnly = (dateString: string | Date | any) => {
+    try {
+      let date: Date;
+      
+      // Handle Firestore Timestamp
+      if (dateString && typeof dateString === 'object' && 'toDate' in dateString) {
+        date = dateString.toDate();
+      } else if (dateString instanceof Date) {
+        date = dateString;
+      } else {
+        date = new Date(dateString);
+      }
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return '';
+      }
+      
+      return date.toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    } catch {
+      return '';
+    }
+  };
+
   const handleCallSupport = () => {
     Linking.openURL(`tel:${order.address.phoneNumber}`);
   };
@@ -116,19 +144,11 @@ export default function OrderDetailsScreen() {
                 <Text style={styles.orderLabel}>{t('order.orderNumber')}</Text>
                 <Text style={styles.orderNumber}>{order.orderNumber}</Text>
               </View>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                {(order as any).isSabMarket && (
-                  <View style={styles.sabMarketBadge}>
-                    <Text style={styles.sabMarketText}>SAB Market</Text>
-                  </View>
-                )}
-                <View style={styles.statusBadge}>
-                  <Text style={styles.statusText}>
-                    {order.status === 'pending' && (language === 'ar' ? 'جديد' : 'New')}
-                    {order.status === 'delivered' && (language === 'ar' ? 'تم التوصيل' : 'Delivered')}
-                  </Text>
+              {(order as any).isSabMarket && (
+                <View style={styles.sabMarketBadge}>
+                  <Text style={styles.sabMarketText}>SAB Market</Text>
                 </View>
-              </View>
+              )}
             </View>
             <View style={styles.orderMetaRow}>
               <View style={styles.metaItem}>
@@ -150,7 +170,6 @@ export default function OrderDetailsScreen() {
         {/* Products Card */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Feather name="shopping-bag" size={20} color={Colors.primary} />
             <Text style={styles.cardTitle}>{t('order.products')}</Text>
           </View>
           {order.items.map((item, index) => (
@@ -225,7 +244,7 @@ export default function OrderDetailsScreen() {
           <View style={styles.infoBlock}>
             <Text style={styles.infoTitle}>{order.address.fullName}</Text>
             <Text style={styles.infoText}>{order.address.address}</Text>
-            <Text style={styles.infoText}>{order.address.city}, {order.address.country || 'Saudi Arabia'}</Text>
+            <Text style={styles.infoText}>{order.address.city}, {order.address.country || (language === 'ar' ? 'لبنان' : 'Lebanon')}</Text>
             <Text style={styles.infoText}>📱 {order.address.phoneNumber}</Text>
           </View>
           {order.estimatedDelivery && (
@@ -234,7 +253,7 @@ export default function OrderDetailsScreen() {
               <Text style={styles.deliveryText}>
                 {(order as any).isSabMarket 
                   ? (language === 'ar' ? '⚡ توصيل سريع: 30 دقيقة' : '⚡ Express Delivery: 30 Minutes')
-                  : `${language === 'ar' ? 'التوصيل المتوقع' : 'Est. Delivery'}: ${formatDate(order.estimatedDelivery)}`
+                  : `${language === 'ar' ? 'معلش تحملونا بيوصل الطلب' : 'Est. Delivery'}: ${formatDateOnly(order.estimatedDelivery)}`
                 }
               </Text>
             </View>
@@ -331,12 +350,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   orderLabel: {
-    fontSize: 11,
+    fontSize: 13,
     color: '#6B7280',
     marginBottom: 3,
   },
   orderNumber: {
-    fontSize: 15,
+    fontSize: 18,
     fontWeight: 'bold' as const,
     color: '#111827',
   },

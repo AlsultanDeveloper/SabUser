@@ -11,12 +11,13 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronLeft, ShoppingCart } from 'lucide-react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import { useMarket } from '@/contexts/MarketContext';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/constants/firebase';
 import Toast from 'react-native-toast-message';
 import { useSettings } from '@/hooks/useSettings';
+import GlassyGradientCartFAB from '@/components/GlassyGradientCartFAB';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2; // 2 columns with padding
@@ -281,6 +282,17 @@ export default function MarketCategoryScreen() {
     
     const finalPriceText = '$' + finalPrice.toFixed(2);
     const originalPriceText = '$' + price.toFixed(2);
+    
+    // Format LBP price
+    const USD_TO_LBP = 89700;
+    const formatLBP = (usdPrice: number) => {
+      const lbpAmount = usdPrice * USD_TO_LBP;
+      
+      // تقريب للألف الأقرب: إذا آخر 3 أرقام >= 500 نزيد، وإلا نرجع صفر
+      const roundedAmount = Math.round(lbpAmount / 1000) * 1000;
+      
+      return 'LBP ' + roundedAmount.toLocaleString('en-US');
+    };
 
     // Get image safely
     const imageUrl = item?.image || '';
@@ -339,10 +351,24 @@ export default function MarketCategoryScreen() {
           {/* Price Section */}
           <View style={styles.priceSection}>
             <View style={styles.priceColumn}>
-              {/* Final Price */}
+              {/* USD Price */}
               <View style={styles.priceRow}>
                 <Text style={styles.currencySymbol}>$</Text>
                 <Text style={styles.productPrice}>{finalPrice.toFixed(2)}</Text>
+              </View>
+              
+              {/* LBP Price + Add Button */}
+              <View style={styles.lbpWithButtonRow}>
+                <Text style={styles.lbpPrice}>{formatLBP(finalPrice)}</Text>
+                
+                {/* Add to Cart Button */}
+                <TouchableOpacity 
+                  style={styles.addButton}
+                  onPress={() => handleAddToCart(item)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.addButtonIcon}>+</Text>
+                </TouchableOpacity>
               </View>
               
               {/* Original Price with Discount */}
@@ -357,15 +383,6 @@ export default function MarketCategoryScreen() {
                 </View>
               ) : null}
             </View>
-
-            {/* Add to Cart Button - Noon Style */}
-            <TouchableOpacity 
-              style={styles.addButton}
-              onPress={() => handleAddToCart(item)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.addButtonIcon}>+</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </TouchableOpacity>
@@ -389,18 +406,6 @@ export default function MarketCategoryScreen() {
               <Text style={styles.backButtonText}>
                 {language === 'ar' ? 'الماركت' : 'Market'}
               </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.cartButton}
-              onPress={handleCartPress}
-            >
-              <ShoppingCart color="#FFF" size={24} />
-              {marketCartCount > 0 && (
-                <View style={styles.cartBadge}>
-                  <Text style={styles.cartBadgeText}>{marketCartCount}</Text>
-                </View>
-              )}
             </TouchableOpacity>
           </View>
         </LinearGradient>
@@ -432,26 +437,10 @@ export default function MarketCategoryScreen() {
               {language === 'ar' ? 'الماركت' : 'Market'}
             </Text>
           </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.cartButton}
-            onPress={handleCartPress}
-          >
-            <ShoppingCart color="#FFF" size={24} />
-            {marketCartCount > 0 && (
-              <View style={styles.cartBadge}>
-                <Text style={styles.cartBadgeText}>{marketCartCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
         </View>
 
         <View style={styles.categoryHeader}>
-          <Text style={styles.categoryIcon}>{categoryIcon}</Text>
           <Text style={styles.categoryTitle}>{categoryName}</Text>
-          <Text style={styles.productCount}>
-            {`${products.length} ${language === 'ar' ? 'منتج' : 'products'}`}
-          </Text>
         </View>
       </LinearGradient>
 
@@ -518,6 +507,15 @@ export default function MarketCategoryScreen() {
           ) : null
         }
       />
+
+      {/* Floating Cart Button */}
+      {marketCartCount > 0 && (
+        <GlassyGradientCartFAB
+          count={marketCartCount}
+          onPress={() => router.push('/market/checkout-details' as any)}
+          size={56}
+        />
+      )}
     </View>
   );
 }
@@ -529,14 +527,14 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: 50,
-    paddingBottom: 6,
+    paddingBottom: 12,
     paddingHorizontal: 16,
   },
   headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 3,
   },
   backButton: {
     flexDirection: 'row',
@@ -547,27 +545,6 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 16,
     fontWeight: '600',
-  },
-  cartButton: {
-    position: 'relative',
-    padding: 8,
-  },
-  cartBadge: {
-    position: 'absolute',
-    top: 2,
-    right: 2,
-    backgroundColor: '#EF4444',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-  },
-  cartBadgeText: {
-    color: '#FFF',
-    fontSize: 12,
-    fontWeight: '700',
   },
   categoryHeader: {
     alignItems: 'center',
@@ -745,34 +722,53 @@ const styles = StyleSheet.create({
     marginLeft: 2,
   },
   priceSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
     marginTop: 4,
   },
   priceColumn: {
-    flex: 1,
+    alignItems: 'flex-start',
+  },
+  priceWithButtonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: -4,
+    width: '100%',
   },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
+    direction: 'ltr',
+    marginBottom: 2,
+  },
+  lbpWithButtonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
     marginBottom: 4,
   },
   currencySymbol: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '700',
     color: '#FF6B35',
     marginRight: 2,
   },
   productPrice: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '800',
     color: '#FF6B35',
+  },
+  lbpPrice: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6B7280',
+    direction: 'ltr',
   },
   discountRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    direction: 'ltr',
   },
   originalPrice: {
     fontSize: 11,
@@ -851,5 +847,68 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: '#6B7280',
+  },
+  floatingCartButton: {
+    position: 'absolute' as const,
+    bottom: 24,
+    right: 20,
+    borderRadius: 32,
+    shadowColor: '#FF6B35',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 12,
+    zIndex: 1000,
+  },
+  floatingCartGradient: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    position: 'relative' as const,
+    overflow: 'hidden',
+  },
+  pulseCircle: {
+    position: 'absolute' as const,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  shimmerOverlay: {
+    position: 'absolute' as const,
+    top: 0,
+    left: -64,
+    right: 0,
+    bottom: 0,
+    width: 128,
+    height: 64,
+  },
+  floatingCartBadge: {
+    position: 'absolute' as const,
+    top: -6,
+    right: -6,
+    backgroundColor: '#FFF',
+    borderRadius: 15,
+    minWidth: 30,
+    height: 30,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: 8,
+    borderWidth: 3,
+    borderColor: '#FF4500',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  floatingCartBadgeText: {
+    color: '#FF4500',
+    fontSize: 14,
+    fontWeight: '900' as const,
+    includeFontPadding: false,
+    textAlign: 'center' as const,
   },
 });

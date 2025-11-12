@@ -31,6 +31,8 @@ export default function CheckoutDetailsScreen() {
   const { user } = useAuth();
   const { createOrder } = useOrders();
 
+  const isRTL = language === 'ar';
+
   // Shipping Address State
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -97,11 +99,17 @@ export default function CheckoutDetailsScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Please enable location permissions to use this feature');
+        Alert.alert(
+          isRTL ? 'ما في إذن' : 'Permission Denied', 
+          isRTL ? 'فعّل صلاحيات الموقع عشان نقدر نستخدم هالميزة' : 'Please enable location permissions to use this feature'
+        );
         return;
       }
 
-      Alert.alert('Getting Location', 'Please wait...');
+      Alert.alert(
+        isRTL ? 'عم ندوّر على موقعك' : 'Getting Location', 
+        isRTL ? 'ثانيتين بس...' : 'Please wait...'
+      );
       
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
@@ -122,11 +130,17 @@ export default function CheckoutDetailsScreen() {
         setCity(addr.city || addr.region || '');
         setPostalCode(addr.postalCode || '');
         
-        Alert.alert('Success', 'Location detected successfully!');
+        Alert.alert(
+          isRTL ? 'خلاص لقيناكم! 🎉' : 'Success', 
+          isRTL ? 'المهم تكونو بخير 😊' : 'Location detected successfully!'
+        );
       }
     } catch (error) {
       console.error('Error getting location:', error);
-      Alert.alert('Error', 'Could not get your current location');
+      Alert.alert(
+        isRTL ? 'ما بين الموقع' : 'Error', 
+        isRTL ? 'ما بين عالخريطة فيك تكتبه يدوي �' : 'Could not get your current location'
+      );
     }
   };
 
@@ -141,7 +155,18 @@ export default function CheckoutDetailsScreen() {
     setLatitude(savedAddress.latitude || null);
     setLongitude(savedAddress.longitude || null);
     setShowSavedAddresses(false);
-    Alert.alert('✅ Address Selected', `Using "${savedAddress.label || 'Home'}" address`);
+    
+    // Translate address label
+    const labelLower = (savedAddress.label || 'home').toLowerCase();
+    const addressLabel = labelLower === 'home' ? (isRTL ? 'البيت' : 'Home') :
+                        labelLower === 'work' ? (isRTL ? 'الشغل' : 'Work') :
+                        labelLower === 'other' ? (isRTL ? 'آخر' : 'Other') :
+                        (isRTL ? 'البيت' : 'Home');
+    
+    Alert.alert(
+      isRTL ? 'حفظنا العنوان 🎉' : '✅ Address Selected', 
+      isRTL ? `يله نكمّل! عنوان "${addressLabel}" جاهز 😊` : `Using "${addressLabel}" address`
+    );
   };
 
   // Open Maps to Pick Location
@@ -184,20 +209,40 @@ export default function CheckoutDetailsScreen() {
 
   // Validate and Place Order
   const handlePlaceOrder = async () => {
-    // Validation
-    if (!fullName || !phone || !address || !city) {
-      Alert.alert('Missing Information', 'Please fill in all required fields');
+    // Check if user is logged in FIRST
+    if (!user || !user.uid) {
+      // Show friendly message before redirect
+      Alert.alert(
+        isRTL ? 'تشرفنا! 😊' : 'Welcome! 😊',
+        isRTL ? 'تشرفنا بتسجيل الدخول و كل شي بصير تمام 😊' : 'Please sign in and everything will be ready 😊',
+        [
+          {
+            text: isRTL ? 'تسجيل الدخول' : 'Sign In',
+            onPress: () => router.push('/auth/login' as any),
+          },
+          {
+            text: isRTL ? 'إلغاء' : 'Cancel',
+            style: 'cancel',
+          },
+        ]
+      );
       return;
     }
 
-    // Check if user is logged in
-    if (!user || !user.uid) {
-      Alert.alert('Error', 'You must be logged in to place an order');
+    // Validation
+    if (!fullName || !phone || !address || !city) {
+      Alert.alert(
+        isRTL ? 'لحظة شوي! 🤔' : 'Wait! 🤔', 
+        isRTL ? 'في شي معلومات ناقصة لحتى نكمّل طلبك 📝' : 'Looks like we need some more info to complete your order 📝'
+      );
       return;
     }
 
     // Show loading
-    Alert.alert('Processing', 'Please wait...');
+    Alert.alert(
+      isRTL ? 'عم نجهّز طلبك 🎁' : 'Preparing your order 🎁', 
+      isRTL ? 'ما رح ياخد وقت كتير...' : 'This won\'t take long...'
+    );
 
     try {
       // Prepare order items - preserve selected options
@@ -242,22 +287,28 @@ export default function CheckoutDetailsScreen() {
 
       // Show success message
       Alert.alert(
-        'Order Placed! 🎉',
-        `Your order ${order.orderNumber} has been confirmed!\n\nTotal: ${formatPrice(finalTotal)}${
-          latitude && longitude
-            ? '\n\n📍 Delivery location saved for accurate tracking'
-            : ''
-        }`,
+        isRTL ? 'وصل الطلب! 🎉' : 'Order Placed! 🎉',
+        isRTL 
+          ? `طلبك ${order.orderNumber} تأكد!\n\nالمجموع: ${formatPrice(finalTotal)}${
+              latitude && longitude
+                ? '\n\n📍 حفظنا عنوان التوصيل لتتبع دقيق'
+                : ''
+            }`
+          : `Your order ${order.orderNumber} has been confirmed!\n\nTotal: ${formatPrice(finalTotal)}${
+              latitude && longitude
+                ? '\n\n📍 Delivery location saved for accurate tracking'
+                : ''
+            }`,
         [
           {
-            text: 'View Order',
+            text: isRTL ? 'شوف طلبيتك' : 'View Order',
             onPress: () => {
               // Replace navigation stack to prevent going back to cart
               router.replace(`/order/${order.id}` as any);
             },
           },
           {
-            text: 'Continue Shopping',
+            text: isRTL ? 'رجاع عالسوق' : 'Continue Shopping',
             onPress: () => {
               // Replace navigation stack to go to home
               router.replace('/(tabs)/home' as any);
@@ -269,11 +320,11 @@ export default function CheckoutDetailsScreen() {
     } catch (error) {
       console.error('❌ Error placing order:', error);
       Alert.alert(
-        'Error',
-        'Failed to place your order. Please try again.',
+        isRTL ? 'في مشكلة 😕' : 'Error',
+        isRTL ? 'ما قدرنا نكمّل الطلب. جرّب مرة تانية' : 'Failed to place your order. Please try again.',
         [
           {
-            text: 'OK',
+            text: isRTL ? 'حسناً' : 'OK',
           },
         ]
       );
@@ -294,9 +345,9 @@ export default function CheckoutDetailsScreen() {
         <SafeAreaView edges={['top']}>
           <View style={styles.header}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <Feather name="arrow-left" size={24} color="#FFF" />
+              <Feather name={isRTL ? "arrow-right" : "arrow-left"} size={24} color="#FFF" />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Checkout</Text>
+            <Text style={styles.headerTitle}>{isRTL ? 'الدفع' : 'Checkout'}</Text>
             <View style={styles.headerPlaceholder} />
           </View>
         </SafeAreaView>
@@ -305,20 +356,20 @@ export default function CheckoutDetailsScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Order Summary Card */}
         <View style={styles.summaryCard}>
-          <Text style={styles.sectionTitle}>Order Summary</Text>
+          <Text style={styles.sectionTitle}>{isRTL ? 'ملخص الطلب' : 'Order Summary'}</Text>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>{cart.length} items</Text>
+            <Text style={styles.summaryLabel}>{cart.length} {isRTL ? 'منتجات' : 'items'}</Text>
             <Text style={styles.summaryValue}>{formatPrice(cartTotal)}</Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Shipping</Text>
+            <Text style={styles.summaryLabel}>{isRTL ? 'الشحن' : 'Shipping'}</Text>
             <Text style={[styles.summaryValue, { color: finalShippingCost === 0 ? '#10B981' : '#6B7280' }]}>
-              {finalShippingCost === 0 ? 'FREE' : formatPrice(finalShippingCost)}
+              {finalShippingCost === 0 ? (isRTL ? 'مجاني' : 'FREE') : formatPrice(finalShippingCost)}
             </Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.summaryRow}>
-            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalLabel}>{isRTL ? 'الإجمالي' : 'Total'}</Text>
             <Text style={styles.totalValue}>{formatPrice(finalTotal)}</Text>
           </View>
         </View>
@@ -326,8 +377,8 @@ export default function CheckoutDetailsScreen() {
         {/* Shipping Address Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <MaterialCommunityIcons name="truck-delivery" size={24} color="Colors.primary" />
-            <Text style={styles.sectionTitle}>Shipping Address</Text>
+            <MaterialCommunityIcons name="truck-delivery" size={24} color={Colors.primary} />
+            <Text style={styles.sectionTitle}>{isRTL ? 'عنوان الشحن' : 'Shipping Address'}</Text>
           </View>
 
           {/* Saved Addresses Toggle */}
@@ -337,9 +388,11 @@ export default function CheckoutDetailsScreen() {
               onPress={() => setShowSavedAddresses(!showSavedAddresses)}
             >
               <View style={styles.savedAddressToggleLeft}>
-                <MaterialCommunityIcons name="bookmark-multiple" size={22} color="Colors.primary" />
+                <MaterialCommunityIcons name="bookmark-multiple" size={22} color={Colors.primary} />
                 <Text style={styles.savedAddressToggleText}>
-                  {showSavedAddresses ? 'Hide' : 'Use'} Saved Addresses ({savedAddresses.length})
+                  {showSavedAddresses 
+                    ? (isRTL ? `خبّي العناوين المحفوظة (${savedAddresses.length})` : `Hide Saved Addresses (${savedAddresses.length})`)
+                    : (isRTL ? `استخدم عنوان محفوظ (${savedAddresses.length})` : `Use Saved Addresses (${savedAddresses.length})`)}
                 </Text>
               </View>
               <Feather name={showSavedAddresses ? 'chevron-up' : 'chevron-down'} size={20} color="#6B7280" />
@@ -349,7 +402,9 @@ export default function CheckoutDetailsScreen() {
           {/* Loading Saved Addresses */}
           {loadingSavedAddresses && (
             <View style={{ padding: 20, alignItems: 'center' }}>
-              <Text style={{ color: '#6B7280', fontSize: 14 }}>Loading saved addresses...</Text>
+              <Text style={{ color: '#6B7280', fontSize: 14 }}>
+                {isRTL ? 'عم نحمّل العناوين...' : 'Loading saved addresses...'}
+              </Text>
             </View>
           )}
 
@@ -369,11 +424,16 @@ export default function CheckoutDetailsScreen() {
                     <MaterialCommunityIcons 
                       name={savedAddr.label === 'Home' ? 'home' : savedAddr.label === 'Work' ? 'briefcase' : 'map-marker'}
                       size={20}
-                      color={selectedSavedAddress?.id === savedAddr.id ? 'Colors.primary' : '#6B7280'}
+                      color={selectedSavedAddress?.id === savedAddr.id ? Colors.primary : '#6B7280'}
                     />
                   </View>
                   <View style={styles.savedAddressContent}>
-                    <Text style={styles.savedAddressLabel}>{savedAddr.label || 'Address'}</Text>
+                    <Text style={styles.savedAddressLabel}>
+                      {savedAddr.label === 'Home' ? (isRTL ? 'البيت' : 'Home') :
+                       savedAddr.label === 'Work' ? (isRTL ? 'الشغل' : 'Work') :
+                       savedAddr.label === 'Other' ? (isRTL ? 'آخر' : 'Other') :
+                       savedAddr.label || (isRTL ? 'عنوان' : 'Address')}
+                    </Text>
                     <Text style={styles.savedAddressName}>{savedAddr.fullName}</Text>
                     <Text style={styles.savedAddressText} numberOfLines={2}>
                       {savedAddr.address}, {savedAddr.city}
@@ -382,13 +442,13 @@ export default function CheckoutDetailsScreen() {
                     {savedAddr.latitude && savedAddr.longitude && (
                       <View style={styles.verifiedBadge}>
                         <MaterialCommunityIcons name="map-marker-check" size={14} color="#10B981" />
-                        <Text style={styles.verifiedText}>Location Verified</Text>
+                        <Text style={styles.verifiedText}>{isRTL ? 'الموقع مؤكد' : 'Location Verified'}</Text>
                       </View>
                     )}
                   </View>
                   {selectedSavedAddress?.id === savedAddr.id && (
                     <View style={styles.selectedCheckmark}>
-                      <Feather name="check-circle" size={24} color="Colors.primary" />
+                      <Feather name="check-circle" size={24} color={Colors.primary} />
                     </View>
                   )}
                 </TouchableOpacity>
@@ -400,20 +460,20 @@ export default function CheckoutDetailsScreen() {
           {!showSavedAddresses && (
             <>
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Full Name *</Text>
+                <Text style={styles.label}>{isRTL ? 'الاسم الكامل' : 'Full Name'} *</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Enter your name"
+                  placeholder={isRTL ? 'أدخل اسمك' : 'Enter your name'}
                   value={fullName}
                   onChangeText={setFullName}
                 />
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Phone Number *</Text>
+                <Text style={styles.label}>{isRTL ? 'رقم الهاتف' : 'Phone Number'} *</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Enter here"
+                  placeholder={isRTL ? 'أدخل هنا' : 'Enter here'}
                   value={phone}
                   onChangeText={setPhone}
                   keyboardType="phone-pad"
@@ -421,10 +481,10 @@ export default function CheckoutDetailsScreen() {
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Address *</Text>
+                <Text style={styles.label}>{isRTL ? 'العنوان' : 'Address'} *</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
-                  placeholder="Street address, building, apartment"
+                  placeholder={isRTL ? 'عنوان الشارع، المبنى، الشقة' : 'Street address, building, apartment'}
                   value={address}
                   onChangeText={setAddress}
                   multiline
@@ -441,8 +501,8 @@ export default function CheckoutDetailsScreen() {
               onPress={handleGetCurrentLocation}
               activeOpacity={0.7}
             >
-              <MaterialCommunityIcons name="crosshairs-gps" size={20} color="Colors.primary" />
-              <Text style={styles.locationButtonText}>Use Current Location</Text>
+              <MaterialCommunityIcons name="crosshairs-gps" size={20} color={Colors.primary} />
+              <Text style={styles.locationButtonText}>{isRTL ? 'استخدم الموقع الحالي' : 'Use Current Location'}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -450,8 +510,8 @@ export default function CheckoutDetailsScreen() {
               onPress={handleOpenMaps}
               activeOpacity={0.7}
             >
-              <MaterialCommunityIcons name="map-marker" size={20} color="Colors.primary" />
-              <Text style={styles.locationButtonText}>Pick on Map</Text>
+              <MaterialCommunityIcons name="map-marker" size={20} color={Colors.primary} />
+              <Text style={styles.locationButtonText}>{isRTL ? 'اختر على الخريطة' : 'Pick on Map'}</Text>
             </TouchableOpacity>
           </View>
 
@@ -459,40 +519,27 @@ export default function CheckoutDetailsScreen() {
             <View style={styles.locationInfo}>
               <Feather name="map-pin" size={16} color="#10B981" />
               <Text style={styles.locationInfoText}>
-                Location: {latitude.toFixed(4)}, {longitude.toFixed(4)}
+                {isRTL ? '✓ الموقع محدد بدقة' : '✓ Location pinned accurately'}
               </Text>
             </View>
           )}
 
-          <View style={styles.row}>
-            <View style={[styles.inputContainer, { flex: 1, marginRight: 8 }]}>
-              <Text style={styles.label}>City *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="City"
-                value={city}
-                onChangeText={setCity}
-              />
-            </View>
-
-            <View style={[styles.inputContainer, { flex: 1, marginLeft: 8 }]}>
-              <Text style={styles.label}>Postal Code</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="12345"
-                value={postalCode}
-                onChangeText={setPostalCode}
-                keyboardType="number-pad"
-              />
-            </View>
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>{isRTL ? 'المدينة' : 'City'} *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder={isRTL ? 'المدينة' : 'City'}
+              value={city}
+              onChangeText={setCity}
+            />
           </View>
         </View>
 
         {/* Payment Method Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <MaterialCommunityIcons name="credit-card" size={24} color="Colors.primary" />
-            <Text style={styles.sectionTitle}>Payment Method</Text>
+            <MaterialCommunityIcons name="credit-card" size={24} color={Colors.primary} />
+            <Text style={styles.sectionTitle}>{isRTL ? 'طريقة الدفع' : 'Payment Method'}</Text>
           </View>
 
           <TouchableOpacity
@@ -503,10 +550,10 @@ export default function CheckoutDetailsScreen() {
               <MaterialCommunityIcons 
                 name="cash" 
                 size={24} 
-                color={paymentMethod === 'cash' ? 'Colors.primary' : '#6B7280'} 
+                color={paymentMethod === 'cash' ? Colors.primary : '#6B7280'} 
               />
               <Text style={[styles.paymentText, paymentMethod === 'cash' && styles.paymentTextActive]}>
-                Cash on Delivery
+                {isRTL ? 'الدفع عند الاستلام' : 'Cash on Delivery'}
               </Text>
             </View>
             <View style={[styles.radio, paymentMethod === 'cash' && styles.radioActive]}>
@@ -525,7 +572,7 @@ export default function CheckoutDetailsScreen() {
                 resizeMode="contain"
               />
               <Text style={[styles.paymentText, paymentMethod === 'card' && styles.paymentTextActive]}>
-                Credit/Debit Card
+                {isRTL ? 'بطاقة ائتمان/خصم' : 'Credit/Debit Card'}
               </Text>
             </View>
             <View style={[styles.radio, paymentMethod === 'card' && styles.radioActive]}>
@@ -540,12 +587,12 @@ export default function CheckoutDetailsScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.cardDetailsContent}>
-                <Feather name="credit-card" size={20} color="Colors.primary" />
+                <Feather name="credit-card" size={20} color={Colors.primary} />
                 <Text style={styles.cardDetailsText}>
                   {language === 'ar' ? 'إدخال بيانات البطاقة' : 'Enter Card Details'}
                 </Text>
               </View>
-              <Feather name="arrow-right" size={20} color="Colors.primary" />
+              <Feather name="arrow-right" size={20} color={Colors.primary} />
             </TouchableOpacity>
           )}
 
@@ -629,7 +676,7 @@ export default function CheckoutDetailsScreen() {
       <View style={styles.bottomContainer}>
         <View style={styles.bottomContent}>
           <View>
-            <Text style={styles.bottomLabel}>Total Amount</Text>
+            <Text style={styles.bottomLabel}>{isRTL ? 'المبلغ الإجمالي' : 'Total Amount'}</Text>
             <Text style={styles.bottomTotal}>{formatPrice(finalTotal)}</Text>
           </View>
           
@@ -644,7 +691,7 @@ export default function CheckoutDetailsScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.placeOrderGradient}
             >
-              <Text style={styles.placeOrderText}>Place Order</Text>
+              <Text style={styles.placeOrderText}>{isRTL ? 'تأكيد الطلب' : 'Place Order'}</Text>
               <Feather name="check-circle" size={20} color="#FFF" />
             </LinearGradient>
           </TouchableOpacity>
@@ -748,7 +795,7 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: 'Colors.primary',
+    color: Colors.primary,
   },
   inputContainer: {
     marginBottom: 12,
@@ -791,12 +838,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3E8FF',
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'Colors.primary',
+    borderColor: Colors.primary,
   },
   locationButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: 'Colors.primary',
+    color: Colors.primary,
     marginLeft: 6,
   },
   locationInfo: {
@@ -825,7 +872,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
   },
   paymentOptionActive: {
-    borderColor: 'Colors.primary',
+    borderColor: Colors.primary,
     backgroundColor: '#F3E8FF',
   },
   paymentLeft: {
@@ -863,7 +910,7 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   paymentTextActive: {
-    color: 'Colors.primary',
+    color: Colors.primary,
   },
   radio: {
     width: 22,
@@ -875,13 +922,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   radioActive: {
-    borderColor: 'Colors.primary',
+    borderColor: Colors.primary,
   },
   radioDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: 'Colors.primary',
+    backgroundColor: Colors.primary,
   },
   comingSoon: {
     flexDirection: 'row',
@@ -915,7 +962,7 @@ const styles = StyleSheet.create({
   cardDetailsText: {
     fontSize: 14,
     fontWeight: '600',
-    color: 'Colors.primary',
+    color: Colors.primary,
   },
   omtButton: {
     borderColor: '#FFD7B5',
@@ -942,13 +989,14 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   bottomLabel: {
-    fontSize: 11,
+    fontSize: 13,
     color: '#6B7280',
-    marginBottom: 2,
+    marginBottom: 4,
+    fontWeight: '600',
   },
   bottomTotal: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '800',
     color: '#1F2937',
   },
   placeOrderButton: {

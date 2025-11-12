@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronLeft, Heart, Share2, ShoppingCart } from 'lucide-react-native';
+import { ChevronLeft, Heart, Share2 } from 'lucide-react-native';
 import { useMarket } from '@/contexts/MarketContext';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/constants/firebase';
@@ -43,14 +43,11 @@ interface Product {
 
 export default function MarketProductDetailsScreen() {
   const { id } = useLocalSearchParams();
-  const { marketCart, addToMarketCart, updateMarketCartQuantity, language } = useMarket();
+  const { marketCart, addToMarketCart, updateMarketCartQuantity, language, isRTL } = useMarket();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
-
-  // Cart count
-  const marketCartCount = marketCart.reduce((sum, item) => sum + item.quantity, 0);
 
   useEffect(() => {
     loadProduct();
@@ -142,13 +139,20 @@ export default function MarketProductDetailsScreen() {
         title: productName,
       });
 
+      // فقط إذا المستخدم شارك فعلياً (مش لغى)
       if (result.action === Share.sharedAction) {
-        Toast.show({
-          type: 'success',
-          text1: language === 'ar' ? 'تمت المشاركة بنجاح' : 'Shared successfully',
-          position: 'top',
-          visibilityTime: 2000,
-        });
+        if (result.activityType) {
+          // شارك عبر تطبيق معين
+          Toast.show({
+            type: 'success',
+            text1: language === 'ar' ? 'تمت المشاركة بنجاح' : 'Shared successfully',
+            position: 'top',
+            visibilityTime: 2000,
+          });
+        }
+      } else if (result.action === Share.dismissedAction) {
+        // المستخدم لغى المشاركة - ما نعرض شي
+        console.log('Share dismissed by user');
       }
     } catch (error) {
       console.log('Error sharing:', error);
@@ -202,6 +206,17 @@ export default function MarketProductDetailsScreen() {
   const discount = product.discount || 0;
   const finalPrice = discount > 0 ? price * (1 - discount / 100) : price;
   const hasDiscount = discount > 0;
+  
+  // Exchange rate and LBP formatting
+  const USD_TO_LBP = 89700;
+  const formatLBP = (usdPrice: number) => {
+    const lbpAmount = usdPrice * USD_TO_LBP;
+    
+    // تقريب للألف الأقرب: إذا آخر 3 أرقام >= 500 نزيد، وإلا نرجع صفر
+    const roundedAmount = Math.round(lbpAmount / 1000) * 1000;
+    
+    return `LBP ${roundedAmount.toLocaleString('en-US')}`;
+  };
 
   const images = product.images && product.images.length > 0 ? product.images : [product.image];
 
@@ -243,20 +258,6 @@ export default function MarketProductDetailsScreen() {
             onPress={handleShare}
           >
             <Share2 size={22} color="#000" />
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.headerIconButton}
-            onPress={() => router.push('/market/cart' as any)}
-          >
-            <View>
-              <ShoppingCart size={22} color="#000" />
-              {marketCartCount > 0 && (
-                <View style={styles.cartBadgeSimple}>
-                  <Text style={styles.cartBadgeTextSimple}>{marketCartCount}</Text>
-                </View>
-              )}
-            </View>
           </TouchableOpacity>
         </View>
       </View>
@@ -335,6 +336,9 @@ export default function MarketProductDetailsScreen() {
                 <Text style={styles.currencySymbol}>$</Text>
                 <Text style={styles.price}>{finalPrice.toFixed(2)}</Text>
               </View>
+              
+              {/* LBP Price */}
+              <Text style={styles.lbpPrice}>{formatLBP(finalPrice)}</Text>
 
               {hasDiscount && (
                 <View style={styles.discountRow}>
@@ -354,73 +358,44 @@ export default function MarketProductDetailsScreen() {
           </View>
         </View>
 
-        {/* Product Information Card - Separate */}
-        <View style={styles.productInformationCard}>
-            <Text style={styles.sectionTitle}>
-              {language === 'ar' ? 'معلومات المنتج' : 'Product Information'}
-            </Text>
-            <View style={styles.nutritionalList}>
-              {/* First Row */}
-              {(product.productDetails || product.dietaryNeeds) && (
-                <View style={styles.nutritionalDoubleRow}>
-                  {product.productDetails && (
-                    <View style={styles.nutritionalRow}>
-                      <Text style={styles.nutritionalBullet}>•</Text>
-                      <Text style={styles.nutritionalLabel}>
-                        {language === 'ar' ? 'تفاصيل: ' : 'Details: '}
-                      </Text>
-                      <Text style={styles.nutritionalValue}>{product.productDetails}</Text>
-                    </View>
-                  )}
-                  {product.dietaryNeeds && (
-                    <View style={styles.nutritionalRow}>
-                      <Text style={styles.nutritionalBullet}>•</Text>
-                      <Text style={styles.nutritionalLabel}>
-                        {language === 'ar' ? 'احتياجات غذائية: ' : 'Dietary: '}
-                      </Text>
-                      <Text style={styles.nutritionalValue}>{product.dietaryNeeds}</Text>
-                    </View>
-                  )}
-                </View>
-              )}
-              
-              {/* Second Row */}
-              {(product.sizeUnit || product.storageRequirement) && (
-                <View style={styles.nutritionalDoubleRow}>
-                  {product.sizeUnit && (
-                    <View style={styles.nutritionalRow}>
-                      <Text style={styles.nutritionalBullet}>•</Text>
-                      <Text style={styles.nutritionalLabel}>
-                        {language === 'ar' ? 'الحجم: ' : 'Size: '}
-                      </Text>
-                      <Text style={styles.nutritionalValue}>{product.sizeUnit}</Text>
-                    </View>
-                  )}
-                  {product.storageRequirement && (
-                    <View style={styles.nutritionalRow}>
-                      <Text style={styles.nutritionalBullet}>•</Text>
-                      <Text style={styles.nutritionalLabel}>
-                        {language === 'ar' ? 'التخزين: ' : 'Storage: '}
-                      </Text>
-                      <Text style={styles.nutritionalValue}>{product.storageRequirement}</Text>
-                    </View>
-                  )}
-                </View>
-              )}
-
-              {/* Third Row - Country of Origin */}
-              {product.countryOfOrigin && (
-                <View style={styles.nutritionalDoubleRow}>
-                  <View style={styles.nutritionalRow}>
-                    <Text style={styles.nutritionalBullet}>•</Text>
-                    <Text style={styles.nutritionalLabel}>
-                      {language === 'ar' ? 'بلد المنشأ: ' : 'Origin: '}
-                    </Text>
-                    <Text style={styles.nutritionalValue}>{product.countryOfOrigin}</Text>
-                  </View>
-                </View>
-              )}
-            </View>
+        {/* Price Notice Card */}
+        <View style={styles.priceNoticeCard}>
+          <Text style={styles.priceNoticeText}>
+            {language === 'ar' ? 'تفاصيل المنتج' : 'Product Details'}
+          </Text>
+          
+          {/* Product Information Section */}
+          <View style={styles.productInfoSection}>
+            {product.productDetails && (
+              <Text style={styles.productInfoItem}>
+                • {product.productDetails}
+              </Text>
+            )}
+            
+            {product.dietaryNeeds && (
+              <Text style={styles.productInfoItem}>
+                • {product.dietaryNeeds}
+              </Text>
+            )}
+            
+            {product.sizeUnit && (
+              <Text style={styles.productInfoItem}>
+                • {language === 'ar' ? 'الحجم: ' : 'Size: '}{product.sizeUnit}
+              </Text>
+            )}
+            
+            {product.storageRequirement && (
+              <Text style={styles.productInfoItem}>
+                • {language === 'ar' ? 'التخزين: ' : 'Storage: '}{product.storageRequirement}
+              </Text>
+            )}
+            
+            {product.countryOfOrigin && (
+              <Text style={styles.productInfoItem}>
+                • {language === 'ar' ? 'بلد المنشأ: ' : 'Origin: '}{product.countryOfOrigin}
+              </Text>
+            )}
+          </View>
         </View>
 
         {/* Bottom Spacing */}
@@ -440,11 +415,6 @@ export default function MarketProductDetailsScreen() {
               : (language === 'ar' ? 'غير متوفر' : 'Out of Stock')
             }
           </Text>
-          {product.inStock && (
-            <Text style={styles.addToCartPrice}>
-              ${finalPrice.toFixed(2)}
-            </Text>
-          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -632,16 +602,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F0F0F0',
   },
-  // Product Information Card - Separate
-  productInformationCard: {
-    backgroundColor: '#FFF',
-    marginTop: 8,
-    marginHorizontal: 8,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
-  },
   brandContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -716,6 +676,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     marginBottom: 0,
+    direction: 'ltr',
   },
   currencySymbol: {
     fontSize: 16,
@@ -728,11 +689,20 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FF6B35',
   },
+  lbpPrice: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginTop: 4,
+    marginBottom: 8,
+    direction: 'ltr',
+  },
   discountRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     marginBottom: 0,
+    direction: 'ltr',
   },
   originalPrice: {
     fontSize: 12,
@@ -753,6 +723,30 @@ const styles = StyleSheet.create({
   taxText: {
     fontSize: 11,
     color: '#999',
+  },
+  priceNoticeCard: {
+    backgroundColor: '#FFF',
+    marginTop: 8,
+    marginHorizontal: 8,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  priceNoticeText: {
+    fontSize: 16,
+    color: '#1A1A1A',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  productInfoSection: {
+    marginTop: 12,
+    gap: 8,
+  },
+  productInfoItem: {
+    fontSize: 14,
+    color: '#555',
+    lineHeight: 22,
   },
   stockContainer: {
     flexDirection: 'row',
@@ -811,48 +805,10 @@ const styles = StyleSheet.create({
   descriptionSection: {
     marginBottom: 0,
   },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#1A1A1A',
-    marginBottom: 0,
-  },
   descriptionText: {
     fontSize: 14,
     color: '#555',
     lineHeight: 22,
-  },
-  nutritionalSection: {
-    marginBottom: 0,
-  },
-  nutritionalList: {
-    gap: 8,
-  },
-  nutritionalDoubleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 16,
-  },
-  nutritionalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  nutritionalBullet: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FF6B35',
-    marginRight: 8,
-  },
-  nutritionalLabel: {
-    fontSize: 14,
-    color: '#757575',
-    marginBottom: 0,
-  },
-  nutritionalValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1A1A1A',
   },
   bottomBar: {
     position: 'absolute',
@@ -890,7 +846,7 @@ const styles = StyleSheet.create({
   },
   addToCartText: {
     color: '#FFF',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
   },
   addToCartPrice: {
@@ -898,6 +854,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     marginLeft: 4,
+  },
+  addToCartPriceRTL: {
+    marginLeft: 0,
+    marginRight: 4,
   },
   loadingContainer: {
     flex: 1,

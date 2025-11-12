@@ -97,11 +97,16 @@ export default function BrandDetailsScreen() {
             <Text style={styles.brandName}>{
               typeof brand.name === 'string' ? brand.name : (brand.name?.[language] || brand.name?.en || brand.name?.ar || '')
             }</Text>
-            {brand.description && (
-              <Text style={styles.brandDescription}>
-                {typeof brand.description === 'string' ? brand.description : (brand.description?.[language] || brand.description?.en || brand.description?.ar || '')}
-              </Text>
-            )}
+            {brand.description && (() => {
+              const brandName = typeof brand.name === 'string' ? brand.name : (brand.name?.[language] || brand.name?.en || brand.name?.ar || '');
+              const brandDesc = typeof brand.description === 'string' ? brand.description : (brand.description?.[language] || brand.description?.en || brand.description?.ar || '');
+              // Only show description if it's different from the name and not empty
+              return brandDesc && brandDesc.trim() !== '' && brandDesc.trim() !== brandName.trim() && (
+                <Text style={styles.brandDescription}>
+                  {brandDesc}
+                </Text>
+              );
+            })()}
 
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>

@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 
 export default function TabLayout() {
-  const { t, cartItemsCount } = useApp();
+  const { t, cartItemsCount, language } = useApp();
   const router = useRouter();
   
   // Animation for bounce effect
@@ -86,6 +86,7 @@ export default function TabLayout() {
             paddingBottom: 10,
             paddingTop: 5,
             paddingHorizontal: 5,
+            flexDirection: language === 'ar' ? 'row-reverse' : 'row',
           },
           tabBarLabelStyle: {
             fontSize: 12,
@@ -107,7 +108,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="home"
           options={{
-            title: 'Home',
+            title: t('tabs.home'),
             headerShown: false,
             tabBarIcon: ({ color, size }) => (
               <Feather name="home" color={color} size={24} />
@@ -119,7 +120,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="categories"
           options={{
-            title: 'Categories',
+            title: t('tabs.categories'),
             headerShown: false,
             tabBarIcon: ({ color, size }) => (
               <Feather name="grid" color={color} size={24} />
@@ -146,8 +147,8 @@ export default function TabLayout() {
         <Tabs.Screen
           name="brands"
           options={{
-            title: 'Brands',
-            headerTitle: 'Brands',
+            title: t('tabs.brands'),
+            headerTitle: t('tabs.brands'),
             tabBarIcon: ({ color, size }) => (
               <Feather name="tag" color={color} size={24} />
             ),
@@ -158,8 +159,8 @@ export default function TabLayout() {
         <Tabs.Screen
           name="account"
           options={{
-            title: 'Account',
-            headerTitle: 'Account',
+            title: t('tabs.account'),
+            headerTitle: t('tabs.account'),
             tabBarIcon: ({ color, size }) => (
               <Feather name="user" color={color} size={24} />
             ),
@@ -215,7 +216,7 @@ const styles = StyleSheet.create({
     borderRadius: 35,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 4,
+    borderWidth: 2,
     borderColor: Colors.white,
     overflow: 'hidden',
     elevation: 10,

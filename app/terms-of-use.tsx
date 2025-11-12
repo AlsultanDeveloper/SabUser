@@ -1,4 +1,4 @@
-// terms-of-use.tsx - dummy content
+// terms-of-use.tsx
 import React from 'react';
 import {
   View,
@@ -12,7 +12,7 @@ import { Colors, Spacing, FontSizes } from '@/constants/theme';
 import { useApp } from '@/contexts/AppContext';
 
 export default function TermsOfUseScreen() {
-  const { t } = useApp();
+  const { t, language } = useApp();
 
   return (
     <>
@@ -28,138 +28,55 @@ export default function TermsOfUseScreen() {
       />
       <SafeAreaView style={styles.container} edges={['bottom']}>
         <ScrollView 
-          style={styles.scrollView} 
+          style={[styles.scrollView, language === 'ar' && { direction: 'rtl' as any }]} 
           contentContainerStyle={styles.contentContainer}
           showsVerticalScrollIndicator={false}
         >
           <Text style={styles.title}>{t('termsOfUse.title')}</Text>
           <Text style={styles.updateDate}>{t('termsOfUse.lastUpdated')}</Text>
 
-          <Text style={styles.paragraph}>
-            At Sab Store ("we," or "us"), we value the privacy of individuals who use our websites and related services (collectively, our "Services"). This Privacy Notice explains how we collect, use, and share the personal information of users of our Services ("users," "you," or "your"). By using our Services, you agree to the collection, use, disclosure, and processing of your information as described by this Privacy Notice.
-          </Text>
+          <Text style={styles.paragraph}>{t('termsOfUse.intro')}</Text>
 
-          <Text style={styles.paragraph}>
-            Personal information is information that identifies or could be used to identify a specific person. Personal information does not include deidentified information (anonymized or pseudonymized) or aggregated information derived from personal information.
-          </Text>
+          <Text style={styles.sectionTitle}>{t('termsOfUse.acceptance')}</Text>
+          <Text style={styles.paragraph}>{t('termsOfUse.acceptanceDesc')}</Text>
 
-          <Text style={styles.sectionTitle}>Information We Collect</Text>
-          <Text style={styles.paragraph}>
-            We may collect a variety of personal information and other information about you or your devices from various sources, as described below.
-          </Text>
+          <Text style={styles.sectionTitle}>{t('termsOfUse.eligibility')}</Text>
+          <Text style={styles.paragraph}>{t('termsOfUse.eligibilityDesc')}</Text>
 
-          <Text style={styles.subSectionTitle}>Information You Provide to Us</Text>
-          <Text style={styles.paragraph}>
-            <Text style={styles.bold}>Registration Information.</Text> If you sign up for an account, register to use our Services, or sign up for emails or other updates, we may ask you for basic contact information, such as your name, email address, phone number, and/or mailing address. We may also collect certain demographic information when you register for our Services, including your age, gender, personal interests, income, and/or marital status.
-          </Text>
+          <Text style={styles.sectionTitle}>{t('termsOfUse.account')}</Text>
+          <Text style={styles.paragraph}>{t('termsOfUse.accountDesc')}</Text>
 
-          <Text style={styles.paragraph}>
-            <Text style={styles.bold}>Communications.</Text> If you contact us directly, we may collect additional information from you. For example, when you reach out to our customer support team, we may ask for your name, email address, mailing address, phone number, or other contact information so that we can verify your identity and communicate with you. We may also store the contents of any message or attachments that you send to us, as well as any information you submit through any of our forms or questionnaires.
-          </Text>
+          <Text style={styles.sectionTitle}>{t('termsOfUse.orders')}</Text>
+          <Text style={styles.paragraph}>{t('termsOfUse.ordersDesc')}</Text>
 
-          <Text style={styles.paragraph}>
-            <Text style={styles.bold}>Events.</Text> If you register for an event that we host, whether in-person or online, we may collect relevant information such as your name, address, title, company, phone number, or email address, as well as specific information relevant to the event for which you are registering.
-          </Text>
+          <Text style={styles.sectionTitle}>{t('termsOfUse.shipping')}</Text>
+          <Text style={styles.paragraph}>{t('termsOfUse.shippingDesc')}</Text>
 
-          <Text style={styles.paragraph}>
-            <Text style={styles.bold}>User Content.</Text> We may allow you and other Users of our Services to share their own content with others. This may include posts, comments, reviews, or other User-generated content. Unless otherwise noted when creating such content, this information may be shared publicly through our Services.
-          </Text>
+          <Text style={styles.sectionTitle}>{t('termsOfUse.returns')}</Text>
+          <Text style={styles.paragraph}>{t('termsOfUse.returnsDesc')}</Text>
 
-          <Text style={styles.paragraph}>
-            <Text style={styles.bold}>Payment Information.</Text> If you make a purchase through our Services, we (or a third-party payment processor acting on our behalf) may collect your payment-related information, such as credit card or other financial information.
-          </Text>
+          <Text style={styles.sectionTitle}>{t('termsOfUse.prohibited')}</Text>
+          <Text style={styles.paragraph}>{t('termsOfUse.prohibitedDesc')}</Text>
 
-          <Text style={styles.paragraph}>
-            <Text style={styles.bold}>Job Applications.</Text> If you apply for a job with us, we may collect relevant information such as your name, phone number, email address, position, job history, education history, references, a cover letter, and other similar information.
-          </Text>
+          <Text style={styles.sectionTitle}>{t('termsOfUse.intellectual')}</Text>
+          <Text style={styles.paragraph}>{t('termsOfUse.intellectualDesc')}</Text>
 
-          <Text style={styles.subSectionTitle}>Information We Collect Automatically When You Use Our Services</Text>
-          <Text style={styles.paragraph}>
-            <Text style={styles.bold}>Device Information.</Text> We may collect information about the devices and software you use to access our Services, such as your IP address, web browser type, operating system version, device identifiers, and other similar information.
-          </Text>
+          <Text style={styles.sectionTitle}>{t('termsOfUse.limitation')}</Text>
+          <Text style={styles.paragraph}>{t('termsOfUse.limitationDesc')}</Text>
 
-          <Text style={styles.paragraph}>
-            <Text style={styles.bold}>Usage Information.</Text> To help us understand how you use our Services and to help us improve them, we may collect data about your interactions with our Services. This includes, but is not limited to, information such as crash reports, session lengths and times, the specific pages and other content you view, and any searches you conduct on our site.
-          </Text>
+          <Text style={styles.sectionTitle}>{t('termsOfUse.termination')}</Text>
+          <Text style={styles.paragraph}>{t('termsOfUse.terminationDesc')}</Text>
 
-          <Text style={styles.paragraph}>
-            <Text style={styles.bold}>Cookies and Similar Technologies.</Text> We and our third-party partners may collect information using cookies, pixel tags, or similar technologies. Cookies are small text files containing a string of alphanumeric characters. We may use both session cookies and persistent cookies. A session cookie disappears after you close your browser. A persistent cookie remains after you close your browser and may be used by your browser on subsequent visits to our Services.
-          </Text>
+          <Text style={styles.sectionTitle}>{t('termsOfUse.changes')}</Text>
+          <Text style={styles.paragraph}>{t('termsOfUse.changesDesc')}</Text>
 
-          <Text style={styles.subSectionTitle}>Information We Receive from Other Sources</Text>
-          <Text style={styles.paragraph}>
-            We may receive information about you from other sources, including third parties that help us update, expand, and analyze our records, identify new customers, or detect or prevent fraud. What information we receive from third parties is governed by the privacy settings, policies, and/or procedures of the relevant organizations, and we encourage you to review them.
-          </Text>
+          <Text style={styles.sectionTitle}>{t('termsOfUse.governing')}</Text>
+          <Text style={styles.paragraph}>{t('termsOfUse.governingDesc')}</Text>
 
-          <Text style={styles.sectionTitle}>How We Use the Information We Collect</Text>
-          <Text style={styles.paragraph}>We may use the information we collect:</Text>
-          <Text style={styles.bulletPoint}>• To provide, maintain, improve, and enhance our Services;</Text>
-          <Text style={styles.bulletPoint}>• To understand and analyze how you use our Services and develop new products, services, features, and functionality;</Text>
-          <Text style={styles.bulletPoint}>• To facilitate purchases of products or services that you order;</Text>
-          <Text style={styles.bulletPoint}>• To host events;</Text>
-          <Text style={styles.bulletPoint}>• To allow you to share content with other Users of our Services;</Text>
-          <Text style={styles.bulletPoint}>• To evaluate and process applications for jobs with us;</Text>
-          <Text style={styles.bulletPoint}>• To communicate with you, provide you with updates and other information relating to our Services, provide information that you request, respond to comments and questions, and otherwise provide User support;</Text>
-          <Text style={styles.bulletPoint}>• For marketing and advertising purposes, including developing and providing promotional and advertising materials that may be relevant, valuable or otherwise of interest to you;</Text>
-          <Text style={styles.bulletPoint}>• To detect and prevent fraud, and respond to trust and safety issues that may arise;</Text>
-          <Text style={styles.bulletPoint}>• In connection with generative AI applications;</Text>
-          <Text style={styles.bulletPoint}>• For compliance purposes, including enforcing our Terms of Use or other legal rights, or as may be required by applicable laws and regulations or requested by any judicial process or governmental agency;</Text>
-          <Text style={styles.bulletPoint}>• For other purposes for which we provide specific notice at the time the information is collected.</Text>
+          <Text style={styles.sectionTitle}>{t('termsOfUse.contact')}</Text>
+          <Text style={styles.paragraph}>{t('termsOfUse.contactDesc')}</Text>
 
-          <Text style={styles.sectionTitle}>How We Share the Information We Collect</Text>
-          <Text style={styles.paragraph}>
-            <Text style={styles.bold}>Service Providers.</Text> We may share any information we collect with service providers retained in connection with the provision of our Services. These companies are permitted to use this information to help us provide our Services to improve the services they provide us, and for other purposes disclosed in this Privacy Notice.
-          </Text>
-
-          <Text style={styles.paragraph}>
-            <Text style={styles.bold}>Our Affiliates and Representatives.</Text> We may share your information with our affiliates, subsidiaries, and representatives as needed to provide our Services.
-          </Text>
-
-          <Text style={styles.paragraph}>
-            <Text style={styles.bold}>Other Users.</Text> Content you post on our websites, including comments, may be displayed to other Users as appropriate.
-          </Text>
-
-          <Text style={styles.paragraph}>
-            <Text style={styles.bold}>Our Advertising and Analytics Partners.</Text> We work with our Service Providers and other analytics and/or advertising partners to collect and process certain analytics data regarding your use of our Services and to conduct advertising via cookies, as detailed below.
-          </Text>
-
-          <Text style={styles.sectionTitle}>Your Choices</Text>
-          <Text style={styles.paragraph}>
-            <Text style={styles.bold}>Our Communications.</Text> From time to time, you may receive marketing or other informational email messages from us. You can unsubscribe from our promotional and informational emails via the link provided in the emails. After opting out of receiving such messages from us, users may continue to receive administrative messages from us that are necessary to service User accounts.
-          </Text>
-
-          <Text style={styles.paragraph}>
-            <Text style={styles.bold}>Cookies.</Text> Most web browsers allow you to manage cookies through the browser settings. To find out more about cookies, you can visit www.aboutcookies.org or www.allaboutcookies.org.
-          </Text>
-
-          <Text style={styles.sectionTitle}>Security</Text>
-          <Text style={styles.paragraph}>
-            We make reasonable efforts to protect your information by using administrative, technological, and physical safeguards designed to improve the security of the information we maintain and protect it from accidental loss, unauthorized access or use, or any other inappropriate or unlawful processing. Because no information system can be 100% secure, we cannot guarantee the absolute security of your information.
-          </Text>
-
-          <Text style={styles.sectionTitle}>Children's Privacy</Text>
-          <Text style={styles.paragraph}>
-            We do not knowingly collect, maintain, or use information from children under 13 years of age, and no part of our Services are directed toward children. If you learn that a child has provided us with information in violation of this Privacy Notice, then you may alert us at support@sab-store.com.
-          </Text>
-
-          <Text style={styles.sectionTitle}>International Visitors</Text>
-          <Text style={styles.paragraph}>
-            Our Services are hosted in the United States and intended for use by individuals located within the United States. If you choose to use the Services from the European Union or other regions of the world with laws governing data collection and use that may differ from U.S. law, please note that you are transferring your information outside of those regions to the United States for storage and processing.
-          </Text>
-
-          <Text style={styles.sectionTitle}>Changes to this Privacy Notice</Text>
-          <Text style={styles.paragraph}>
-            We will post any adjustments to the Privacy Notice on this page, and the revised version will be effective when it is posted. If we make material changes, we may notify you via a notice posted on our website or another method. We encourage you to read this Privacy Notice periodically to stay up to date about our privacy practices.
-          </Text>
-
-          <Text style={styles.sectionTitle}>Contact Us</Text>
-          <Text style={styles.paragraph}>
-            All feedback, comments, requests for technical support, and other communications relating to the Sites and our data collection and processing activities should be directed to: support@sab-store.com.
-          </Text>
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>{t('privacyPolicy.footer')}</Text>
-          </View>
+          <Text style={styles.footer}>{t('termsOfUse.footer')}</Text>
         </ScrollView>
       </SafeAreaView>
     </>
@@ -197,39 +114,19 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
     marginBottom: Spacing.md,
   },
-  subSectionTitle: {
-    fontSize: FontSizes.lg,
-    fontWeight: '600' as const,
-    color: Colors.text.primary,
-    marginTop: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
   paragraph: {
     fontSize: FontSizes.md,
     color: Colors.text.secondary,
     lineHeight: FontSizes.md * 1.6,
     marginBottom: Spacing.md,
   },
-  bold: {
-    fontWeight: '600' as const,
-    color: Colors.text.primary,
-  },
-  bulletPoint: {
-    fontSize: FontSizes.md,
-    color: Colors.text.secondary,
-    lineHeight: FontSizes.md * 1.6,
-    marginBottom: Spacing.xs,
-    paddingLeft: Spacing.sm,
-  },
   footer: {
+    fontSize: FontSizes.sm,
+    color: Colors.text.secondary,
+    textAlign: 'center',
     marginTop: Spacing.xl,
     paddingTop: Spacing.lg,
     borderTopWidth: 1,
     borderTopColor: Colors.gray[200],
-    alignItems: 'center',
-  },
-  footerText: {
-    fontSize: FontSizes.sm,
-    color: Colors.text.secondary,
   },
 });

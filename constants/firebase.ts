@@ -98,13 +98,25 @@ try {
     });
   } else {
     // ✅ React Native: initializeAuth مع AsyncStorage persistence
-    // دائماً نستخدم getAuth للحصول على instance موجود أو إنشاء جديد
-    auth = getAuth(app);
-    
-    // تطبيق persistence بشكل صريح
-    // ملاحظة: Firebase Auth في React Native يستخدم AsyncStorage تلقائياً
-    // لكن نضمن ذلك بشكل صريح
-    console.log('✅ Firebase Auth initialized with automatic AsyncStorage persistence');
+    // CRITICAL: يجب استخدام initializeAuth فقط، لا getAuth!
+    // getAuth بيعمل auth instance بدون persistence
+    try {
+      // محاولة استخدام auth موجود (في حالة hot reload)
+      const existingAuth = getApps().length > 0 ? getAuth(app) : null;
+      
+      if (existingAuth) {
+        auth = existingAuth;
+        console.log('✅ Using existing Firebase Auth instance');
+      } else {
+        throw new Error('No existing auth, creating new one');
+      }
+    } catch {
+      // إنشاء auth جديد مع AsyncStorage persistence
+      auth = initializeAuth(app, {
+        persistence: ReactNativeAsyncStorage as any,
+      });
+      console.log('✅ Firebase Auth initialized with AsyncStorage persistence for React Native');
+    }
   }
 
   const shouldUseLongPolling = Platform.OS !== "web";

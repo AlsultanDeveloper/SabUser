@@ -24,6 +24,7 @@ import { WebView } from 'react-native-webview';
 import { Colors, Spacing, BorderRadius, FontSizes, Shadows } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { createDocument, collections } from '@/constants/firestore';
+import i18n from '@/constants/i18n';
 
 interface LocationCoords {
   latitude: number;
@@ -85,9 +86,9 @@ export default function AddressMapPickerScreen() {
     } catch (error) {
       console.error('Error getting current location:', error);
       Alert.alert(
-        'Location Error',
-        'Unable to get your current location. Please enable location services and try again.',
-        [{ text: 'OK' }]
+        i18n.t('address.locationError'),
+        i18n.t('address.locationErrorDesc'),
+        [{ text: i18n.t('common.ok') }]
       );
       setLocation(null);
     } finally {
@@ -101,11 +102,11 @@ export default function AddressMapPickerScreen() {
       
       if (status !== 'granted') {
         Alert.alert(
-          'Permission Required',
-          'Please grant location permission to use map picker',
+          i18n.t('address.locationPermissionRequired'),
+          i18n.t('address.permissionDenied'),
           [
-            { text: 'Cancel', onPress: () => router.back() },
-            { text: 'Settings', onPress: () => Location.requestForegroundPermissionsAsync() },
+            { text: i18n.t('common.cancel'), onPress: () => router.back() },
+            { text: i18n.t('account.settings'), onPress: () => Location.requestForegroundPermissionsAsync() },
           ]
         );
         setLoading(false);
@@ -126,7 +127,7 @@ export default function AddressMapPickerScreen() {
 
   const handleConfirmLocation = () => {
     if (!location) {
-      Alert.alert('Error', 'Please select a location');
+      Alert.alert(i18n.t('common.error'), i18n.t('address.selectLocation'));
       return;
     }
 
@@ -139,17 +140,17 @@ export default function AddressMapPickerScreen() {
 
   const handleSaveAddress = async () => {
     if (!user?.uid) {
-      Alert.alert('Error', 'Please sign in to save address');
+      Alert.alert(i18n.t('common.error'), i18n.t('checkout.signInRequired'));
       return;
     }
 
     if (!location) {
-      Alert.alert('Error', 'Please select a location');
+      Alert.alert(i18n.t('common.error'), i18n.t('address.selectLocation'));
       return;
     }
 
     if (!addressForm.fullName || !addressForm.phoneNumber || !addressForm.city) {
-      Alert.alert('Error', 'Please fill in all required fields (Name, Phone, City)');
+      Alert.alert(i18n.t('common.error'), i18n.t('address.fillRequiredFields'));
       return;
     }
 
@@ -176,11 +177,11 @@ export default function AddressMapPickerScreen() {
       await createDocument(collections.addresses, addressData);
       
       Alert.alert(
-        'Success',
-        'Address saved successfully!',
+        i18n.t('common.success'),
+        i18n.t('address.addressSaved'),
         [
           { 
-            text: 'OK', 
+            text: i18n.t('common.ok'), 
             onPress: () => {
               if (mode === 'checkout') {
                 router.back();
@@ -193,7 +194,7 @@ export default function AddressMapPickerScreen() {
       );
     } catch (error) {
       console.error('Error saving address:', error);
-      Alert.alert('Error', 'Failed to save address. Please try again.');
+      Alert.alert(i18n.t('common.error'), i18n.t('address.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -405,25 +406,27 @@ export default function AddressMapPickerScreen() {
           <TouchableOpacity onPress={() => setShowAddressForm(false)} style={styles.backButton}>
             <Feather name="arrow-left" size={24} color={Colors.text.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>إضافة عنوان</Text>
+          <Text style={styles.headerTitle}>{i18n.t('address.addAddress')}</Text>
           <View style={styles.backButton} />
         </View>
 
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.formContainer}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
           <ScrollView 
             style={styles.formScroll} 
             contentContainerStyle={styles.formScrollContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
           >
             {location && (
               <View style={styles.locationPreviewCard}>
                 <View style={styles.locationPreviewHeader}>
                   <Feather name="map-pin" size={20} color={Colors.primary} />
-                  <Text style={styles.locationPreviewTitle}>الموقع المحدد</Text>
+                  <Text style={styles.locationPreviewTitle}>{i18n.t('address.selectedLocation')}</Text>
                 </View>
                 {location.address && (
                   <Text style={styles.locationPreviewText} numberOfLines={2}>
@@ -437,12 +440,12 @@ export default function AddressMapPickerScreen() {
             )}
 
             <View style={styles.formSection}>
-              <Text style={styles.formSectionTitle}>تفاصيل العنوان</Text>
+              <Text style={styles.formSectionTitle}>{i18n.t('address.addressDetails')}</Text>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.formLabel}>التسمية (اختياري)</Text>
+                <Text style={styles.formLabel}>{i18n.t('address.label')}</Text>
                 <View style={styles.labelButtons}>
-                  {['Home', 'Work', 'Other'].map((label) => (
+                  {['home', 'work', 'other'].map((label) => (
                     <TouchableOpacity
                       key={label}
                       style={[
@@ -453,7 +456,7 @@ export default function AddressMapPickerScreen() {
                       activeOpacity={0.7}
                     >
                       <Feather 
-                        name={label === 'Home' ? 'home' : label === 'Work' ? 'briefcase' : 'map-pin'} 
+                        name={label === 'home' ? 'home' : label === 'work' ? 'briefcase' : 'map-pin'} 
                         size={16} 
                         color={addressForm.label === label ? Colors.white : Colors.gray[600]} 
                       />
@@ -461,7 +464,7 @@ export default function AddressMapPickerScreen() {
                         styles.labelButtonText,
                         addressForm.label === label && styles.labelButtonTextActive,
                       ]}>
-                        {label}
+                        {i18n.t(`address.${label}`)}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -469,28 +472,28 @@ export default function AddressMapPickerScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.formLabel}>الاسم الكامل *</Text>
+                <Text style={styles.formLabel}>{i18n.t('checkout.fullName')} *</Text>
                 <View style={styles.formInputContainer}>
                   <Feather name="user" size={20} color={Colors.gray[400]} />
                   <TextInput
                     style={styles.formInput}
                     value={addressForm.fullName}
                     onChangeText={(text) => setAddressForm({ ...addressForm, fullName: text })}
-                    placeholder="أدخل الاسم الكامل"
+                    placeholder={i18n.t('address.fullNamePlaceholder')}
                     placeholderTextColor={Colors.gray[400]}
                   />
                 </View>
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.formLabel}>رقم الهاتف *</Text>
+                <Text style={styles.formLabel}>{i18n.t('checkout.phoneNumber')} *</Text>
                 <View style={styles.formInputContainer}>
                   <Feather name="phone" size={20} color={Colors.gray[400]} />
                   <TextInput
                     style={styles.formInput}
                     value={addressForm.phoneNumber}
                     onChangeText={(text) => setAddressForm({ ...addressForm, phoneNumber: text })}
-                    placeholder="ضع رقم هاتفك"
+                    placeholder={i18n.t('address.phoneNumberPlaceholder')}
                     placeholderTextColor={Colors.gray[400]}
                     keyboardType="phone-pad"
                   />
@@ -498,14 +501,14 @@ export default function AddressMapPickerScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.formLabel}>تفاصيل العنوان (اختياري)</Text>
+                <Text style={styles.formLabel}>{i18n.t('address.addressDetails')}</Text>
                 <View style={[styles.formInputContainer, styles.textAreaContainer]}>
                   <Feather name="map" size={20} color={Colors.gray[400]} style={styles.textAreaIcon} />
                   <TextInput
                     style={[styles.formInput, styles.textAreaInput]}
                     value={addressForm.addressDetails}
                     onChangeText={(text) => setAddressForm({ ...addressForm, addressDetails: text })}
-                    placeholder="رقم المبنى، الطابق، الشقة، إلخ"
+                    placeholder={i18n.t('address.addressDetailsPlaceholder')}
                     placeholderTextColor={Colors.gray[400]}
                     multiline
                     numberOfLines={3}
@@ -516,26 +519,26 @@ export default function AddressMapPickerScreen() {
 
               <View style={styles.rowInputs}>
                 <View style={[styles.inputGroup, styles.halfInput]}>
-                  <Text style={styles.formLabel}>المدينة *</Text>
+                  <Text style={styles.formLabel}>{i18n.t('address.city')} *</Text>
                   <View style={styles.formInputContainer}>
                     <TextInput
                       style={styles.formInput}
                       value={addressForm.city}
                       onChangeText={(text) => setAddressForm({ ...addressForm, city: text })}
-                      placeholder="مدينتك"
+                      placeholder={i18n.t('address.cityPlaceholder')}
                       placeholderTextColor={Colors.gray[400]}
                     />
                   </View>
                 </View>
 
                 <View style={[styles.inputGroup, styles.halfInput]}>
-                  <Text style={styles.formLabel}>الرمز البريدي</Text>
+                  <Text style={styles.formLabel}>{i18n.t('address.postalCode')}</Text>
                   <View style={styles.formInputContainer}>
                     <TextInput
                       style={styles.formInput}
                       value={addressForm.postalCode}
                       onChangeText={(text) => setAddressForm({ ...addressForm, postalCode: text })}
-                      placeholder="12345"
+                      placeholder={i18n.t('address.postalCodePlaceholder')}
                       placeholderTextColor={Colors.gray[400]}
                       keyboardType="number-pad"
                     />
@@ -554,7 +557,7 @@ export default function AddressMapPickerScreen() {
             >
               <Feather name="check" size={20} color={Colors.white} />
               <Text style={styles.saveAddressButtonText}>
-                {saving ? 'جاري الحفظ...' : 'حفظ العنوان'}
+                {saving ? i18n.t('address.saving') : i18n.t('address.saveAddress')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -579,7 +582,7 @@ export default function AddressMapPickerScreen() {
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
               <Feather name="arrow-left" size={24} color="#FFF" />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>حدد الموقع</Text>
+            <Text style={styles.headerTitle}>{i18n.t('address.pickLocation')}</Text>
             <View style={styles.backButton} />
           </View>
         </SafeAreaView>
@@ -591,7 +594,7 @@ export default function AddressMapPickerScreen() {
             <Feather name="search" size={20} color={Colors.text.secondary} />
             <TextInput
               style={styles.searchInput}
-              placeholder="ابحث عن عنوان أو منطقة"
+              placeholder={i18n.t('address.searchPlaceholder')}
               placeholderTextColor={Colors.text.secondary}
               value={searchQuery}
               onChangeText={handleSearch}
@@ -613,7 +616,7 @@ export default function AddressMapPickerScreen() {
               {isSearching ? (
                 <View style={styles.searchResultItem}>
                   <ActivityIndicator size="small" color={Colors.primary} />
-                  <Text style={styles.searchResultText}>جاري البحث...</Text>
+                  <Text style={styles.searchResultText}>{i18n.t('address.searching')}</Text>
                 </View>
               ) : searchResults.length > 0 ? (
                 searchResults.map((result, index) => (
@@ -631,7 +634,7 @@ export default function AddressMapPickerScreen() {
               ) : (
                 <View style={styles.searchResultItem}>
                   <Feather name="alert-circle" size={18} color={Colors.text.secondary} />
-                  <Text style={styles.searchResultText}>لم يتم العثور على نتائج</Text>
+                  <Text style={styles.searchResultText}>{i18n.t('address.noResults')}</Text>
                 </View>
               )}
             </View>
@@ -642,20 +645,20 @@ export default function AddressMapPickerScreen() {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>Loading map...</Text>
+          <Text style={styles.loadingText}>{i18n.t('address.loadingMap')}</Text>
         </View>
       ) : !permissionGranted ? (
         <View style={styles.errorContainer}>
           <Feather name="map-pin" size={80} color={Colors.gray[300]} />
-          <Text style={styles.errorTitle}>Location Permission Required</Text>
+          <Text style={styles.errorTitle}>{i18n.t('address.locationPermissionRequired')}</Text>
           <Text style={styles.errorDescription}>
-            Please grant location permission to use the map picker
+            {i18n.t('address.permissionDenied')}
           </Text>
           <TouchableOpacity
             style={styles.retryButton}
             onPress={requestLocationPermission}
           >
-            <Text style={styles.retryButtonText}>Grant Permission</Text>
+            <Text style={styles.retryButtonText}>{i18n.t('address.grantPermission')}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -673,7 +676,7 @@ export default function AddressMapPickerScreen() {
               renderLoading={() => (
                 <View style={styles.webviewLoading}>
                   <ActivityIndicator size="large" color={Colors.primary} />
-                  <Text style={styles.loadingText}>Loading map...</Text>
+                  <Text style={styles.loadingText}>{i18n.t('address.loadingMap')}</Text>
                 </View>
               )}
             />
@@ -681,7 +684,7 @@ export default function AddressMapPickerScreen() {
               <View style={styles.infoCard}>
                 <View style={styles.infoHeader}>
                   <Feather name="map-pin" size={20} color={Colors.primary} />
-                  <Text style={styles.infoTitle}>الموقع المحدد</Text>
+                  <Text style={styles.infoTitle}>{i18n.t('address.selectedLocation')}</Text>
                 </View>
                 {location.address && (
                   <Text style={styles.infoAddress} numberOfLines={3}>
@@ -712,7 +715,7 @@ export default function AddressMapPickerScreen() {
               activeOpacity={0.9}
             >
               <Feather name="check" size={22} color={Colors.white} />
-              <Text style={styles.confirmButtonText}>تأكيد الموقع</Text>
+              <Text style={styles.confirmButtonText}>{i18n.t('address.confirmLocation')}</Text>
             </TouchableOpacity>
           </View>
         </>
@@ -755,7 +758,8 @@ const styles = StyleSheet.create({
   },
   formScrollContent: {
     padding: Spacing.md,
-    paddingBottom: 100,
+    paddingBottom: 150,
+    flexGrow: 1,
   },
   locationPreviewCard: {
     backgroundColor: Colors.primary + '10',

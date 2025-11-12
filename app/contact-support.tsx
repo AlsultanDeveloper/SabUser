@@ -21,7 +21,7 @@ import { Colors, Spacing, FontSizes } from '@/constants/theme';
 import { createDocument } from '@/constants/firestore';
 
 export default function ContactSupportScreen() {
-  const { t } = useApp();
+  const { t, language } = useApp();
   const { user } = useAuth();
   const router = useRouter();
   const [name, setName] = useState('');
@@ -117,7 +117,7 @@ export default function ContactSupportScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         <ScrollView 
-          style={styles.content} 
+          style={[styles.content, language === 'ar' && { direction: 'rtl' as any }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.scrollContentContainer}
@@ -130,41 +130,15 @@ export default function ContactSupportScreen() {
         <View style={styles.contactMethods}>
           <TouchableOpacity
             style={styles.contactCard}
-            onPress={handleCallSupport}
-            activeOpacity={0.7}
-          >
-            <Feather name="phone" size={22} color="#111827" />
-            <View style={styles.contactInfo}>
-              <Text style={styles.contactLabel}>{t('contactSupport.callUs')}</Text>
-              <Text style={styles.contactValue}>+961 81 33 5929</Text>
-            </View>
-            <Feather name="chevron-right" size={20} color="#9CA3AF" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.contactCard}
             onPress={handleEmailSupport}
             activeOpacity={0.7}
           >
-            <Feather name="mail" size={22} color="#111827" />
+            <Feather name="mail" size={22} color={Colors.primary} />
             <View style={styles.contactInfo}>
               <Text style={styles.contactLabel}>{t('contactSupport.emailUs')}</Text>
               <Text style={styles.contactValue}>Support@sab-store.com</Text>
             </View>
-            <Feather name="chevron-right" size={20} color="#9CA3AF" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.contactCard}
-            onPress={handleWhatsAppSupport}
-            activeOpacity={0.7}
-          >
-            <Feather name="message-circle" size={22} color="#111827" />
-            <View style={styles.contactInfo}>
-              <Text style={styles.contactLabel}>{t('contactSupport.whatsapp')}</Text>
-              <Text style={styles.contactValue}>+961 81 33 5929</Text>
-            </View>
-            <Feather name="chevron-right" size={20} color="#9CA3AF" />
+            <Feather name={language === 'ar' ? 'chevron-left' : 'chevron-right'} size={20} color="#9CA3AF" />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -172,12 +146,12 @@ export default function ContactSupportScreen() {
             onPress={handleVisitWebsite}
             activeOpacity={0.7}
           >
-            <Feather name="globe" size={22} color="#111827" />
+            <Feather name="globe" size={22} color={Colors.primary} />
             <View style={styles.contactInfo}>
               <Text style={styles.contactLabel}>{t('contactSupport.website')}</Text>
               <Text style={styles.contactValue}>www.sab-store.com</Text>
             </View>
-            <Feather name="chevron-right" size={20} color="#9CA3AF" />
+            <Feather name={language === 'ar' ? 'chevron-left' : 'chevron-right'} size={20} color="#9CA3AF" />
           </TouchableOpacity>
         </View>
 

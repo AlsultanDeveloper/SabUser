@@ -27,8 +27,10 @@ const FREE_SHIPPING_THRESHOLD = 100; // SAR
 
 export default function ModernCartScreen() {
   const router = useRouter();
-  const { cart, cartTotal, formatPrice, removeFromCart, updateCartItemQuantity } = useApp();
+  const { cart, cartTotal, formatPrice, removeFromCart, updateCartItemQuantity, language } = useApp();
   const { isAuthenticated } = useAuth();
+  
+  const isRTL = language === 'ar';
   
   const [couponCode, setCouponCode] = useState('');
   const [discount, setDiscount] = useState(0);
@@ -77,12 +79,12 @@ export default function ModernCartScreen() {
   // Handle remove item with animation
   const handleRemoveItem = (productId: string) => {
     Alert.alert(
-      'Remove Item',
-      'Are you sure you want to remove this item?',
+      isRTL ? 'إزالة المنتج' : 'Remove Item',
+      isRTL ? 'هل أنت متأكد من إزالة هذا المنتج؟' : 'Are you sure you want to remove this item?',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: isRTL ? 'إلغاء' : 'Cancel', style: 'cancel' },
         { 
-          text: 'Remove',
+          text: isRTL ? 'إزالة' : 'Remove',
           style: 'destructive',
           onPress: () => removeFromCart(productId)
         },
@@ -94,11 +96,11 @@ export default function ModernCartScreen() {
   const handleCheckout = () => {
     if (!isAuthenticated) {
       Alert.alert(
-        'Sign In Required',
-        'Please sign in to continue with checkout',
+        isRTL ? 'تسجيل الدخول مطلوب' : 'Sign In Required',
+        isRTL ? 'يرجى تسجيل الدخول لمتابعة عملية الشراء' : 'Please sign in to continue with checkout',
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Sign In', onPress: () => router.push('/auth/login' as any) },
+          { text: isRTL ? 'إلغاء' : 'Cancel', style: 'cancel' },
+          { text: isRTL ? 'تسجيل الدخول' : 'Sign In', onPress: () => router.push('/auth/login' as any) },
         ]
       );
       return;
@@ -112,9 +114,9 @@ export default function ModernCartScreen() {
   const applyCoupon = () => {
     if (couponCode.toLowerCase() === 'save10') {
       setDiscount(cartTotal * 0.1);
-      Alert.alert('Success', 'Coupon applied! 10% off');
+      Alert.alert(isRTL ? 'نجاح' : 'Success', isRTL ? 'تم تطبيق الكوبون! خصم 10%' : 'Coupon applied! 10% off');
     } else {
-      Alert.alert('Error', 'Invalid coupon code');
+      Alert.alert(isRTL ? 'خطأ' : 'Error', isRTL ? 'كود الكوبون غير صحيح' : 'Invalid coupon code');
     }
   };
 
@@ -128,8 +130,8 @@ export default function ModernCartScreen() {
         {/* Empty Cart */}
         <View style={styles.emptyContainer}>
           <MaterialCommunityIcons name="cart-outline" size={120} color="#E0E0E0" />
-          <Text style={styles.emptyTitle}>Your Cart is Empty</Text>
-          <Text style={styles.emptySubtitle}>Add items to get started!</Text>
+          <Text style={styles.emptyTitle}>{isRTL ? 'سلتك فارغة' : 'Your Cart is Empty'}</Text>
+          <Text style={styles.emptySubtitle}>{isRTL ? 'أضف منتجات للبدء!' : 'Add items to get started!'}</Text>
           
           <TouchableOpacity
             style={styles.shopButton}
@@ -141,8 +143,8 @@ export default function ModernCartScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.gradientButton}
             >
-              <Text style={styles.shopButtonText}>Start Shopping</Text>
-              <Feather name="arrow-right" size={20} color="#FFF" />
+              <Text style={styles.shopButtonText}>{isRTL ? 'ابدأ التسوق' : 'Start Shopping'}</Text>
+              <Feather name={isRTL ? "arrow-left" : "arrow-right"} size={20} color="#FFF" />
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -157,11 +159,11 @@ export default function ModernCartScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color="#1F2937" />
+          <Feather name={isRTL ? "arrow-right" : "arrow-left"} size={24} color="#1F2937" />
         </TouchableOpacity>
         <View>
-          <Text style={styles.headerTitle}>Cart</Text>
-          <Text style={styles.headerSubtitle}>{cart.length} items</Text>
+          <Text style={styles.headerTitle}>{isRTL ? 'السلة' : 'Cart'}</Text>
+          <Text style={styles.headerSubtitle}>{cart.length} {isRTL ? 'منتجات' : 'items'}</Text>
         </View>
         <View style={{ width: 40 }} />
       </View>
@@ -173,7 +175,9 @@ export default function ModernCartScreen() {
             <View style={styles.shippingHeader}>
               <MaterialCommunityIcons name="truck-delivery-outline" size={24} color="Colors.primary" />
               <Text style={styles.shippingText}>
-                Add <Text style={styles.shippingAmount}>{formatPrice(remainingForFreeShipping)}</Text> for FREE shipping
+                {isRTL ? 'أضف ' : 'Add '}
+                <Text style={styles.shippingAmount}>{formatPrice(remainingForFreeShipping)}</Text>
+                {isRTL ? ' للحصول على شحن مجاني' : ' for FREE shipping'}
               </Text>
             </View>
             <View style={styles.progressBarContainer}>
@@ -183,7 +187,9 @@ export default function ModernCartScreen() {
         ) : (
           <View style={styles.freeShippingBadge}>
             <Feather name="check-circle" size={20} color="#10B981" />
-            <Text style={styles.freeShippingText}>🎉 You&apos;ve got FREE Shipping!</Text>
+            <Text style={styles.freeShippingText}>
+              {isRTL ? '🎉 لقد حصلت على شحن مجاني!' : '🎉 You\'ve got FREE Shipping!'}
+            </Text>
           </View>
         )}
 
@@ -194,7 +200,7 @@ export default function ModernCartScreen() {
               {/* Product Image */}
               <View style={styles.imageContainer}>
                 <SafeImage
-                  uri={item.product.images?.[0] || ''}
+                  uri={item.product.image || item.product.images?.[0] || ''}
                   style={styles.productImage}
                 />
               </View>
@@ -267,7 +273,9 @@ export default function ModernCartScreen() {
         >
           <View style={styles.couponToggleLeft}>
             <MaterialCommunityIcons name="ticket-percent" size={24} color="#F59E0B" />
-            <Text style={styles.couponToggleText}>Have a coupon code?</Text>
+            <Text style={styles.couponToggleText}>
+              {isRTL ? 'لديك كود خصم؟' : 'Have a coupon code?'}
+            </Text>
           </View>
           <Feather name={showCoupon ? "chevron-up" : "chevron-down"} size={20} color="#6B7280" />
         </TouchableOpacity>
@@ -277,7 +285,7 @@ export default function ModernCartScreen() {
             <View style={styles.couponInputRow}>
               <View style={styles.couponInput}>
                 <TextInput
-                  placeholder="Enter code"
+                  placeholder={isRTL ? 'أدخل الكود' : 'Enter code'}
                   value={couponCode}
                   onChangeText={setCouponCode}
                   style={styles.couponInputText}
@@ -285,14 +293,17 @@ export default function ModernCartScreen() {
                 />
               </View>
               <TouchableOpacity style={styles.applyButton} onPress={applyCoupon}>
-                <Text style={styles.applyButtonText}>Apply</Text>
+                <Text style={styles.applyButtonText}>{isRTL ? 'تطبيق' : 'Apply'}</Text>
               </TouchableOpacity>
             </View>
             {discount > 0 && (
               <View style={styles.discountApplied}>
                 <Feather name="check-circle" size={16} color="#10B981" />
                 <Text style={styles.discountAppliedText}>
-                  Coupon applied! Saved {formatPrice(discount)}
+                  {isRTL 
+                    ? `تم تطبيق الكوبون! وفرت ${formatPrice(discount)}`
+                    : `Coupon applied! Saved ${formatPrice(discount)}`
+                  }
                 </Text>
               </View>
             )}
@@ -301,16 +312,18 @@ export default function ModernCartScreen() {
 
         {/* Order Summary */}
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>Order Summary</Text>
+          <Text style={styles.summaryTitle}>{isRTL ? 'ملخص الطلب' : 'Order Summary'}</Text>
           
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Subtotal</Text>
+            <Text style={styles.summaryLabel}>{isRTL ? 'المجموع الفرعي' : 'Subtotal'}</Text>
             <Text style={styles.summaryValue}>{formatPrice(cartTotal)}</Text>
           </View>
 
           {discount > 0 && (
             <View style={styles.summaryRow}>
-              <Text style={[styles.summaryLabel, { color: '#10B981' }]}>Discount</Text>
+              <Text style={[styles.summaryLabel, { color: '#10B981' }]}>
+                {isRTL ? 'الخصم' : 'Discount'}
+              </Text>
               <Text style={[styles.summaryValue, { color: '#10B981' }]}>
                 -{formatPrice(discount)}
               </Text>
@@ -319,23 +332,28 @@ export default function ModernCartScreen() {
 
           <View style={styles.summaryRow}>
             <View>
-              <Text style={styles.summaryLabel}>Shipping</Text>
+              <Text style={styles.summaryLabel}>{isRTL ? 'الشحن' : 'Shipping'}</Text>
               {shippingCost > 0 && (
-                <Text style={styles.shippingSubtext}>Delivered in {estimatedDays} days</Text>
+                <Text style={styles.shippingSubtext}>
+                  {isRTL 
+                    ? `التوصيل خلال ${estimatedDays} أيام`
+                    : `Delivered in ${estimatedDays} days`
+                  }
+                </Text>
               )}
             </View>
             <Text style={[
               styles.summaryValue, 
               { color: shippingCost === 0 ? '#10B981' : '#6B7280' }
             ]}>
-              {shippingCost === 0 ? 'FREE' : formatPrice(shippingCost)}
+              {shippingCost === 0 ? (isRTL ? 'مجاني' : 'FREE') : formatPrice(shippingCost)}
             </Text>
           </View>
 
           <View style={styles.divider} />
 
           <View style={styles.summaryRow}>
-            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalLabel}>{isRTL ? 'الإجمالي' : 'Total'}</Text>
             <Text style={styles.totalValue}>
               {formatPrice(finalTotal + shippingCost)}
             </Text>
@@ -349,7 +367,7 @@ export default function ModernCartScreen() {
       <View style={styles.bottomContainer}>
         <View style={styles.bottomContent}>
           <View>
-            <Text style={styles.bottomLabel}>Total</Text>
+            <Text style={styles.bottomLabel}>{isRTL ? 'الإجمالي' : 'Total'}</Text>
             <Text style={styles.bottomTotal}>
               {formatPrice(finalTotal + shippingCost)}
             </Text>
@@ -366,8 +384,10 @@ export default function ModernCartScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.checkoutGradient}
             >
-              <Text style={styles.checkoutButtonText}>Proceed to Checkout</Text>
-              <Feather name="arrow-right" size={20} color="#FFF" />
+              <Text style={styles.checkoutButtonText}>
+                {isRTL ? 'متابعة الدفع' : 'Proceed to Checkout'}
+              </Text>
+              <Feather name={isRTL ? "arrow-left" : "arrow-right"} size={20} color="#FFF" />
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -433,7 +453,7 @@ const styles = StyleSheet.create({
   },
   shippingAmount: {
     fontWeight: '700',
-    color: 'Colors.primary',
+    color: Colors.primary,
   },
   progressBarContainer: {
     height: 6,
@@ -443,7 +463,7 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: '100%',
-    backgroundColor: 'Colors.primary',
+    backgroundColor: Colors.primary,
     borderRadius: 3,
   },
   freeShippingBadge: {
@@ -503,7 +523,7 @@ const styles = StyleSheet.create({
   currentPrice: {
     fontSize: 18,
     fontWeight: '700',
-    color: 'Colors.primary',
+    color: Colors.primary,
     marginRight: 8,
   },
   originalPrice: {
@@ -598,7 +618,7 @@ const styles = StyleSheet.create({
     color: '#1F2937',
   },
   applyButton: {
-    backgroundColor: 'Colors.primary',
+    backgroundColor: Colors.primary,
     paddingHorizontal: 24,
     borderRadius: 8,
     justifyContent: 'center',
@@ -663,7 +683,7 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: 'Colors.primary',
+    color: Colors.primary,
   },
   bottomContainer: {
     position: 'absolute',

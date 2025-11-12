@@ -15,10 +15,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, Stack } from 'expo-router';
-import { ChevronLeft, Search, ShoppingCart } from 'lucide-react-native';
+import { ChevronLeft, Search } from 'lucide-react-native';
 
 import { useMarket } from '@/contexts/MarketContext';
+import { useApp } from '@/contexts/AppContext';
 import { Colors, Spacing, BorderRadius, FontSizes, FontWeights } from '@/constants/theme';
+import GlassyGradientCartFAB from '@/components/GlassyGradientCartFAB';
 
 const { width } = Dimensions.get('window');
 const CATEGORY_WIDTH = (width - 64) / 2;
@@ -39,15 +41,94 @@ const CATEGORY_ICONS: { [key: string]: { image: string; color: string } } = {
 
 export default function MarketHome() {
   const { language, isRTL, marketCartCount } = useMarket();
+  const { changeLanguage } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [typedText, setTypedText] = useState('');
   
   // Animation for the tagline glow effect
   const glowAnim = useRef(new Animated.Value(0)).current;
   
   // Animation for the delivery banner
   const deliveryAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Typewriter effect for subtitle with multiple messages
+    const messages = isRTL 
+      ? [
+          '😊 مرحبا ريّس شو الاخبار',
+          '😊 ماشي الحال كلو تمام',
+          '🏍️ من الاخر طلبكن واصل لباب البيت'
+        ]
+      : [
+          '😊 Mar7aba Rayes Shou L akhbar',
+          '😊 Meshi l7al Kelo Tamem',
+          '🏍️ Mnl ekher Talabkon Wasel la beb l bet'
+        ];
+    
+    let intervals: any[] = [];
+    let isCleanedUp = false;
+    
+    const typeMessage = (message: string) => {
+      return new Promise<void>((resolve) => {
+        let currentIndex = 0;
+        
+        const typewriterInterval = setInterval(() => {
+          if (isCleanedUp) {
+            clearInterval(typewriterInterval);
+            return;
+          }
+          
+          if (currentIndex <= message.length) {
+            setTypedText(message.substring(0, currentIndex));
+            currentIndex++;
+          } else {
+            clearInterval(typewriterInterval);
+            resolve();
+          }
+        }, 80);
+        
+        intervals.push(typewriterInterval);
+      });
+    };
+    
+    const wait = (ms: number) => {
+      return new Promise<void>((resolve) => {
+        const timeout = setTimeout(() => {
+          if (!isCleanedUp) resolve();
+        }, ms);
+        intervals.push(timeout);
+      });
+    };
+    
+    const runSequence = async () => {
+      while (!isCleanedUp) {
+        // Type first message
+        await typeMessage(messages[0]);
+        await wait(500); // Small pause
+        
+        // Type second message
+        await typeMessage(messages[1]);
+        await wait(20000); // Wait 20 seconds
+        
+        // Type third message
+        await typeMessage(messages[2]);
+        await wait(30000); // Wait 30 seconds before restarting
+      }
+    };
+    
+    // Start the sequence
+    runSequence();
+    
+    return () => {
+      isCleanedUp = true;
+      intervals.forEach(interval => {
+        clearTimeout(interval);
+        clearInterval(interval);
+      });
+    };
+  }, [isRTL]);
 
   useEffect(() => {
     // Create a pulsing glow animation
@@ -184,7 +265,7 @@ export default function MarketHome() {
   };
 
   const handleBackToStore = () => {
-    router.back();
+    router.push('/(tabs)/home' as any); // Go to SAB Store home
   };
 
   return (
@@ -207,20 +288,19 @@ export default function MarketHome() {
                 {isRTL ? 'SAB Store' : 'SAB Store'}
               </Text>
             </TouchableOpacity>
-
-            <View style={styles.topRight}>
-              <TouchableOpacity 
-                style={styles.cartButton}
-                onPress={() => router.push('/market/cart' as any)}
-              >
-                <ShoppingCart size={22} color={Colors.white} />
-                {marketCartCount > 0 && (
-                  <View style={styles.cartBadge}>
-                    <Text style={styles.cartBadgeText}>{marketCartCount}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            </View>
+            
+            {/* Language Toggle Button */}
+            <TouchableOpacity 
+              onPress={() => {
+                console.log('Language button pressed. Current:', language);
+                changeLanguage(language === 'ar' ? 'en' : 'ar');
+              }}
+              style={styles.languageButton}
+            >
+              <Text style={styles.languageButtonText}>
+                {language === 'ar' ? 'EN' : 'AR'}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Title */}
@@ -248,7 +328,7 @@ export default function MarketHome() {
             <Search size={20} color={Colors.text.secondary} style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
-              placeholder={isRTL ? 'ابحث في المواد الغذائية...' : 'Search for groceries...'}
+              placeholder={isRTL ? 'شو عبالنا اليوم؟' : 'Sho 3abelna lyom?'}
               placeholderTextColor={Colors.text.tertiary}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -314,27 +394,15 @@ export default function MarketHome() {
           </View>
         )}
 
-        {/* Special Offers Section */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>
-            {isRTL ? '🔥 عروض خاصة' : '🔥 Special Offers'}
-          </Text>
-          <TouchableOpacity>
-            <Text style={styles.seeAllText}>
-              {isRTL ? 'عرض الكل' : 'See All'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Placeholder for offers */}
-        <View style={styles.offersPlaceholder}>
-          <Text style={styles.placeholderText}>
-            {isRTL ? 'العروض قريباً...' : 'Offers coming soon...'}
-          </Text>
-        </View>
-
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Floating Cart Button */}
+      <GlassyGradientCartFAB
+        count={marketCartCount}
+        onPress={() => router.push('/market/checkout-details' as any)}
+        size={56}
+      />
     </View>
   );
 }
@@ -369,43 +437,18 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     fontWeight: FontWeights.medium,
   },
-  topRight: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.full,
+  languageButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
   },
-  cartButton: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.full,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  cartBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    backgroundColor: Colors.error,
-    borderRadius: BorderRadius.full,
-    minWidth: 18,
-    height: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-  },
-  cartBadgeText: {
+  languageButtonText: {
     color: Colors.white,
-    fontSize: 10,
-    fontWeight: FontWeights.bold,
+    fontSize: 14,
+    fontWeight: '700',
   },
   titleSection: {
     paddingHorizontal: Spacing.lg,
@@ -419,6 +462,14 @@ const styles = StyleSheet.create({
     color: Colors.white,
     marginBottom: 8,
     letterSpacing: 0.5,
+  },
+  subtitleText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFF',
+    marginTop: 6,
+    opacity: 0.95,
+    letterSpacing: 0.3,
   },
   taglineContainer: {
     alignSelf: 'center',
@@ -441,8 +492,8 @@ const styles = StyleSheet.create({
   taglineGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
     borderRadius: BorderRadius.full,
     gap: 6,
     borderWidth: 2,
@@ -454,7 +505,7 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   taglineText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.3,
     color: '#D84315',
@@ -469,7 +520,7 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.lg,
     borderRadius: BorderRadius.full,
     paddingHorizontal: Spacing.lg,
-    height: 50,
+    height: 40,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -614,5 +665,67 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 14,
     color: '#6B7280',
+  },
+  floatingCartButton: {
+    position: 'absolute',
+    bottom: 24,
+    right: 20,
+    borderRadius: 32,
+    shadowColor: '#FF6B35',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  floatingCartGradient: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  pulseCircle: {
+    position: 'absolute',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  shimmerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: -64,
+    right: 0,
+    bottom: 0,
+    width: 128,
+    height: 64,
+  },
+  floatingCartBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: '#FFF',
+    borderRadius: 15,
+    minWidth: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    borderWidth: 3,
+    borderColor: '#FF4500',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  floatingCartBadgeText: {
+    color: '#FF4500',
+    fontSize: 14,
+    fontWeight: '900' as const,
+    includeFontPadding: false,
+    textAlign: 'center' as const,
   },
 });

@@ -26,7 +26,8 @@ const SafeImage = memo(function SafeImage({
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
-  const trimmedUri = uri?.trim();
+  // ✅ Safely handle uri - check if it's a string first
+  const trimmedUri = typeof uri === 'string' ? uri.trim() : '';
   
   const isValidUri = trimmedUri && 
     trimmedUri.length > 0 && (

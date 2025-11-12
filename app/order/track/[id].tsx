@@ -105,7 +105,7 @@ export default function OrderTrackingScreen() {
     : '';
 
   const handleContactSupport = () => {
-    Linking.openURL(`tel:${order.address.phoneNumber}`);
+    router.push('/contact-support' as any);
   };
 
   return (
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
     paddingTop: 6,
   },
   statusTitle: {
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.md,
     marginBottom: 4,
   },
   statusTimeContainer: {

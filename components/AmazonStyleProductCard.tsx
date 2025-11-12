@@ -28,7 +28,7 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
   product,
   onPress,
   formatPrice,
-  language = 'en',
+  language = 'ar',
   onAddToCart,
 }: AmazonStyleProductCardProps) {
   
@@ -157,38 +157,38 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
         </View>
 
         <View style={styles.productInfo}>
-          {((product?.brandName && typeof product.brandName === 'string' && product.brandName.trim()) || 
-            (product?.brand && typeof product.brand === 'string' && product.brand.trim())) ? (
-            <Text style={styles.brandText} numberOfLines={1}>
-              {product.brandName?.trim() || product.brand?.trim() || ''}
-            </Text>
-          ) : null}
-
-          <Text style={styles.productName} numberOfLines={2}>
-            {getProductName()}
-          </Text>
-
-          {(product?.rating && typeof product.rating === 'number' && !isNaN(product.rating) && product.rating > 0) ? (
-            <View style={styles.ratingContainer}>
-              <View style={styles.starsContainer}>
-                {renderStars()}
-              </View>
-              <Text style={styles.ratingText}>
-                {(typeof product.rating === 'number' && !isNaN(product.rating) 
-                  ? product.rating.toFixed(1) 
-                  : '0.0')}
+          <View style={styles.contentSection}>
+            {((product?.brandName && typeof product.brandName === 'string' && product.brandName.trim()) || 
+              (product?.brand && typeof product.brand === 'string' && product.brand.trim())) ? (
+              <Text style={styles.brandText} numberOfLines={1}>
+                {product.brandName?.trim() || product.brand?.trim() || ''}
               </Text>
-              {(product.reviews || product.reviewsCount) ? (
-                <Text style={styles.reviewsText}>
-                  {`(${typeof (product.reviews || product.reviewsCount) === 'number' 
-                    ? (product.reviews || product.reviewsCount).toLocaleString() 
-                    : '0'})`}
-                </Text>
-              ) : null}
-            </View>
-          ) : null}
+            ) : null}
 
-          <View style={styles.priceSection}>
+            <Text style={styles.productName} numberOfLines={2}>
+              {getProductName()}
+            </Text>
+
+            {(product?.rating && typeof product.rating === 'number' && !isNaN(product.rating) && product.rating > 0) ? (
+              <View style={styles.ratingContainer}>
+                <View style={styles.starsContainer}>
+                  {renderStars()}
+                </View>
+                <Text style={styles.ratingText}>
+                  {(typeof product.rating === 'number' && !isNaN(product.rating) 
+                    ? product.rating.toFixed(1) 
+                    : '0.0')}
+                </Text>
+                {(product.reviews || product.reviewsCount) ? (
+                  <Text style={styles.reviewsText}>
+                    {`(${typeof (product.reviews || product.reviewsCount) === 'number' 
+                      ? (product.reviews || product.reviewsCount).toLocaleString() 
+                      : '0'})`}
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
+
             <View style={styles.priceRow}>
               {hasDiscount ? (
                 <Text style={styles.originalPrice}>
@@ -206,31 +206,16 @@ const AmazonStyleProductCard = memo(function AmazonStyleProductCard({
                 </View>
               ) : null}
             </View>
+          </View>
 
-            <View style={styles.shippingRow}>
-              <View style={styles.shippingContainer}>
-                <Feather name="truck" size={14} color={Colors.primary} />
-                <Text style={styles.shippingText}>
-                  {language === 'ar' ? 'التوصيل ' : 'Delivery '}
-                  <Text style={styles.shippingDate}>
-                    {getDeliveryDateRange()}
-                  </Text>
+          <View style={styles.shippingRow}>
+            <View style={styles.shippingContainer}>
+              <Text style={styles.shippingText} numberOfLines={1}>
+                {language === 'ar' ? 'التوصيل ' : 'Delivery '}
+                <Text style={styles.shippingDate}>
+                  {getDeliveryDateRange()}
                 </Text>
-              </View>
-              
-              {/* Add to Cart Button */}
-              {onAddToCart ? (
-                <TouchableOpacity
-                  style={styles.addToCartButton}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    onAddToCart(product);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Feather name="shopping-cart" size={16} color="#000" />
-                </TouchableOpacity>
-              ) : null}
+              </Text>
             </View>
           </View>
         </View>
@@ -282,25 +267,31 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   productInfo: {
-    padding: 8,
+    padding: 6,
+    minHeight: 135,
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+  },
+  contentSection: {
+    flex: 1,
   },
   brandText: {
     color: '#007185',
     fontSize: 11,
     fontWeight: '500',
-    marginBottom: 2,
+    marginBottom: 1,
   },
   productName: {
     color: '#0F1111',
     fontSize: 13,
     lineHeight: 16,
-    marginBottom: 4,
+    marginBottom: 2,
     fontWeight: '400',
   },
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 3,
     flexWrap: 'wrap',
   },
   starsContainer: {
@@ -319,13 +310,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '400',
   },
-  priceSection: {
-    marginBottom: 6,
-  },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
+    marginBottom: 2,
   },
   originalPrice: {
     color: '#565959',
@@ -352,35 +341,26 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   shippingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    paddingTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: '#E1E1E1',
   },
   shippingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    flex: 1,
   },
   shippingText: {
     color: '#007185',
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '600',
+    flex: 1,
   },
   shippingDate: {
     color: '#007185',
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '400',
-  },
-  addToCartButton: {
-    paddingVertical: 4,
-    paddingHorizontal: 6,
-    borderRadius: 4,
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#D5D9D9',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });
 

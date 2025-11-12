@@ -201,6 +201,43 @@ const translations = {
       totalPrice: 'Total Price',
       perKg: '/kg',
       perPc: '/pc',
+      brand: 'Brand',
+      category: 'Category',
+      gender: 'Gender',
+      season: 'Season',
+      ageRange: 'Age Range',
+      unit: 'Unit',
+      minimumWeight: 'Minimum Weight',
+      deliveryTime: 'Delivery Time',
+      genderOptions: {
+        Men: 'Men',
+        Women: 'Women',
+        Unisex: 'Unisex',
+        Boy: 'Boys',
+        Girl: 'Girls',
+        'Unisex-Kids': 'Kids',
+      },
+      seasonOptions: {
+        Summer: 'Summer',
+        Winter: 'Winter',
+        'All-Season': 'All Season',
+      },
+      units: {
+        kg: 'kg',
+        g: 'g',
+        gram: 'gram',
+        piece: 'Piece',
+        pc: 'Piece',
+        pcs: 'Pieces',
+        box: 'Box',
+        pack: 'Pack',
+        liter: 'Liter',
+        ltr: 'Liter',
+        l: 'Liter',
+        ml: 'Milliliter',
+        lb: 'Pound',
+        oz: 'Ounce',
+      },
     },
     order: {
       myOrders: 'My Orders',
@@ -284,6 +321,62 @@ const translations = {
     },
     address: {
       fullName: 'Full Name',
+      addAddress: 'Add Address',
+      selectedLocation: 'Selected Location',
+      addressDetails: 'Address Details',
+      label: 'Label (Optional)',
+      home: 'Home',
+      work: 'Work',
+      other: 'Other',
+      fullNamePlaceholder: 'Enter full name',
+      phoneNumberPlaceholder: 'Enter phone number',
+      addressDetailsPlaceholder: 'Building number, floor, apartment, etc.',
+      city: 'City',
+      cityPlaceholder: 'Your city',
+      postalCode: 'Postal Code',
+      postalCodePlaceholder: '12345',
+      saveAddress: 'Save Address',
+      saving: 'Saving...',
+      pickLocation: 'Pick Delivery Location',
+      moveMapToSelect: 'Move map to select location',
+      searchPlaceholder: 'Search for address or area',
+      searching: 'Searching...',
+      noResults: 'No results found',
+      confirmLocation: 'Confirm Location',
+      locationPermissionRequired: 'Location Permission Required',
+      grantPermission: 'Grant Permission',
+      loadingMap: 'Loading map...',
+      moveInstruction: 'Move the map to place the pin on your desired delivery location',
+      fillRequiredFields: 'Please fill in all required fields (Name, Phone, City)',
+      selectLocation: 'Please select a location',
+      addressSaved: 'Address saved successfully!',
+      saveFailed: 'Failed to save address. Please try again.',
+      locationError: 'Location Error',
+      locationErrorDesc: 'Unable to get your current location. Please enable location services and try again.',
+      permissionDenied: 'Please grant location permission to use map picker',
+      noAddresses: 'No Addresses',
+      noAddressesDesc: 'Add your delivery addresses to make checkout faster',
+      loadingAddresses: 'Loading addresses...',
+      deleteAddress: 'Delete Address',
+      deleteConfirm: 'Are you sure you want to delete this address?',
+      deleteFailed: 'Failed to delete address',
+      edit: 'Edit',
+      delete: 'Delete',
+      name: 'Name',
+      address: 'Address',
+      mobileNumber: 'Mobile Number',
+      verified: 'Verified',
+      setAsDefault: 'Set as Default',
+      addNewAddress: 'Add New Address',
+      editAddress: 'Edit Address',
+      updateAddress: 'Update Address',
+      enterFullName: 'Enter your full name',
+      enterPhoneNumber: 'your phone number',
+      streetBuilding: 'Street, building, floor',
+      enterCity: 'Enter city',
+      enterPostalCode: 'Enter postal code',
+      location: 'Location',
+      default: 'Default',
     },
     accountInfo: {
       enterName: 'Enter your name',
@@ -296,6 +389,8 @@ const translations = {
       tryAgain: 'Try Again',
       noBrands: 'No Brands',
       noBrandsAvailable: 'No brands available at the moment',
+      comingSoonTitle: '🎉 Coming Soon! 🎉',
+      comingSoonText: "We're preparing something special. Stay tuned for new brands!",
     },
     pages: {
       noSubcategoriesAvailable: 'No subcategories available for this category',
@@ -339,8 +434,50 @@ const translations = {
       footer: '© 2025 Sab Store. All rights reserved.',
     },
     termsOfUse: {
-      title: 'Terms of Use & Privacy Policy',
-      lastUpdated: 'Last updated: October 26, 2025',
+      title: 'Terms of Use',
+      lastUpdated: 'Last updated: November 11, 2025',
+      intro: 'Welcome to SAB STORE. By accessing or using our mobile application and services, you agree to be bound by these Terms of Use. Please read them carefully before using our platform.',
+      
+      acceptance: 'Acceptance of Terms',
+      acceptanceDesc: 'By creating an account, placing an order, or using any part of our services, you acknowledge that you have read, understood, and agree to be bound by these Terms of Use and our Privacy Policy. If you do not agree, please discontinue use of our services immediately.',
+      
+      eligibility: 'Eligibility',
+      eligibilityDesc: 'You must be at least 18 years old to use SAB STORE services. By using our platform, you represent and warrant that you have the legal capacity to enter into a binding agreement.',
+      
+      account: 'Account Registration',
+      accountDesc: 'To access certain features, you may need to create an account. You are responsible for maintaining the confidentiality of your account credentials and for all activities under your account. You agree to provide accurate, current, and complete information during registration and to update such information as necessary.',
+      
+      orders: 'Orders and Payments',
+      ordersDesc: 'All orders are subject to availability and acceptance. We reserve the right to refuse or cancel any order for any reason. Prices are subject to change without notice. Payment must be made through our approved payment methods. You agree to pay all charges incurred by you or anyone using your account.',
+      
+      shipping: 'Shipping and Delivery',
+      shippingDesc: 'We will make reasonable efforts to deliver your orders within the estimated timeframes. However, delivery times are estimates and not guaranteed. We are not liable for delays caused by circumstances beyond our control.',
+      
+      returns: 'Returns and Refunds',
+      returnsDesc: 'Our return and refund policy allows you to return products within a specified period, subject to certain conditions. Please contact our customer support team for assistance with returns or refunds. Certain products may not be eligible for return.',
+      
+      prohibited: 'Prohibited Conduct',
+      prohibitedDesc: 'You agree not to: (a) use our services for any illegal purpose; (b) violate any applicable laws or regulations; (c) infringe on the rights of others; (d) transmit harmful or malicious code; (e) interfere with the proper functioning of our services; (f) attempt unauthorized access to our systems.',
+      
+      intellectual: 'Intellectual Property',
+      intellectualDesc: 'All content, trademarks, logos, and intellectual property on SAB STORE are owned by us or our licensors. You may not use, reproduce, distribute, or create derivative works without our express written permission.',
+      
+      limitation: 'Limitation of Liability',
+      limitationDesc: 'To the fullest extent permitted by law, SAB STORE shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of our services. Our total liability shall not exceed the amount paid by you for the relevant product or service.',
+      
+      termination: 'Termination',
+      terminationDesc: 'We reserve the right to suspend or terminate your account at any time, with or without cause or notice, if we believe you have violated these Terms of Use or engaged in conduct harmful to our business or other users.',
+      
+      changes: 'Changes to Terms',
+      changesDesc: 'We reserve the right to modify these Terms of Use at any time. We will notify you of significant changes by posting the updated terms on our platform. Your continued use of our services after such changes constitutes acceptance of the new terms.',
+      
+      governing: 'Governing Law',
+      governingDesc: 'These Terms of Use shall be governed by and construed in accordance with the laws of Lebanon, without regard to its conflict of law provisions.',
+      
+      contact: 'Contact Us',
+      contactDesc: 'If you have any questions about these Terms of Use, please contact us at: support@sab-store.com',
+      
+      footer: '© 2025 SAB STORE. All rights reserved.',
     },
     aboutUs: {
       title: 'About Us',
@@ -420,7 +557,7 @@ const translations = {
     home: {
       title: 'ساب ماركت',
       welcome: 'مرحباً بك في',
-      storeTitle: 'ساب ستور',
+      storeTitle: 'SAB STORE',
       storeSubtitle: 'وجهتك الذكية للتسوق',
       featuredProducts: 'منتجات مميزة',
       popularCategories: 'الفئات الشائعة',
@@ -467,7 +604,7 @@ const translations = {
       helpSupport: 'المساعدة والدعم',
       about: 'عن التطبيق',
       logout: 'تسجيل الخروج',
-      signIn: 'تسجيل الدخول',
+      signIn: 'أول مفرق يمين 👉',
       version: 'النسخة 1.0.0',
       deleteAccount: 'حذف الحساب',
       deleteAccountConfirm: 'هل أنت متأكد من رغبتك في حذف حسابك؟ لا يمكن التراجع عن هذا الإجراء.',
@@ -480,8 +617,8 @@ const translations = {
       privacyPolicy: 'سياسة الخصوصية',
       testNotifications: 'اختبار الإشعارات',
       checkUpdates: 'التحقق من التحديثات',
-      loginRequired: 'تسجيل الدخول مطلوب',
-      loginRequiredDescription: 'يرجى تسجيل الدخول للوصول إلى معلومات حسابك وإدارة إعداداتك.',
+      loginRequired: 'تسجيل دخولكن معنا بفرحنا 🎉',
+      loginRequiredDescription: 'ممكن تعملو تسجيل دخول من هون والباقي عندك',
     },
     auth: {
       welcomeBack: 'مرحباً بعودتك!',
@@ -582,6 +719,43 @@ const translations = {
       totalPrice: 'السعر الإجمالي',
       perKg: 'للكيلو',
       perPc: 'للقطعة',
+      brand: 'العلامة التجارية',
+      category: 'الفئة',
+      gender: 'الجنس',
+      season: 'الموسم',
+      ageRange: 'الفئة العمرية',
+      unit: 'وحدة القياس',
+      minimumWeight: 'الحد الأدنى للوزن',
+      deliveryTime: 'وقت التوصيل',
+      genderOptions: {
+        Men: 'رجالي',
+        Women: 'نسائي',
+        Unisex: 'للجنسين',
+        Boy: 'أولاد',
+        Girl: 'بنات',
+        'Unisex-Kids': 'أطفال',
+      },
+      seasonOptions: {
+        Summer: 'صيفي',
+        Winter: 'شتوي',
+        'All-Season': 'طوال السنة',
+      },
+      units: {
+        kg: 'كيلو',
+        g: 'غرام',
+        gram: 'غرام',
+        piece: 'قطعة',
+        pc: 'قطعة',
+        pcs: 'قطع',
+        box: 'علبة',
+        pack: 'عبوة',
+        liter: 'ليتر',
+        ltr: 'ليتر',
+        l: 'ليتر',
+        ml: 'ملليلتر',
+        lb: 'رطل',
+        oz: 'أونصة',
+      },
     },
     order: {
       myOrders: 'طلباتي',
@@ -593,7 +767,7 @@ const translations = {
       viewDetails: 'عرض التفاصيل',
       trackOrder: 'تتبع الطلب',
       successTitle: 'تم تقديم طلبك بنجاح!',
-      successMessage: 'شكراً لتسوقك مع ساب ستور.',
+      successMessage: 'شكراً لتسوقك مع SAB STORE.',
       new: 'جديد',
       products: 'المنتجات',
       deliveryInfo: 'معلومات التسليم',
@@ -665,6 +839,62 @@ const translations = {
     },
     address: {
       fullName: 'الاسم الكامل',
+      addAddress: 'إضافة عنوان',
+      selectedLocation: 'الموقع المحدد',
+      addressDetails: 'تفاصيل العنوان',
+      label: 'التسمية (اختياري)',
+      home: 'المنزل',
+      work: 'العمل',
+      other: 'أخرى',
+      fullNamePlaceholder: 'أدخل الاسم الكامل',
+      phoneNumberPlaceholder: 'ضع رقم هاتفك',
+      addressDetailsPlaceholder: 'رقم المبنى، الطابق، الشقة، إلخ',
+      city: 'المدينة',
+      cityPlaceholder: 'مدينتك',
+      postalCode: 'الرمز البريدي',
+      postalCodePlaceholder: '12345',
+      saveAddress: 'حفظ العنوان',
+      saving: 'جاري الحفظ...',
+      pickLocation: 'وين بدك نوصل الطلب',
+      moveMapToSelect: 'اصبعك و حدد عالخريطة',
+      searchPlaceholder: 'وين وين وين',
+      searching: 'جاري البحث...',
+      noResults: 'لم يتم العثور على نتائج',
+      confirmLocation: 'خلص هيدا العنوان',
+      locationPermissionRequired: 'إذن الموقع مطلوب',
+      grantPermission: 'منح الإذن',
+      loadingMap: 'جاري تحميل الخريطة...',
+      moveInstruction: 'حرك الخريطة لوضع الدبوس على موقع التسليم المطلوب',
+      fillRequiredFields: 'يرجى ملء جميع الحقول المطلوبة (الاسم، الهاتف، المدينة)',
+      selectLocation: 'يرجى تحديد موقع',
+      addressSaved: 'تم حفظ العنوان بنجاح!',
+      saveFailed: 'فشل حفظ العنوان. يرجى المحاولة مرة أخرى.',
+      locationError: 'خطأ في الموقع',
+      locationErrorDesc: 'غير قادر على الحصول على موقعك الحالي. يرجى تفعيل خدمات الموقع والمحاولة مرة أخرى.',
+      permissionDenied: 'يرجى منح إذن الموقع لاستخدام أداة اختيار الخريطة',
+      noAddresses: 'لا توجد عناوين',
+      noAddressesDesc: 'أضف عناوين التوصيل الخاصة بك لتسريع عملية الدفع',
+      loadingAddresses: 'جاري تحميل العناوين...',
+      deleteAddress: 'حذف العنوان',
+      deleteConfirm: 'هل أنت متأكد من رغبتك في حذف هذا العنوان؟',
+      deleteFailed: 'فشل حذف العنوان',
+      edit: 'تعديل',
+      delete: 'حذف',
+      name: 'الاسم',
+      address: 'العنوان',
+      mobileNumber: 'رقم الجوال',
+      verified: 'موثق',
+      setAsDefault: 'تعيين كافتراضي',
+      addNewAddress: 'إضافة عنوان جديد',
+      editAddress: 'تعديل العنوان',
+      updateAddress: 'تحديث العنوان',
+      enterFullName: 'أدخل اسمك الكامل',
+      enterPhoneNumber: 'رقم هاتفك',
+      streetBuilding: 'الشارع، المبنى، الطابق',
+      enterCity: 'أدخل المدينة',
+      enterPostalCode: 'أدخل الرمز البريدي',
+      location: 'الموقع',
+      default: 'افتراضي',
     },
     accountInfo: {
       enterName: 'أدخل اسمك',
@@ -677,6 +907,8 @@ const translations = {
       tryAgain: 'أعد المحاولة',
       noBrands: 'لا توجد علامات تجارية',
       noBrandsAvailable: 'لا توجد علامات تجارية متاحة في الوقت الحالي',
+      comingSoonTitle: '🎉 قريباً! 🎉',
+      comingSoonText: 'نحن نحضر شيئاً مميزاً. ترقبوا العلامات التجارية الجديدة!',
     },
     pages: {
       noSubcategoriesAvailable: 'لا توجد فئات فرعية متاحة لهذه الفئة',
@@ -694,9 +926,9 @@ const translations = {
       loading: 'جارٍ التحميل...',
     },
     privacyPolicy: {
-      title: 'سياسة الخصوصية لساب ستور',
+      title: 'سياسة الخصوصية لـ SAB STORE',
       lastUpdated: 'آخر تحديث: 26 أكتوبر 2025',
-      intro: 'في ساب ستور ("نحن" أو "لنا")، نقدر خصوصية الأفراد الذين يستخدمون مواقعنا والخدمات ذات الصلة (مجتمعة، "خدماتنا"). توضح إشعار الخصوصية هذا كيفية جمعنا واستخدامنا ومشاركتنا للمعلومات الشخصية لمستخدمي خدماتنا ("المستخدمون" أو "أنت" أو "الخاص بك"). باستخدام خدماتنا، فإنك توافق على جمع واستخدام والإفصاح ومعالجة معلوماتك كما هو موضح في إشعار الخصوصية هذا.',
+      intro: 'في SAB STORE ("نحن" أو "لنا")، نقدر خصوصية الأفراد الذين يستخدمون مواقعنا والخدمات ذات الصلة (مجتمعة، "خدماتنا"). توضح إشعار الخصوصية هذا كيفية جمعنا واستخدامنا ومشاركتنا للمعلومات الشخصية لمستخدمي خدماتنا ("المستخدمون" أو "أنت" أو "الخاص بك"). باستخدام خدماتنا، فإنك توافق على جمع واستخدام والإفصاح ومعالجة معلوماتك كما هو موضح في إشعار الخصوصية هذا.',
       personalInfo: 'المعلومات الشخصية هي معلومات تحدد أو يمكن استخدامها لتحديد هوية شخص معين. لا تشمل المعلومات الشخصية المعلومات المجهولة الهوية (مجهولة أو مستعارة) أو المعلومات المجمعة المستمدة من المعلومات الشخصية.',
       infoWeCollect: 'المعلومات التي نجمعها',
       infoWeCollectDesc: 'قد نجمع مجموعة متنوعة من المعلومات الشخصية والمعلومات الأخرى عنك أو عن أجهزتك من مصادر مختلفة، كما هو موضح أدناه.',
@@ -717,35 +949,77 @@ const translations = {
       changes: 'التغييرات على إشعار الخصوصية هذا',
       contactUs: 'اتصل بنا',
       contactDesc: 'يجب توجيه جميع التعليقات والتعليقات وطلبات الدعم الفني والاتصالات الأخرى المتعلقة بالمواقع وأنشطة جمع البيانات ومعالجتها إلى: support@sab-store.com.',
-      footer: '© 2025 ساب ستور. جميع الحقوق محفوظة.',
+      footer: '© 2025 SAB STORE. جميع الحقوق محفوظة.',
     },
     termsOfUse: {
-      title: 'شروط الاستخدام وسياسة الخصوصية',
-      lastUpdated: 'آخر تحديث: 26 أكتوبر 2025',
+      title: 'شروط الاستخدام',
+      lastUpdated: 'آخر تحديث: 11 نوفمبر 2025',
+      intro: 'مرحبًا بك في SAB STORE. باستخدامك لتطبيقنا وخدماتنا، فإنك توافق على الالتزام بشروط الاستخدام هذه. يرجى قراءتها بعناية قبل استخدام منصتنا.',
+      
+      acceptance: 'قبول الشروط',
+      acceptanceDesc: 'من خلال إنشاء حساب أو تقديم طلب أو استخدام أي جزء من خدماتنا، فإنك تقر بأنك قد قرأت وفهمت ووافقت على الالتزام بشروط الاستخدام هذه وسياسة الخصوصية الخاصة بنا. إذا كنت لا توافق، يرجى التوقف عن استخدام خدماتنا على الفور.',
+      
+      eligibility: 'الأهلية',
+      eligibilityDesc: 'يجب أن يكون عمرك 18 عامًا على الأقل لاستخدام خدمات SAB STORE. باستخدام منصتنا، فإنك تقر وتضمن أن لديك الأهلية القانونية للدخول في اتفاقية ملزمة.',
+      
+      account: 'تسجيل الحساب',
+      accountDesc: 'للوصول إلى بعض الميزات، قد تحتاج إلى إنشاء حساب. أنت مسؤول عن الحفاظ على سرية بيانات حسابك وعن جميع الأنشطة التي تتم تحت حسابك. توافق على تقديم معلومات دقيقة وحديثة وكاملة أثناء التسجيل وتحديث هذه المعلومات حسب الضرورة.',
+      
+      orders: 'الطلبات والمدفوعات',
+      ordersDesc: 'جميع الطلبات تخضع للتوفر والقبول. نحتفظ بالحق في رفض أو إلغاء أي طلب لأي سبب. الأسعار قابلة للتغيير دون إشعار مسبق. يجب دفع المبلغ من خلال طرق الدفع المعتمدة لدينا. توافق على دفع جميع الرسوم المتكبدة من قبلك أو أي شخص يستخدم حسابك.',
+      
+      shipping: 'الشحن والتوصيل',
+      shippingDesc: 'سنبذل جهودًا معقولة لتوصيل طلباتك خلال الأطر الزمنية المقدرة. ومع ذلك، فإن أوقات التوصيل هي تقديرات وليست مضمونة. نحن غير مسؤولين عن التأخيرات الناجمة عن ظروف خارجة عن إرادتنا.',
+      
+      returns: 'الإرجاع والاسترداد',
+      returnsDesc: 'تسمح سياسة الإرجاع والاسترداد الخاصة بنا بإرجاع المنتجات خلال فترة محددة، مع مراعاة شروط معينة. يرجى الاتصال بفريق خدمة العملاء لدينا للحصول على المساعدة في الإرجاع أو الاسترداد. قد لا تكون بعض المنتجات مؤهلة للإرجاع.',
+      
+      prohibited: 'السلوك المحظور',
+      prohibitedDesc: 'توافق على عدم: (أ) استخدام خدماتنا لأي غرض غير قانوني؛ (ب) انتهاك أي قوانين أو لوائح سارية؛ (ج) التعدي على حقوق الآخرين؛ (د) نقل أكواد ضارة أو خبيثة؛ (هـ) التدخل في الأداء السليم لخدماتنا؛ (و) محاولة الوصول غير المصرح به إلى أنظمتنا.',
+      
+      intellectual: 'الملكية الفكرية',
+      intellectualDesc: 'جميع المحتويات والعلامات التجارية والشعارات والملكية الفكرية في SAB STORE مملوكة لنا أو للمرخصين لنا. لا يجوز لك استخدام أو نسخ أو توزيع أو إنشاء أعمال مشتقة دون إذن كتابي صريح منا.',
+      
+      limitation: 'تحديد المسؤولية',
+      limitationDesc: 'بأقصى قدر يسمح به القانون، لن تكون SAB STORE مسؤولة عن أي أضرار غير مباشرة أو عرضية أو خاصة أو تبعية أو عقابية ناشئة عن استخدامك لخدماتنا. لن تتجاوز مسؤوليتنا الإجمالية المبلغ الذي دفعته مقابل المنتج أو الخدمة ذات الصلة.',
+      
+      termination: 'الإنهاء',
+      terminationDesc: 'نحتفظ بالحق في تعليق أو إنهاء حسابك في أي وقت، مع أو بدون سبب أو إشعار، إذا اعتقدنا أنك انتهكت شروط الاستخدام هذه أو انخرطت في سلوك ضار بأعمالنا أو مستخدمين آخرين.',
+      
+      changes: 'التغييرات على الشروط',
+      changesDesc: 'نحتفظ بالحق في تعديل شروط الاستخدام هذه في أي وقت. سنخطرك بالتغييرات الهامة عن طريق نشر الشروط المحدثة على منصتنا. استمرارك في استخدام خدماتنا بعد هذه التغييرات يشكل قبولًا للشروط الجديدة.',
+      
+      governing: 'القانون الحاكم',
+      governingDesc: 'تخضع شروط الاستخدام هذه وتفسر وفقًا لقوانين لبنان، دون النظر إلى أحكام تنازع القوانين.',
+      
+      contact: 'اتصل بنا',
+      contactDesc: 'إذا كان لديك أي أسئلة حول شروط الاستخدام هذه، يرجى الاتصال بنا على: support@sab-store.com',
+      
+      footer: '© 2025 SAB STORE. جميع الحقوق محفوظة.',
     },
     aboutUs: {
       title: 'عن التطبيق',
-      welcome: 'مرحبًا بك في ساب ستور — وجهتك الذكية للتسوق في لبنان!',
+      welcome: 'مرحبًا بك في SAB STORE — وجهتك الذكية للتسوق في لبنان!',
       description1: 'نجمع 🛒 التنوع و ⚡ السرعة و 🔒 الأمان في تجربة واحدة سلسة.',
-      description2: 'يربط ساب ستور العملاء بالبائعين الموثوقين، ويقدم تصفحًا سلسًا وتوصيلًا سريعًا 🚚 وتحديثات في الوقت الفعلي 🔄.',
-      description3: 'إنه أكثر من سوق — إنه مجتمع متنامٍ 🤝 مبني على الثقة والراحة.',
+      description2: 'SAB STORE هو متجرك الإلكتروني المتكامل، نوفر لك تصفحًا سلسًا وتوصيلًا سريعًا 🚚 وتحديثات في الوقت الفعلي 🔄.',
+      description3: 'إنه أكثر من متجر — إنه تجربة تسوق متميزة 🤝 مبنية على الثقة والراحة.',
       mission: 'مهمتنا',
-      missionDesc: 'ربط العملاء بالبائعين الموثوقين وتوفير تجربة تسوق سلسة وآمنة.',
+      missionDesc: 'تقديم تجربة تسوق إلكترونية متميزة وآمنة مع توفير أفضل المنتجات والخدمات لعملائنا.',
       team: 'فريقنا',
-      teamDesc: 'مجتمع متنامٍ من العملاء والبائعين الموثوقين في جميع أنحاء لبنان.',
+      teamDesc: 'فريق متخصص يعمل على توفير أفضل تجربة تسوق لعملائنا في جميع أنحاء لبنان.',
       values: 'قيمنا',
       valuesDesc: 'التنوع والسرعة والأمان والثقة هي أساس عملنا.',
-      whyChoose: 'لماذا تختار ساب ستور؟',
-      feature1: 'مجموعة واسعة من المنتجات من البائعين الموثوقين',
-      feature2: 'تصفح سلس وتجربة تسوق سريعة',
+      whyChoose: 'لماذا تختار SAB STORE؟',
+      feature1: 'مجموعة واسعة ومتنوعة من المنتجات عالية الجودة',
+      feature2: 'تصفح سلس وتجربة تسوق سريعة وسهلة',
       feature3: 'توصيل سريع وموثوق إلى باب منزلك',
-      feature4: 'تحديثات في الوقت الفعلي عن حالة طلبك',
-      feature5: 'معاملات آمنة ومحمية',
-      feature6: 'مجتمع مبني على الثقة والراحة',
+      feature4: 'تحديثات فورية عن حالة طلبك',
+      feature5: 'معاملات آمنة ومحمية بالكامل',
+      feature6: 'خدمة عملاء متميزة ودعم فني مستمر',
       contact: 'اتصل بنا',
       email: 'support@sab-store.com',
       location: 'لبنان',
-      footer: '© 2025 ساب ستور. جميع الحقوق محفوظة.',
+      footer: '© 2025 SAB STORE. جميع الحقوق محفوظة.',
     },
     notifications: {
       title: 'الإشعارات',
@@ -768,6 +1042,7 @@ const translations = {
 
 const i18n = new I18n(translations);
 i18n.enableFallback = true;
-i18n.defaultLocale = 'en';
+i18n.defaultLocale = 'ar';
+i18n.locale = 'ar';
 
 export default i18n;

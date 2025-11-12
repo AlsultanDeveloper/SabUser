@@ -39,24 +39,49 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     phoneVerificationId: null,
   });
 
-  // ---- Load persisted session on mount ----
+  // ---- Initialize Auth State Listener ----
   useEffect(() => {
-    const loadPersistedSession = async () => {
-      try {
-        const savedUser = await AsyncStorage.getItem('user');
-        if (savedUser) {
-          console.log('📱 Found persisted session in AsyncStorage');
-          console.log('⏳ Waiting for Firebase Auth to restore session...');
-          // ✅ لا نفعل شيء هنا - نترك onAuthStateChanged يُعيد الجلسة
-          // Firebase Auth سيستعيد الجلسة تلقائياً من تخزينه الخاص
-        } else {
-          console.log('ℹ️ No persisted session found in AsyncStorage');
+    console.log('🔄 Setting up Firebase Auth state listener...');
+    
+    if (!isConfigured || !auth) {
+      console.log('⚠️ Firebase not configured, skipping auth listener');
+      setState(prev => ({ ...prev, loading: false }));
+      return;
+    }
+    
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log('🔐 Firebase Auth state changed:', firebaseUser?.uid || 'Not signed in');
+      
+      // ✅ تحديث الـ state مباشرة من Firebase Auth
+      setState(prev => ({ ...prev, user: firebaseUser, loading: false }));
+      
+      // حفظ أو حذف الجلسة في AsyncStorage (للمرجع فقط)
+      if (firebaseUser) {
+        try {
+          await AsyncStorage.setItem('user', JSON.stringify({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName,
+            photoURL: firebaseUser.photoURL,
+          }));
+          console.log('✅ User session saved to AsyncStorage');
+        } catch (error) {
+          console.error('❌ Failed to save user session:', error);
         }
-      } catch (error) {
-        console.error('❌ Failed to load persisted session:', error);
+      } else {
+        try {
+          await AsyncStorage.removeItem('user');
+          console.log('✅ User session cleared from AsyncStorage');
+        } catch (error) {
+          console.error('❌ Failed to clear AsyncStorage:', error);
+        }
       }
+    });
+    
+    return () => {
+      console.log('🔚 Cleaning up Firebase Auth listener');
+      unsubscribe();
     };
-    loadPersistedSession();
   }, []);
 
   // ---- OAuth Client IDs from ENV (with fallback to Constants) ----
@@ -360,76 +385,10 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     }
   }, [googleResponse]);
 
-  // ---- Firebase Auth State Listener ----
+  // ---- Placeholder to maintain hooks order (deprecated but kept for compatibility) ----
   useEffect(() => {
-    if (!isConfigured || !auth) {
-      setState(prev => ({ ...prev, loading: false }));
-      return;
-    }
-    
-    let authRestored = false;
-    
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      console.log('🔐 Firebase Auth state changed:', user?.uid || 'Not signed in');
-      
-      // ⚠️ إذا Firebase Auth قال "لا يوجد مستخدم" بعد Reload
-      if (!user && !authRestored) {
-        console.log('⚠️ Firebase Auth lost session after reload, checking AsyncStorage...');
-        try {
-          const savedUser = await AsyncStorage.getItem('user');
-          if (savedUser) {
-            const userData = JSON.parse(savedUser);
-            console.log('📱 Found session in AsyncStorage, restoring state...');
-            
-            // ✅ استعادة الـ state مؤقتاً
-            setState(prev => ({
-              ...prev,
-              user: {
-                uid: userData.uid,
-                email: userData.email,
-                displayName: userData.displayName,
-                photoURL: userData.photoURL,
-              } as any,
-              loading: false,
-            }));
-            
-            authRestored = true;
-            console.log('✅ Session restored from AsyncStorage (Firebase Auth will sync soon)');
-            return; // لا نحدث state مرة أخرى
-          }
-        } catch (error) {
-          console.error('❌ Failed to restore from AsyncStorage:', error);
-        }
-      }
-      
-      // ✅ تحديث الـ state من Firebase Auth
-      setState(prev => ({ ...prev, user, loading: false }));
-      
-      // حفظ أو حذف الجلسة في AsyncStorage
-      if (user) {
-        authRestored = false; // reset flag
-        try {
-          await AsyncStorage.setItem('user', JSON.stringify({
-            uid: user.uid,
-            email: user.email,
-            displayName: user.displayName,
-            photoURL: user.photoURL,
-          }));
-          console.log('✅ User session saved to AsyncStorage');
-        } catch (error) {
-          console.error('❌ Failed to save user session:', error);
-        }
-      } else {
-        try {
-          await AsyncStorage.removeItem('user');
-          console.log('✅ User session cleared from AsyncStorage');
-        } catch (error) {
-          console.error('❌ Failed to clear AsyncStorage:', error);
-        }
-      }
-    });
-    
-    return () => unsubscribe();
+    // This useEffect is intentionally empty to maintain hooks call order
+    // The actual auth state listener is at the top of the component
   }, []);
 
   // ---- Email/Password Sign-In ----
@@ -512,7 +471,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         
         // التفضيلات
         preferences: {
-          language: additionalData?.language || 'en',
+          language: additionalData?.language || 'ar',
           currency: 'USD',
           notifications: {
             push: true,
@@ -614,7 +573,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
               phoneVerified: false,
               
               preferences: {
-                language: 'en',
+                language: 'ar',
                 currency: 'USD',
                 notifications: {
                   push: true,
@@ -686,7 +645,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             phoneVerified: false,
             
             preferences: {
-              language: 'en',
+              language: 'ar',
               currency: 'USD',
               notifications: {
                 push: true,

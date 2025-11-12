@@ -102,9 +102,9 @@ export default function BrandsScreen() {
               <Feather name="gift" size={48} color={Colors.white} />
             </LinearGradient>
 
-            <Text style={styles.comingSoonTitle}>🎉 Coming Soon! 🎉</Text>
+            <Text style={styles.comingSoonTitle}>{t('brands.comingSoonTitle')}</Text>
             <Text style={styles.comingSoonText}>
-              We&apos;re preparing something special. Stay tuned for new brands!
+              {t('brands.comingSoonText')}
             </Text>
           </View>
         </View>
@@ -130,7 +130,7 @@ export default function BrandsScreen() {
           </SafeAreaView>
         </LinearGradient>
         
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView showsVerticalScrollIndicator={false} style={language === 'ar' && { direction: 'rtl' as any }}>
           <View style={styles.grid}>
             {brands.map((brand) => (
               <TouchableOpacity
@@ -140,7 +140,7 @@ export default function BrandsScreen() {
                 activeOpacity={0.7}
               >
                 <View style={styles.imageContainer}>
-                  <SafeImage uri={brand.image} style={styles.brandImage} />
+                  <SafeImage uri={brand.image} style={styles.brandImage} resizeMode="cover" />
                   {brand.logo && (
                     <View style={styles.logoContainer}>
                       <SafeImage uri={brand.logo} style={styles.logoImage} />
@@ -149,11 +149,6 @@ export default function BrandsScreen() {
                 </View>
                 <View style={styles.brandInfo}>
                   <Text style={styles.brandName}>{brand.name[language]}</Text>
-                  {brand.description && brand.description[language] && (
-                    <Text style={styles.brandDescription} numberOfLines={2}>
-                      {brand.description[language]}
-                    </Text>
-                  )}
                 </View>
               </TouchableOpacity>
             ))}
@@ -161,9 +156,9 @@ export default function BrandsScreen() {
 
           {/* Coming Soon Section - Always Visible */}
           <View style={styles.comingSoonSection}>
-            <Text style={styles.comingSoonSectionTitle}>🎉 Coming Soon! 🎉</Text>
+            <Text style={styles.comingSoonSectionTitle}>{t('brands.comingSoonTitle')}</Text>
             <Text style={styles.comingSoonSectionText}>
-              We&apos;re preparing something special. Stay tuned for new brands!
+              {t('brands.comingSoonText')}
             </Text>
           </View>
 
@@ -294,9 +289,8 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     position: 'relative',
-    borderRadius: 12,
+    borderRadius: 8,
     overflow: 'hidden',
-    backgroundColor: Colors.gray[100],
     aspectRatio: 1,
   },
   brandImage: {
@@ -310,8 +304,10 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: Colors.white,
-    padding: 8,
+    backgroundColor: 'transparent',
+    padding: 0,
+    borderWidth: 1,
+    borderColor: Colors.white,
     shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -321,7 +317,7 @@ const styles = StyleSheet.create({
   logoImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 22,
+    borderRadius: 30,
   },
   brandInfo: {
     paddingTop: 12,

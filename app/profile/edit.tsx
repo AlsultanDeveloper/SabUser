@@ -24,7 +24,7 @@ import { getUserProfile, updateUserProfile } from '@/constants/firestore';
 import { updateProfile } from 'firebase/auth';
 
 export default function EditProfileScreen() {
-  const { t } = useApp();
+  const { t, language } = useApp();
   const router = useRouter();
   const { user, deleteAccount } = useAuth();
   
@@ -236,7 +236,7 @@ export default function EditProfileScreen() {
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
           <ScrollView
-            style={styles.content}
+            style={[styles.content, language === 'ar' && { direction: 'rtl' as any }]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
@@ -377,13 +377,10 @@ export default function EditProfileScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.deleteButtonContent}>
-                <Feather name="trash-2" size={20} color={Colors.error} />
-                <View style={styles.deleteButtonTextContainer}>
-                  <Text style={styles.deleteButtonText}>{t('account.deleteAccount')}</Text>
-                  <Text style={styles.deleteButtonSubtext}>{t('account.deleteAccountWarning')}</Text>
-                </View>
+                <Feather name="trash-2" size={18} color={Colors.white} />
+                <Text style={styles.deleteButtonText}>{t('account.deleteAccount')}</Text>
               </View>
-              <Feather name="chevron-right" size={20} color={Colors.error} />
+              <Feather name={language === 'ar' ? 'chevron-left' : 'chevron-right'} size={18} color={Colors.white} />
             </TouchableOpacity>
           </View>
           </ScrollView>
@@ -532,22 +529,22 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
   },
   footer: {
-    padding: Spacing.md,
+    padding: Spacing.sm,
     backgroundColor: Colors.white,
     borderTopWidth: 1,
     borderTopColor: Colors.gray[200],
   },
   saveButton: {
     backgroundColor: Colors.primary,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
     alignItems: 'center',
   },
   saveButtonDisabled: {
     opacity: 0.6,
   },
   saveButtonText: {
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.sm,
     fontWeight: 'bold' as const,
     color: Colors.white,
   },
@@ -555,31 +552,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
-    backgroundColor: Colors.error + '10',
+    backgroundColor: '#000000',
     borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.error + '30',
   },
   deleteButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-    flex: 1,
-  },
-  deleteButtonTextContainer: {
-    flex: 1,
+    gap: Spacing.sm,
   },
   deleteButtonText: {
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.sm,
     fontWeight: '600' as const,
-    color: Colors.error,
-  },
-  deleteButtonSubtext: {
-    fontSize: FontSizes.xs,
-    color: Colors.error,
-    opacity: 0.7,
-    marginTop: 2,
+    color: Colors.white,
   },
 });

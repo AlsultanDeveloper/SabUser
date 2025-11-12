@@ -255,15 +255,6 @@ export default function LoginScreen() {
           </TouchableOpacity>
 
           <View style={styles.headerContainer}>
-            <LinearGradient
-              colors={[Colors.primary, Colors.secondary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.logoGradient}
-            >
-              <Text style={styles.logoText}>SAB STORE</Text>
-            </LinearGradient>
-            
             <Text style={styles.pageTitle}>
               {isSignUp ? t('auth.createAccount') : t('auth.welcomeBack')}
             </Text>
@@ -334,18 +325,13 @@ export default function LoginScreen() {
                   disabled={loading}
                   activeOpacity={0.8}
                 >
-                  <LinearGradient
-                    colors={[Colors.primary, Colors.secondary]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.buttonGradient}
-                  >
+                  <View style={styles.buttonGradient}>
                     {loading ? (
                       <ActivityIndicator color={Colors.white} />
                     ) : (
                       <Text style={styles.primaryButtonText}>{t('auth.sendOTP')}</Text>
                     )}
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
               </>
             ) : (
@@ -458,12 +444,7 @@ export default function LoginScreen() {
                   disabled={loading}
                   activeOpacity={0.8}
                 >
-                  <LinearGradient
-                    colors={[Colors.primary, Colors.secondary]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.buttonGradient}
-                  >
+                  <View style={styles.buttonGradient}>
                     {loading ? (
                       <ActivityIndicator color={Colors.white} />
                     ) : (
@@ -471,7 +452,7 @@ export default function LoginScreen() {
                         {isSignUp ? t('auth.signUp') : t('auth.signIn')}
                       </Text>
                     )}
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
               </>
             )}
@@ -793,10 +774,12 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   buttonGradient: {
+    backgroundColor: '#3B82F6',
     paddingVertical: Spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
     height: 48,
+    borderRadius: 12,
   },
   primaryButtonText: {
     fontSize: FontSizes.lg,

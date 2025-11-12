@@ -125,7 +125,7 @@ export default function Categories() {
 
       {/* Content */}
       <ScrollView 
-        style={styles.scrollContainer}
+        style={[styles.scrollContainer, language === 'ar' && { direction: 'rtl' as any }]}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
   categoryTitle: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#000',
+    color: Colors.text.primary,
     textAlign: 'center',
     lineHeight: 18,
   },
@@ -276,20 +276,20 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: Colors.text.primary,
     marginTop: 16,
     marginBottom: 8,
   },
   errorText: {
     fontSize: 14,
-    color: '#666',
+    color: Colors.text.secondary,
     textAlign: 'center',
     marginBottom: 24,
   },
   retryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#007185',
+    backgroundColor: Colors.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#666',
+    color: Colors.text.secondary,
     marginTop: 16,
   },
   // Search results styles
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000',
+    color: Colors.text.primary,
     marginBottom: 12,
     width: '100%',
   },
@@ -360,13 +360,13 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#000',
+    color: Colors.text.primary,
     marginBottom: 6,
     lineHeight: 18,
   },
   productPrice: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#B12704', // Amazon red for price
+    color: Colors.primary,
   },
 });

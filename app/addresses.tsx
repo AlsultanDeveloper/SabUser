@@ -36,7 +36,7 @@ interface AddressFormData {
 }
 
 export default function AddressesScreen() {
-  const { t } = useApp();
+  const { t, language } = useApp();
   const { user } = useAuth();
   const router = useRouter();
   const [addresses, setAddresses] = useState<SavedAddress[]>([]);
@@ -113,12 +113,12 @@ export default function AddressesScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     }
     Alert.alert(
-      'Delete Address',
-      'Are you sure you want to delete this address?',
+      t('address.deleteAddress'),
+      t('address.deleteConfirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('address.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -126,7 +126,7 @@ export default function AddressesScreen() {
               await loadAddresses();
             } catch (error) {
               console.error('Error deleting address:', error);
-              Alert.alert('Error', 'Failed to delete address');
+              Alert.alert(t('common.error'), t('address.deleteFailed'));
             }
           },
         },
@@ -136,12 +136,12 @@ export default function AddressesScreen() {
 
   const handleSaveAddress = async () => {
     if (!user?.uid) {
-      Alert.alert('Error', 'Please sign in to save address');
+      Alert.alert(t('common.error'), t('checkout.signInRequired'));
       return;
     }
 
     if (!formData.fullName || !formData.phoneNumber || !formData.address || !formData.city) {
-      Alert.alert('Error', 'Please fill in all required fields');
+      Alert.alert(t('common.error'), t('address.fillRequiredFields'));
       return;
     }
 
@@ -154,7 +154,7 @@ export default function AddressesScreen() {
       
       if (!currentUser) {
         console.error('❌ User not authenticated - auth.currentUser is null');
-        Alert.alert('Error', 'Please sign in again to save address');
+        Alert.alert(t('common.error'), t('checkout.signInRequired'));
         return;
       }
       
@@ -167,7 +167,7 @@ export default function AddressesScreen() {
         await new Promise(resolve => setTimeout(resolve, 100));
       } catch (tokenError) {
         console.error('❌ Token refresh failed:', tokenError);
-        Alert.alert('Error', 'Authentication expired. Please sign in again.');
+        Alert.alert(t('common.error'), t('checkout.signInRequired'));
         return;
       }
       
@@ -213,7 +213,7 @@ export default function AddressesScreen() {
         postalCode: '',
       });
       
-      Alert.alert('Success', 'Address saved successfully!');
+      Alert.alert(t('common.success'), t('address.addressSaved'));
     } catch (error: any) {
       console.error('❌ Error saving address:', error);
       console.error('❌ Error code:', error?.code);
@@ -221,15 +221,15 @@ export default function AddressesScreen() {
       console.error('❌ Full error:', JSON.stringify(error, null, 2));
       
       // Show more detailed error message
-      let errorMessage = 'Failed to save address';
+      let errorMessage = t('address.saveFailed');
       
       if (error?.code === 'permission-denied') {
-        errorMessage = 'Permission denied. Please check your authentication.';
+        errorMessage = t('checkout.signInRequired');
       } else if (error?.message) {
         errorMessage = error.message;
       }
       
-      Alert.alert('Error', errorMessage);
+      Alert.alert(t('common.error'), errorMessage);
     }
   };
 
@@ -249,7 +249,7 @@ export default function AddressesScreen() {
       await loadAddresses();
     } catch (error) {
       console.error('Error setting default address:', error);
-      Alert.alert('Error', 'Failed to set default address');
+      Alert.alert(t('common.error'), t('address.saveFailed'));
     }
   };
 
@@ -279,18 +279,16 @@ export default function AddressesScreen() {
         </SafeAreaView>
       </LinearGradient>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView style={[styles.scrollView, language === 'ar' && { direction: 'rtl' as any }]} showsVerticalScrollIndicator={false}>
         {loadingAddresses ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyTitle}>Loading addresses...</Text>
+            <Text style={styles.emptyTitle}>{t('address.loadingAddresses')}</Text>
           </View>
         ) : addresses.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Feather name="map-pin" size={80} color={Colors.gray[300]} />
-            <Text style={styles.emptyTitle}>No Addresses</Text>
-            <Text style={styles.emptyDescription}>
-              Add your delivery addresses to make checkout faster
-            </Text>
+            <Text style={styles.emptyTitle}>{t('address.noAddresses')}</Text>
+            <Text style={styles.emptyDescription}>{t('address.noAddressesDesc')}</Text>
           </View>
         ) : (
           addresses.map((address) => (
@@ -306,11 +304,13 @@ export default function AddressesScreen() {
                   </View>
                   <View style={styles.addressLabelTextContainer}>
                     {address.label && (
-                      <Text style={styles.addressLabel}>{address.label}</Text>
+                      <Text style={styles.addressLabel}>
+                        {t(`address.${address.label.toLowerCase()}`)}
+                      </Text>
                     )}
                     {address.isDefault && (
                       <View style={styles.defaultBadge}>
-                        <Text style={styles.defaultBadgeText}>Default</Text>
+                        <Text style={styles.defaultBadgeText}>{t('address.default')}</Text>
                       </View>
                     )}
                   </View>
@@ -322,7 +322,7 @@ export default function AddressesScreen() {
                     activeOpacity={0.7}
                   >
                     <Feather name="edit-2" size={18} color={Colors.primary} />
-                    <Text style={styles.actionButtonText}>Edit</Text>
+                    <Text style={styles.actionButtonText}>{t('address.edit')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => handleDeleteAddress(address.id)}
@@ -330,28 +330,30 @@ export default function AddressesScreen() {
                     activeOpacity={0.7}
                   >
                     <Feather name="trash-2" size={18} color={Colors.error} />
-                    <Text style={[styles.actionButtonText, { color: Colors.error }]}>Delete</Text>
+                    <Text style={[styles.actionButtonText, { color: Colors.error }]}>
+                      {t('address.delete')}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
               
               <View style={styles.addressDetailsContainer}>
                 <View style={styles.addressRow}>
-                  <Text style={styles.addressRowLabel}>Name</Text>
+                  <Text style={styles.addressRowLabel}>{t('address.name')}</Text>
                   <Text style={styles.addressRowValue}>{address.fullName}</Text>
                 </View>
                 
                 <View style={styles.addressRow}>
-                  <Text style={styles.addressRowLabel}>Address</Text>
+                  <Text style={styles.addressRowLabel}>{t('address.address')}</Text>
                   <Text style={styles.addressRowValue} numberOfLines={2}>{address.address}</Text>
                 </View>
                 
                 <View style={styles.addressRow}>
-                  <Text style={styles.addressRowLabel}>Mobile Number</Text>
+                  <Text style={styles.addressRowLabel}>{t('address.mobileNumber')}</Text>
                   <View style={styles.phoneContainer}>
                     <Text style={styles.addressRowValue}>{address.phoneNumber}</Text>
                     <View style={styles.verifiedBadge}>
-                      <Text style={styles.verifiedText}>Verified</Text>
+                      <Text style={styles.verifiedText}>{t('address.verified')}</Text>
                     </View>
                   </View>
                 </View>
@@ -363,7 +365,7 @@ export default function AddressesScreen() {
                   style={styles.setDefaultButton}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.setDefaultButtonText}>Set as Default</Text>
+                  <Text style={styles.setDefaultButtonText}>{t('address.setAsDefault')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -378,7 +380,7 @@ export default function AddressesScreen() {
           activeOpacity={0.8}
         >
           <Feather name="plus" size={20} color={Colors.white} />
-          <Text style={styles.addButtonText}>Add New Address</Text>
+          <Text style={styles.addButtonText}>{t('address.addNewAddress')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -392,7 +394,7 @@ export default function AddressesScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {editingAddress ? 'Edit Address' : 'Add New Address'}
+                {editingAddress ? t('address.editAddress') : t('address.addNewAddress')}
               </Text>
               <TouchableOpacity
                 onPress={() => setModalVisible(false)}
@@ -404,9 +406,9 @@ export default function AddressesScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Label (Optional)</Text>
+                <Text style={styles.label}>{t('address.label')}</Text>
                 <View style={styles.labelButtonsRow}>
-                  {['Home', 'Work', 'Other'].map((label) => (
+                  {['home', 'work', 'other'].map((label) => (
                     <TouchableOpacity
                       key={label}
                       style={[
@@ -417,7 +419,7 @@ export default function AddressesScreen() {
                       activeOpacity={0.7}
                     >
                       <Feather 
-                        name={label === 'Home' ? 'home' : label === 'Work' ? 'briefcase' : 'map-pin'} 
+                        name={label === 'home' ? 'home' : label === 'work' ? 'briefcase' : 'map-pin'} 
                         size={16} 
                         color={formData.label === label ? Colors.white : Colors.gray[600]} 
                       />
@@ -425,7 +427,7 @@ export default function AddressesScreen() {
                         styles.modalLabelButtonText,
                         formData.label === label && styles.modalLabelButtonTextActive,
                       ]}>
-                        {label}
+                        {t(`address.${label}`)}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -433,41 +435,41 @@ export default function AddressesScreen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Full Name *</Text>
+                <Text style={styles.label}>{t('checkout.fullName')} *</Text>
                 <TextInput
                   style={styles.input}
                   value={formData.fullName}
                   onChangeText={(text) =>
                     setFormData((prev) => ({ ...prev, fullName: text }))
                   }
-                  placeholder="Enter your full name"
+                  placeholder={t('address.enterFullName')}
                   placeholderTextColor={Colors.gray[400]}
                 />
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Phone Number *</Text>
+                <Text style={styles.label}>{t('checkout.phoneNumber')} *</Text>
                 <TextInput
                   style={styles.input}
                   value={formData.phoneNumber}
                   onChangeText={(text) =>
                     setFormData((prev) => ({ ...prev, phoneNumber: text }))
                   }
-                  placeholder="your phone number"
+                  placeholder={t('address.enterPhoneNumber')}
                   placeholderTextColor={Colors.gray[400]}
                   keyboardType="phone-pad"
                 />
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Address *</Text>
+                <Text style={styles.label}>{t('checkout.address')} *</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
                   value={formData.address}
                   onChangeText={(text) =>
                     setFormData((prev) => ({ ...prev, address: text }))
                   }
-                  placeholder="Street, building, floor"
+                  placeholder={t('address.streetBuilding')}
                   placeholderTextColor={Colors.gray[400]}
                   multiline
                   numberOfLines={3}
@@ -475,27 +477,27 @@ export default function AddressesScreen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>City *</Text>
+                <Text style={styles.label}>{t('checkout.city')} *</Text>
                 <TextInput
                   style={styles.input}
                   value={formData.city}
                   onChangeText={(text) =>
                     setFormData((prev) => ({ ...prev, city: text }))
                   }
-                  placeholder="Enter city"
+                  placeholder={t('address.enterCity')}
                   placeholderTextColor={Colors.gray[400]}
                 />
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Postal Code</Text>
+                <Text style={styles.label}>{t('checkout.postalCode')}</Text>
                 <TextInput
                   style={styles.input}
                   value={formData.postalCode}
                   onChangeText={(text) =>
                     setFormData((prev) => ({ ...prev, postalCode: text }))
                   }
-                  placeholder="Enter postal code"
+                  placeholder={t('address.enterPostalCode')}
                   placeholderTextColor={Colors.gray[400]}
                   keyboardType="numeric"
                 />
@@ -505,7 +507,7 @@ export default function AddressesScreen() {
                 <View style={styles.locationPreview}>
                   <Feather name="map-pin" size={16} color={Colors.success} />
                   <Text style={styles.locationPreviewText}>
-                    Location: {formData.latitude.toFixed(4)}, {formData.longitude.toFixed(4)}
+                    {t('address.location')}: {formData.latitude.toFixed(4)}, {formData.longitude.toFixed(4)}
                   </Text>
                 </View>
               )}
@@ -516,7 +518,7 @@ export default function AddressesScreen() {
                 activeOpacity={0.8}
               >
                 <Text style={styles.saveButtonText}>
-                  {editingAddress ? 'Update Address' : 'Add Address'}
+                  {editingAddress ? t('address.updateAddress') : t('address.addAddress')}
                 </Text>
               </TouchableOpacity>
             </ScrollView>

@@ -151,7 +151,7 @@ export const [OrderProvider, useOrders] = createContextHook(() => {
             ar: 'تم استلام الطلب - توصيل سريع خلال 30 دقيقة',
           } : {
             en: 'Order received and is being processed',
-            ar: 'تم استلام طلبك وجاري معالجته',
+            ar: 'طلبكن وصل و شغالين عليه بس يوصل على باب البيت منتصل فيكن',
           },
         },
       ],
@@ -238,7 +238,7 @@ export const [OrderProvider, useOrders] = createContextHook(() => {
     const statusDescriptions: Record<OrderStatus, { en: string; ar: string }> = {
       pending: {
         en: 'Order received and is being processed',
-        ar: 'تم استلام طلبك وجاري معالجته',
+        ar: 'طلبكن وصل و شغالين عليه بس يوصل على باب البيت منتصل فيكن',
       },
       processing: {
         en: 'We are preparing your items for shipment',

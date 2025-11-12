@@ -285,7 +285,7 @@ export default function HomeScreen() {
               }}
             >
               <Feather name="globe" size={20} color={Colors.white} />
-              <Text style={styles.languageButtonText}>{language.toUpperCase()}</Text>
+              <Text style={styles.languageButtonText}>{language === 'ar' ? 'EN' : 'AR'}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
@@ -361,7 +361,7 @@ export default function HomeScreen() {
       </LinearGradient>
 
       <ScrollView
-        style={styles.scrollView}
+        style={[styles.scrollView, language === 'ar' && { direction: 'rtl' as any }]}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
@@ -402,12 +402,10 @@ export default function HomeScreen() {
                   colors={['transparent', 'rgba(0,0,0,0.8)']}
                   style={styles.bannerOverlay}
                 >
-                  <View style={styles.bannerContent}>
-                    <View style={styles.bannerButton}>
-                      <Text style={styles.bannerButtonText}>
-                        {language === 'ar' ? 'تسوق الآن' : 'Shop Now'}
-                      </Text>
-                    </View>
+                  <View style={styles.bannerButton}>
+                    <Text style={styles.bannerButtonText}>
+                      Shop Now
+                    </Text>
                   </View>
                 </LinearGradient>
               </TouchableOpacity>
@@ -804,21 +802,20 @@ const styles = StyleSheet.create({
   },
   bannerOverlay: {
     ...StyleSheet.absoluteFillObject,
-    justifyContent: 'flex-start', // في الأعلى
-    alignItems: 'flex-end', // على اليمين
+    justifyContent: 'flex-start',
     padding: Spacing.md,
   },
-  bannerContent: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end', // على اليمين
-    alignItems: 'flex-start', // في الأعلى
-    width: '100%',
-  },
   bannerButton: {
+    position: 'absolute',
+    top: Spacing.md,
+    right: Spacing.md,
     backgroundColor: Colors.white,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.lg,
+  },
+  bannerButtonRTL: {
+    // Keep button on the top-right side always
   },
   bannerButtonText: {
     fontSize: FontSizes.sm,

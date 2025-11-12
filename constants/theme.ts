@@ -1,9 +1,9 @@
 // theme.ts - dummy content
 export const Colors = {
-  // Sky Blue & Ocean Theme - جذاب وعصري
-  primary: '#0EA5E9',        // Sky Blue - سماوي فاتح
-  primaryDark: '#0284C7',    // Darker Sky Blue
-  primaryLight: '#38BDF8',   // Light Sky Blue
+  // Dark Blue Theme - أزرق غامق احترافي
+  primary: '#1E40AF',        // Dark Blue - أزرق غامق
+  primaryDark: '#1E3A8A',    // Darker Blue
+  primaryLight: '#3B82F6',   // Light Blue
   secondary: '#06B6D4',      // Cyan - سماوي مخضر
   secondaryDark: '#0891B2',  // Darker Cyan
   secondaryLight: '#22D3EE', // Light Cyan
@@ -14,11 +14,11 @@ export const Colors = {
   white: '#FFFFFF',
   black: '#000000',
   
-  // Gradient Colors for modern UI
+  // Gradient Colors for modern UI - Purple → Red → Blue
   gradient: {
-    start: '#0EA5E9',    // Sky Blue
-    middle: '#38BDF8',   // Light Sky
-    end: '#7DD3FC',      // Very Light Sky
+    start: '#9333EA',    // Purple (بنفسجي)
+    middle: '#EF4444',   // Red (أحمر)
+    end: '#3B82F6',      // Blue (أزرق)
     ocean: '#06B6D4',    // Cyan
   },
   
@@ -44,9 +44,9 @@ export const Colors = {
   surface: '#FFFFFF',
   surfaceElevated: '#FFFFFF',
   text: {
-    primary: '#0F172A',
-    secondary: '#475569',
-    tertiary: '#94A3B8',
+    primary: '#1E40AF',      // Dark Blue for primary text - أزرق غامق للنصوص الرئيسية
+    secondary: '#1E3A8A',    // Darker Blue for secondary text
+    tertiary: '#3B82F6',     // Light Blue for tertiary text
     inverse: '#FFFFFF',
   },
   border: {

@@ -8,8 +8,10 @@ import Toast from 'react-native-toast-message';
 import i18n from '@/constants/i18n';
 import type { Language, Product, CartItem } from '@/types';
 
+const initialLanguage: Language = 'ar';
+
 export const [AppProvider, useApp] = createContextHook(() => {
-  const [language, setLanguage] = useState<Language>('en');
+  const [language, setLanguage] = useState<Language>(initialLanguage);
   // Fixed currency: USD only
   const currency = 'USD' as const;
   
@@ -27,15 +29,32 @@ export const [AppProvider, useApp] = createContextHook(() => {
   }, []);
 
   useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
     i18n.locale = language;
-    
+
     const isRTL = language === 'ar';
-    // Apply RTL immediately on language change
-    I18nManager.allowRTL(isRTL);
-    I18nManager.forceRTL(isRTL);
-    
+    const directionChanged = I18nManager.isRTL !== isRTL;
+
+    if (Platform.OS !== 'web') {
+      I18nManager.allowRTL(isRTL);
+      I18nManager.swapLeftAndRightInRTL?.(isRTL);
+
+      if (directionChanged) {
+        try {
+          I18nManager.forceRTL(isRTL);
+        } catch (error) {
+          console.warn('[AppContext] Failed to force RTL direction:', error);
+        }
+      }
+    } else if (typeof document !== 'undefined') {
+      document.dir = isRTL ? 'rtl' : 'ltr';
+    }
+
     console.log(`[AppContext] RTL ${isRTL ? 'enabled' : 'disabled'} for language: ${language}`);
-  }, [language]);
+  }, [language, isLoading]);
 
   const loadSettings = async () => {
     try {
@@ -45,10 +64,26 @@ export const [AppProvider, useApp] = createContextHook(() => {
         AsyncStorage.getItem('otherCart'),
       ]);
 
-      if (storedLanguage) {
-        setLanguage(storedLanguage as Language);
-        i18n.locale = storedLanguage;
+      const resolvedLanguage = (storedLanguage as Language) ?? initialLanguage;
+      const isRTL = resolvedLanguage === 'ar';
+
+      if (Platform.OS !== 'web') {
+        try {
+          I18nManager.allowRTL(isRTL);
+          I18nManager.swapLeftAndRightInRTL?.(isRTL);
+
+          if (I18nManager.isRTL !== isRTL) {
+            I18nManager.forceRTL(isRTL);
+          }
+        } catch (error) {
+          console.warn('[AppContext] Failed to apply RTL during loadSettings:', error);
+        }
+      } else if (typeof document !== 'undefined') {
+        document.dir = isRTL ? 'rtl' : 'ltr';
       }
+
+      setLanguage(resolvedLanguage);
+      i18n.locale = resolvedLanguage;
 
       if (storedSabCart) {
         const parsedSabCart = JSON.parse(storedSabCart);
@@ -70,8 +105,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
     try {
       console.log('[AppContext] Changing language to:', newLanguage);
       
-      const isRTL = newLanguage === 'ar';
-      const needsReload = I18nManager.isRTL !== isRTL;
+  const isRTL = newLanguage === 'ar';
+  const needsReload = I18nManager.isRTL !== isRTL;
       
       // Save language first
       await AsyncStorage.setItem('language', newLanguage);
@@ -80,8 +115,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
       
       // Apply RTL and reload immediately if needed
       if (needsReload && Platform.OS !== 'web') {
-        I18nManager.forceRTL(isRTL);
-        I18nManager.allowRTL(isRTL);
+  I18nManager.forceRTL(isRTL);
+  I18nManager.allowRTL(isRTL);
+  I18nManager.swapLeftAndRightInRTL?.(isRTL);
         
         console.log('[AppContext] RTL changed, reloading app immediately...');
         
@@ -142,26 +178,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     
     const isSabMarket = product.source === 'sab-market';
     
-    // 🚫 Check if cart has products from different source
-    const hasOtherProducts = isSabMarket ? otherCart.length > 0 : sabMarketCart.length > 0;
-    
-    if (hasOtherProducts) {
-      const isRTL = language === 'ar';
-      const otherSourceName = isSabMarket 
-        ? (isRTL ? 'منتجات أخرى' : 'other products')
-        : (isRTL ? 'منتجات Sab Market' : 'Sab Market products');
-      
-      Toast.show({
-        type: 'error',
-        text1: isRTL ? '⚠️ لا يمكن خلط المنتجات' : '⚠️ Cannot Mix Products',
-        text2: isRTL 
-          ? `لديك ${otherSourceName} في السلة. يرجى إتمام الطلب أو مسح السلة أولاً.`
-          : `You have ${otherSourceName} in cart. Please checkout or clear cart first.`,
-        visibilityTime: 4000,
-        position: 'top',
-      });
-      return; // Don't add to cart
-    }
+    // ✅ No longer preventing mixing products - we have separate carts now
     
     // Determine which cart to use
     const currentCart = isSabMarket ? sabMarketCart : otherCart;

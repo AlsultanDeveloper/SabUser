@@ -1,0 +1,589 @@
+{
+  "akkar": [
+    {},
+    {
+      "name": "Aadouiye",
+      "nameAr": "Aadouiye"
+    },
+    {
+      "name": "Aamara",
+      "nameAr": "Aamara"
+    },
+    {
+      "name": "Aaouinat",
+      "nameAr": "Aaouinat"
+    },
+    {
+      "name": "Aarida",
+      "nameAr": "Aarida"
+    },
+    {
+      "name": "Aarmen",
+      "nameAr": "Aarmen"
+    },
+    {
+      "name": "Aarqa",
+      "nameAr": "Aarqa"
+    },
+    {
+      "name": "Aayoun El Ghezlane",
+      "nameAr": "Aayoun El Ghezlane"
+    },
+    {
+      "name": "Abde",
+      "nameAr": "Abde"
+    },
+    {
+      "name": "Ain Yaaqoub",
+      "nameAr": "Ain Yaaqoub"
+    },
+    {
+      "name": "Akroum",
+      "nameAr": "Akroum"
+    },
+    {
+      "name": "Al Massoudieh",
+      "nameAr": "Al Massoudieh"
+    },
+    {
+      "name": "Aydamoun",
+      "nameAr": "Aydamoun"
+    },
+    {
+      "name": "Bahsa",
+      "nameAr": "Bahsa"
+    },
+    {
+      "name": "Balde",
+      "nameAr": "Balde"
+    },
+    {
+      "name": "Bebnine",
+      "nameAr": "Bebnine"
+    },
+    {
+      "name": "Beino",
+      "nameAr": "Beino"
+    },
+    {
+      "name": "Beit Ayoub",
+      "nameAr": "Beit Ayoub"
+    },
+    {
+      "name": "Beit Younes",
+      "nameAr": "Beit Younes"
+    },
+    {
+      "name": "Beit El Haj",
+      "nameAr": "Beit El Haj"
+    },
+    {
+      "name": "Beit El Haouch",
+      "nameAr": "Beit El Haouch"
+    },
+    {
+      "name": "Berqayel",
+      "nameAr": "Berqayel"
+    },
+    {
+      "name": "Bezbina (north)",
+      "nameAr": "Bezbina (north)"
+    },
+    {
+      "name": "Bhannine",
+      "nameAr": "Bhannine"
+    },
+    {
+      "name": "Bire Akkar",
+      "nameAr": "Bire Akkar"
+    },
+    {
+      "name": "Borj El Arab",
+      "nameAr": "Borj El Arab"
+    },
+    {
+      "name": "Bqerzala",
+      "nameAr": "Bqerzala"
+    },
+    {
+      "name": "Bzal",
+      "nameAr": "Bzal"
+    },
+    {
+      "name": "Cheikh Aayash",
+      "nameAr": "Cheikh Aayash"
+    },
+    {
+      "name": "Cheikh Hmairine",
+      "nameAr": "Cheikh Hmairine"
+    },
+    {
+      "name": "Cheikh Taba Montagne",
+      "nameAr": "Cheikh Taba Montagne"
+    },
+    {
+      "name": "Cheikh Taba Es Sahl",
+      "nameAr": "Cheikh Taba Es Sahl"
+    },
+    {
+      "name": "Cheikh Zennad Talbibe",
+      "nameAr": "Cheikh Zennad Talbibe"
+    },
+    {
+      "name": "Dayret Nahr El Kabir",
+      "nameAr": "Dayret Nahr El Kabir"
+    },
+    {
+      "name": "Deir Janine",
+      "nameAr": "Deir Janine"
+    },
+    {
+      "name": "Dinbou",
+      "nameAr": "Dinbou"
+    },
+    {
+      "name": "El Houaich",
+      "nameAr": "El Houaich"
+    },
+    {
+      "name": "El Majdel",
+      "nameAr": "El Majdel"
+    },
+    {
+      "name": "El Mqaiteaa",
+      "nameAr": "El Mqaiteaa"
+    },
+    {
+      "name": "El Qlaiaat",
+      "nameAr": "El Qlaiaat"
+    },
+    {
+      "name": "El Qorne",
+      "nameAr": "El Qorne"
+    },
+    {
+      "name": "En Nabi Youchaa",
+      "nameAr": "En Nabi Youchaa"
+    },
+    {
+      "name": "Er Rihaniye El Minieh",
+      "nameAr": "Er Rihaniye El Minieh"
+    },
+    {
+      "name": "Es Sfine",
+      "nameAr": "Es Sfine"
+    },
+    {
+      "name": "Fnaideq",
+      "nameAr": "Fnaideq"
+    },
+    {
+      "name": "Habchit",
+      "nameAr": "Habchit"
+    },
+    {
+      "name": "Halba",
+      "nameAr": "Halba"
+    },
+    {
+      "name": "Haret Ej Jdide",
+      "nameAr": "Haret Ej Jdide"
+    },
+    {
+      "name": "Hikr Janine",
+      "nameAr": "Hikr Janine"
+    },
+    {
+      "name": "Hissa",
+      "nameAr": "Hissa"
+    },
+    {
+      "name": "Hrar",
+      "nameAr": "Hrar"
+    },
+    {
+      "name": "Janine",
+      "nameAr": "Janine"
+    },
+    {
+      "name": "Kawashra",
+      "nameAr": "Kawashra"
+    },
+    {
+      "name": "Kfar Noun",
+      "nameAr": "Kfar Noun"
+    },
+    {
+      "name": "Kfartoun",
+      "nameAr": "Kfartoun"
+    },
+    {
+      "name": "Khirbet Daoud",
+      "nameAr": "Khirbet Daoud"
+    },
+    {
+      "name": "Khouchah",
+      "nameAr": "Khouchah"
+    },
+    {
+      "name": "Kouikhat",
+      "nameAr": "Kouikhat"
+    },
+    {
+      "name": "Kousha",
+      "nameAr": "Kousha"
+    },
+    {
+      "name": "Machta Hammoud",
+      "nameAr": "Machta Hammoud"
+    },
+    {
+      "name": "Machta Hassan",
+      "nameAr": "Machta Hassan"
+    },
+    {
+      "name": "Mar Touma",
+      "nameAr": "Mar Touma"
+    },
+    {
+      "name": "Markabta",
+      "nameAr": "Markabta"
+    },
+    {
+      "name": "Mazraat Al Balde",
+      "nameAr": "Mazraat Al Balde"
+    },
+    {
+      "name": "Mechmech",
+      "nameAr": "Mechmech"
+    },
+    {
+      "name": "Memnaa",
+      "nameAr": "Memnaa"
+    },
+    {
+      "name": "Mhamra",
+      "nameAr": "Mhamra"
+    },
+    {
+      "name": "Minyara",
+      "nameAr": "Minyara"
+    },
+    {
+      "name": "Msalla",
+      "nameAr": "Msalla"
+    },
+    {
+      "name": "Nabaa El Ghzaile",
+      "nameAr": "Nabaa El Ghzaile"
+    },
+    {
+      "name": "Nahr El Bared",
+      "nameAr": "Nahr El Bared"
+    },
+    {
+      "name": "Najmet Es Sobh",
+      "nameAr": "Najmet Es Sobh"
+    },
+    {
+      "name": "Nfaisseh",
+      "nameAr": "Nfaisseh"
+    },
+    {
+      "name": "Qaabrine",
+      "nameAr": "Qaabrine"
+    },
+    {
+      "name": "Qabaait",
+      "nameAr": "Qabaait"
+    },
+    {
+      "name": "Qarqaf",
+      "nameAr": "Qarqaf"
+    },
+    {
+      "name": "Qloud El Baqieh",
+      "nameAr": "Qloud El Baqieh"
+    },
+    {
+      "name": "Rahbe",
+      "nameAr": "Rahbe"
+    },
+    {
+      "name": "Rihaniye",
+      "nameAr": "Rihaniye"
+    },
+    {
+      "name": "Safinet Al Draib",
+      "nameAr": "Safinet Al Draib"
+    },
+    {
+      "name": "Saidnaya",
+      "nameAr": "Saidnaya"
+    },
+    {
+      "name": "Sammouniye",
+      "nameAr": "Sammouniye"
+    },
+    {
+      "name": "Semmaqiye",
+      "nameAr": "Semmaqiye"
+    },
+    {
+      "name": "Shaqdouf Aakkar",
+      "nameAr": "Shaqdouf Aakkar"
+    },
+    {
+      "name": "Sharbine El Faouqa",
+      "nameAr": "Sharbine El Faouqa"
+    },
+    {
+      "name": "Sindianet Zeidane",
+      "nameAr": "Sindianet Zeidane"
+    },
+    {
+      "name": "Takrit",
+      "nameAr": "Takrit"
+    },
+    {
+      "name": "Tashea",
+      "nameAr": "Tashea"
+    },
+    {
+      "name": "Wadi Ej Jamous",
+      "nameAr": "Wadi Ej Jamous"
+    },
+    {
+      "name": "Wadi Khaled",
+      "nameAr": "Wadi Khaled"
+    },
+    {
+      "name": "Zouarib",
+      "nameAr": "Zouarib"
+    },
+    {
+      "name": "Zouk Haddara",
+      "nameAr": "Zouk Haddara"
+    }
+  ],
+  "tripoli": [
+    {
+      "name": "Abou Samra",
+      "nameAr": "Abou Samra"
+    },
+    {
+      "name": "Ain Faouar",
+      "nameAr": "Ain Faouar"
+    },
+    {
+      "name": "Azmi",
+      "nameAr": "Azmi"
+    },
+    {
+      "name": "Bahsas",
+      "nameAr": "Bahsas"
+    },
+    {
+      "name": "Dahr Alain",
+      "nameAr": "Dahr Alain"
+    },
+    {
+      "name": "Dam Wal Farz",
+      "nameAr": "Dam Wal Farz"
+    },
+    {
+      "name": "El Mina",
+      "nameAr": "El Mina"
+    },
+    {
+      "name": "Maarad",
+      "nameAr": "Maarad"
+    },
+    {
+      "name": "Malaab",
+      "nameAr": "Malaab"
+    },
+    {
+      "name": "Mhatreh",
+      "nameAr": "Mhatreh"
+    },
+    {
+      "name": "Qalamoun",
+      "nameAr": "Qalamoun"
+    },
+    {
+      "name": "Qoubbe",
+      "nameAr": "Qoubbe"
+    },
+    {
+      "name": "Ras Maska",
+      "nameAr": "Ras Maska"
+    },
+    {
+      "name": "Tal",
+      "nameAr": "Tal"
+    },
+    {
+      "name": "Zahrieh",
+      "nameAr": "Zahrieh"
+    }
+  ],
+  "koura": [
+    {},
+    {
+      "name": "Amioun",
+      "nameAr": "Amioun"
+    },
+    {
+      "name": "Balaa",
+      "nameAr": "Balaa"
+    },
+    {
+      "name": "Balamand",
+      "nameAr": "Balamand"
+    },
+    {
+      "name": "Barsa",
+      "nameAr": "Barsa"
+    },
+    {
+      "name": "Batroumine",
+      "nameAr": "Batroumine"
+    },
+    {
+      "name": "Bechmizzine",
+      "nameAr": "Bechmizzine"
+    },
+    {
+      "name": "Bkeftine",
+      "nameAr": "Bkeftine"
+    },
+    {
+      "name": "Bsarma",
+      "nameAr": "Bsarma"
+    },
+    {
+      "name": "Btouratij",
+      "nameAr": "Btouratij"
+    },
+    {
+      "name": "Btourram",
+      "nameAr": "Btourram"
+    },
+    {
+      "name": "Dedde",
+      "nameAr": "Dedde"
+    },
+    {
+      "name": "En Nakhle",
+      "nameAr": "En Nakhle"
+    },
+    {
+      "name": "Kafraiya",
+      "nameAr": "Kafraiya"
+    },
+    {
+      "name": "Kaftoun",
+      "nameAr": "Kaftoun"
+    },
+    {
+      "name": "Kalhat",
+      "nameAr": "Kalhat"
+    }
+  ],
+  "zgharta": [
+    {},
+    {
+      "name": "Aachach",
+      "nameAr": "Aachach"
+    },
+    {
+      "name": "Bchannine",
+      "nameAr": "Bchannine"
+    },
+    {
+      "name": "Bnechaai",
+      "nameAr": "Bnechaai"
+    },
+    {
+      "name": "Bsibaal",
+      "nameAr": "Bsibaal"
+    },
+    {
+      "name": "Darayia",
+      "nameAr": "Darayia"
+    },
+    {
+      "name": "Ejbeaa",
+      "nameAr": "Ejbeaa"
+    },
+    {
+      "name": "El Houakir",
+      "nameAr": "El Houakir"
+    },
+    {
+      "name": "Er Rmaile",
+      "nameAr": "Er Rmaile"
+    },
+    {
+      "name": "Fouwar Zgharta",
+      "nameAr": "Fouwar Zgharta"
+    },
+    {
+      "name": "Haret Al Fouwar",
+      "nameAr": "Haret Al Fouwar"
+    },
+    {
+      "name": "Harfe Arde",
+      "nameAr": "Harfe Arde"
+    },
+    {
+      "name": "Hariq Zgharta",
+      "nameAr": "Hariq Zgharta"
+    },
+    {
+      "name": "Hilane",
+      "nameAr": "Hilane"
+    },
+    {
+      "name": "Hraykess",
+      "nameAr": "Hraykess"
+    },
+    {
+      "name": "Jdaideh",
+      "nameAr": "Jdaideh"
+    },
+    {
+      "name": "Kafar Zeina",
+      "nameAr": "Kafar Zeina"
+    },
+    {
+      "name": "Kafraiya Zgharta",
+      "nameAr": "Kafraiya Zgharta"
+    },
+    {
+      "name": "Kfar Hatta (zgharta)",
+      "nameAr": "Kfar Hatta (zgharta)"
+    },
+    {
+      "name": "Majdalaya Zgharta",
+      "nameAr": "Majdalaya Zgharta"
+    },
+    {
+      "name": "Majdel El Koura",
+      "nameAr": "Majdel El Koura"
+    },
+    {
+      "name": "Martmoura",
+      "nameAr": "Martmoura"
+    },
+    {
+      "name": "Miryata",
+      "nameAr": "Miryata"
+    },
+    {
+      "name": "Miziara",
+      "nameAr": "Miziara"
+    }
+  ]
+}

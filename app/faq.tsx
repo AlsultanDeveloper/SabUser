@@ -62,8 +62,8 @@ export default function FAQScreen() {
 
   const faqData: FAQItem[] = language === 'ar' ? [
     {
-      question: 'ما هو ساب ستور؟',
-      answer: 'ساب ستور هو تطبيق تسوق عبر الهاتف المحمول يربط العملاء بالبائعين الموثوقين في لبنان، ويوفر تجربة تصفح سلسة وتوصيل سريع وتحديثات في الوقت الفعلي.'
+      question: 'ما هو SAB STORE؟',
+      answer: 'SAB STORE هو متجر إلكتروني متكامل يوفر مجموعة واسعة من المنتجات عالية الجودة في لبنان، مع تجربة تصفح سلسة وتوصيل سريع وتحديثات في الوقت الفعلي.'
     },
     {
       question: 'كيف يمكنني تتبع طلبي؟',
@@ -162,7 +162,7 @@ export default function FAQScreen() {
       />
       <SafeAreaView style={styles.container} edges={['bottom']}>
         <ScrollView 
-          style={styles.scrollView} 
+          style={[styles.scrollView, language === 'ar' && { direction: 'rtl' as any }]} 
           contentContainerStyle={styles.contentContainer}
           showsVerticalScrollIndicator={false}
         >
@@ -175,7 +175,7 @@ export default function FAQScreen() {
             </Text>
             <Text style={styles.subtitle}>
               {language === 'ar' 
-                ? 'ابحث عن إجابات للأسئلة الشائعة حول ساب ستور'
+                ? 'ابحث عن إجابات للأسئلة الشائعة حول SAB STORE'
                 : 'Find answers to common questions about Sab Store'
               }
             </Text>
@@ -212,7 +212,7 @@ export default function FAQScreen() {
           <View style={styles.footer}>
             <Text style={styles.footerText}>
               {language === 'ar' 
-                ? '© 2025 ساب ستور. جميع الحقوق محفوظة.'
+                ? '© 2025 SAB STORE. جميع الحقوق محفوظة.'
                 : '© 2025 Sab Store. All rights reserved.'
               }
             </Text>

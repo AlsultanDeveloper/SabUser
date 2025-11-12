@@ -67,7 +67,7 @@ export default function ProductDetailsScreen() {
 
   // States
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(0);
   const [weight, setWeight] = useState(0.5); // للمنتجات بالوزن
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<any>(null);
@@ -95,15 +95,16 @@ export default function ProductDetailsScreen() {
         setWeight(product.minWeight);
       }
       
-      if (product.sizes && product.sizes.length > 0 && !selectedSize) {
-        setSelectedSize(product.sizes[0]);
-      }
-      if (product.colors && product.colors.length > 0 && !selectedColor) {
-        setSelectedColor(product.colors[0]);
-      }
-      if (product.ageRange && product.ageRange.length > 0 && !selectedAge) {
-        setSelectedAge(product.ageRange[0]);
-      }
+      // Don't auto-select size, color, or age - let user choose
+      // if (product.sizes && product.sizes.length > 0 && !selectedSize) {
+      //   setSelectedSize(product.sizes[0]);
+      // }
+      // if (product.colors && product.colors.length > 0 && !selectedColor) {
+      //   setSelectedColor(product.colors[0]);
+      // }
+      // if (product.ageRange && product.ageRange.length > 0 && !selectedAge) {
+      //   setSelectedAge(product.ageRange[0]);
+      // }
     }
   }, [product]);
 
@@ -205,6 +206,29 @@ export default function ProductDetailsScreen() {
       return;
     }
 
+    // Validate quantity (for non-weight products)
+    if (!product.soldByWeight && quantity < 1) {
+      Toast.show({
+        type: 'error',
+        text1: isRTL ? 'الرجاء اختيار الكمية' : 'Please select quantity',
+        position: 'top',
+      });
+      return;
+    }
+
+    // Validate weight (for weight-based products)
+    if (product.soldByWeight && weight < (product.minWeight || 0.5)) {
+      Toast.show({
+        type: 'error',
+        text1: isRTL ? 'الرجاء اختيار الوزن' : 'Please select weight',
+        text2: isRTL 
+          ? `الحد الأدنى ${product.minWeight || 0.5} ${product.unit === 'kg' ? 'كيلو' : product.unit}`
+          : `Minimum ${product.minWeight || 0.5} ${product.unit || 'kg'}`,
+        position: 'top',
+      });
+      return;
+    }
+
     // Use weight or quantity based on product type
     const finalQuantity = product.soldByWeight ? weight : quantity;
 
@@ -224,7 +248,7 @@ export default function ProductDetailsScreen() {
       text2: `${typeof product.name === 'object' ? (isRTL ? product.name.ar : product.name.en) : product.name} × ${displayText}`,
       position: 'top',
     });
-  }, [product, quantity, weight, selectedSize, selectedColor, selectedAge, addToCart, isRTL]);
+  }, [product, quantity, weight, selectedSize, selectedColor, selectedAge, addToCart, isRTL, isGroceryProduct]);
 
   const toggleFavorite = useCallback(() => {
     setIsFavorite(!isFavorite);
@@ -289,6 +313,66 @@ export default function ProductDetailsScreen() {
     ? finalPrice * weight 
     : finalPrice * quantity;
 
+  const getLocalizedValue = (value: any): string => {
+    if (!value) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'object') {
+      const arValue = value.ar || value['ar-LB'] || value['ar_lb'] || value['ar'] || value['arSA'];
+      const enValue = value.en || value['en-US'] || value['en_us'] || value['en'];
+      return isRTL ? (arValue || enValue || '') : (enValue || arValue || '');
+    }
+    return '';
+  };
+
+  const translateScopedOption = (scope: string, key?: string | null): string => {
+    if (!key) return '';
+    const translation = t(`${scope}.${key}` as any);
+    if (typeof translation === 'string' && !translation.startsWith('missing translation')) {
+      return translation;
+    }
+    return key;
+  };
+
+  const formatUnitLabel = (unit?: string | null): string => {
+    if (!unit) return '';
+    const normalized = unit.toLowerCase();
+    const translated = translateScopedOption('product.units', normalized);
+    if (translated && translated !== normalized) {
+      return translated;
+    }
+    return isRTL && unit === 'kg' ? 'كيلو' : unit;
+  };
+
+  const formatListValue = (values?: any[]): string => {
+    if (!values || values.length === 0) return '';
+    const formatted = values
+      .map((item) => getLocalizedValue(item) || (typeof item === 'string' ? item : ''))
+      .filter(Boolean);
+    return formatted.length > 0 ? formatted.join(isRTL ? '، ' : ', ') : '';
+  };
+
+  const brandDisplay = getLocalizedValue(product.brandName);
+  const categoryDisplay = getLocalizedValue(product.categoryName);
+  const genderDisplay = translateScopedOption('product.genderOptions', product.gender || null);
+  const seasonDisplay = translateScopedOption('product.seasonOptions', product.season || null);
+  const ageRangeDisplay = formatListValue(product.ageRange as any[]);
+  const unitDisplay = formatUnitLabel(product.unit);
+  const minWeightDisplay = product.soldByWeight && product.minWeight
+    ? `${product.minWeight} ${unitDisplay || product.unit || ''}`.trim()
+    : '';
+  const deliveryTimeDisplay = getLocalizedValue(product.deliveryTime);
+
+  const specificationRows = [
+    { label: t('product.brand'), value: brandDisplay },
+    { label: t('product.category'), value: categoryDisplay },
+    { label: t('product.gender'), value: genderDisplay },
+    { label: t('product.season'), value: seasonDisplay },
+    { label: t('product.ageRange'), value: ageRangeDisplay },
+    { label: t('product.unit'), value: unitDisplay },
+    { label: t('product.minimumWeight'), value: minWeightDisplay },
+    { label: t('product.deliveryTime'), value: deliveryTimeDisplay },
+  ].filter((row) => row.value && row.value.length > 0);
+
   // Share handler
   const handleShare = async () => {
     try {
@@ -305,12 +389,19 @@ export default function ProductDetailsScreen() {
         title: productName,
       });
 
+      // فقط إذا المستخدم شارك فعلياً (مش لغى)
       if (result.action === Share.sharedAction) {
-        Toast.show({
-          type: 'success',
-          text1: isRTL ? 'تمت المشاركة بنجاح' : 'Shared successfully',
-          position: 'top',
-        });
+        if (result.activityType) {
+          // شارك عبر تطبيق معين
+          Toast.show({
+            type: 'success',
+            text1: isRTL ? 'تمت المشاركة بنجاح' : 'Shared successfully',
+            position: 'top',
+          });
+        }
+      } else if (result.action === Share.dismissedAction) {
+        // المستخدم لغى المشاركة - ما نعرض شي
+        console.log('Share dismissed by user');
       }
     } catch (error) {
       console.log('Error sharing:', error);
@@ -323,7 +414,7 @@ export default function ProductDetailsScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isRTL && { direction: 'rtl' as any }]}>
       <StatusBar barStyle="light-content" />
       
       {/* Floating Header */}
@@ -364,6 +455,7 @@ export default function ProductDetailsScreen() {
           scrollY.value = event.nativeEvent.contentOffset.y;
         }}
         scrollEventThrottle={16}
+        style={isRTL && { direction: 'rtl' as any }}
       >
         {/* Image Gallery */}
         <View style={styles.imageContainer}>
@@ -446,19 +538,19 @@ export default function ProductDetailsScreen() {
         {/* Product Info */}
         <View style={styles.contentContainer}>
           {/* Brand & Category */}
-          {(product.brandName || product.categoryName) ? (
+          {(brandDisplay || categoryDisplay) ? (
             <View style={[styles.breadcrumb, isRTL && styles.rowReverse]}>
-              {product.brandName ? (
+              {brandDisplay ? (
                 <Text style={[styles.breadcrumbText, isRTL && styles.rtlText]}>
-                  {product.brandName}
+                  {brandDisplay}
                 </Text>
               ) : null}
-              {product.brandName && product.categoryName ? (
+              {brandDisplay && categoryDisplay ? (
                 <Text style={styles.breadcrumbSeparator}>•</Text>
               ) : null}
-              {product.categoryName ? (
+              {categoryDisplay ? (
                 <Text style={[styles.breadcrumbText, isRTL && styles.rtlText]}>
-                  {product.categoryName}
+                  {categoryDisplay}
                 </Text>
               ) : null}
             </View>
@@ -538,7 +630,7 @@ export default function ProductDetailsScreen() {
           </View>
 
           {/* TVA Notice */}
-          <Text style={[styles.tvaNotice, isRTL && styles.rtlText]}>
+          <Text style={[styles.tvaNotice, isRTL && { textAlign: 'left' }]}>
             {isRTL ? 'جميع الأسعار تشمل ضريبة القيمة المضافة' : 'All prices include TVA.'}
           </Text>
 
@@ -690,7 +782,7 @@ export default function ProductDetailsScreen() {
             onToggle={() => setExpandedSection(expandedSection === 'quantity' ? null : 'quantity')}
             isRTL={isRTL}
           >
-            <View style={styles.quantityGrid}>
+            <View style={[styles.quantityGrid, isRTL && styles.quantityGridRTL]}>
               {[1, 2, 3, 4, 5].map((num) => (
                 <TouchableOpacity
                   key={num}
@@ -709,20 +801,15 @@ export default function ProductDetailsScreen() {
                 </TouchableOpacity>
               ))}
             </View>
-            <Text style={[styles.quantityNote, isRTL && styles.rtlText]}>
-              {isRTL 
-                ? 'لطلب كمية أكبر، يرجى التواصل مع فريق الدعم'
-                : 'For larger quantities, please contact our support team'}
-            </Text>
           </ExpandableSection>
 
           {/* Shipped and Sold by */}
           <View style={[styles.shippedByContainer, isRTL && styles.rowReverse]}>
-            <Text style={[styles.shippedByLabel, isRTL && styles.rtlText]}>
-              {isRTL ? 'الشحن والبيع بواسطة' : 'Shipped and Sold by'}
-            </Text>
             <Text style={[styles.shippedByValue, isRTL && styles.rtlText]}>
               Sab-Store.com
+            </Text>
+            <Text style={[styles.shippedByLabel, isRTL && styles.rtlText]}>
+              {isRTL ? 'الشحن والبيع بواسطة' : 'Shipped and Sold by'}
             </Text>
           </View>
 
@@ -775,31 +862,42 @@ export default function ProductDetailsScreen() {
           <View style={styles.divider} />
 
           {/* Cash on Delivery Notice */}
-          <View style={[styles.noticeItem, isRTL && styles.rowReverse]}>
-            <View style={styles.noticeBullet} />
-            <Text style={[styles.noticeText, isRTL && styles.rtlText]}>
-              {isRTL 
-                ? 'الدفع عند الاستلام متاح، قد يزيد السعر'
-                : 'Cash on Delivery is accepted, price may increase'}
-            </Text>
+          <View style={styles.noticeItem}>
+            {isRTL ? (
+              <Text style={styles.noticeTextRTL}>
+                <Text style={{ fontSize: 20 }}>• </Text>الدفع عند الاستلام متاح، قد يزيد السعر
+              </Text>
+            ) : (
+              <Text style={styles.noticeText}>
+                Cash on Delivery is accepted, price may increase
+              </Text>
+            )}
           </View>
 
           {/* Delivery by Sab Store */}
-          <View style={[styles.noticeItem, isRTL && styles.rowReverse]}>
-            <View style={styles.noticeBullet} />
-            <Text style={[styles.noticeText, isRTL && styles.rtlText]}>
-              {isRTL ? 'التوصيل بواسطة ساب ستور' : 'Delivery by Sab Store'}
-            </Text>
+          <View style={styles.noticeItem}>
+            {isRTL ? (
+              <Text style={styles.noticeTextRTL}>
+                <Text style={{ fontSize: 20 }}>• </Text>التوصيل بواسطة ساب ستور
+              </Text>
+            ) : (
+              <Text style={styles.noticeText}>
+                Delivery by Sab Store
+              </Text>
+            )}
           </View>
 
           {/* Return Policy */}
-          <View style={[styles.noticeItem, isRTL && styles.rowReverse]}>
-            <View style={styles.noticeBullet} />
-            <Text style={[styles.noticeText, isRTL && styles.rtlText]}>
-              {isRTL 
-                ? 'جودة مضمونة. الإرجاع متاح للمنتجات المعيبة فقط. يرجى التأكد من أن اختيارك يناسب احتياجاتك حيث لا نقبل الإرجاع بناءً على تفضيلات المشتري.'
-                : 'High-quality guaranteed. Returns accepted for defective items only. Please ensure your selection matches your needs as returns for buyer preferences are not accepted.'}
-            </Text>
+          <View style={styles.noticeItem}>
+            {isRTL ? (
+              <Text style={styles.noticeTextRTL}>
+                <Text style={{ fontSize: 20 }}>• </Text>جودة مضمونة. الإرجاع متاح للمنتجات المعيبة فقط. يرجى التأكد من أن اختيارك يناسب احتياجاتك حيث لا نقبل الإرجاع بناءً على تفضيلات المشتري.
+              </Text>
+            ) : (
+              <Text style={styles.noticeText}>
+                High-quality guaranteed. Returns accepted for defective items only. Please ensure your selection matches your needs as returns for buyer preferences are not accepted.
+              </Text>
+            )}
           </View>
 
           {/* Divider */}
@@ -814,7 +912,7 @@ export default function ProductDetailsScreen() {
               isRTL={isRTL}
             >
               <Text style={[styles.descriptionText, isRTL && styles.rtlText]}>
-                {product.material}
+                {getLocalizedValue(product.material) || product.material}
               </Text>
             </ExpandableSection>
           ) : null}
@@ -828,7 +926,7 @@ export default function ProductDetailsScreen() {
               isRTL={isRTL}
             >
               <Text style={[styles.descriptionText, isRTL && styles.rtlText]}>
-                {product.careInstructions}
+                {getLocalizedValue(product.careInstructions) || product.careInstructions}
               </Text>
             </ExpandableSection>
           ) : null}
@@ -841,18 +939,24 @@ export default function ProductDetailsScreen() {
               onToggle={() => setExpandedSection(expandedSection === 'features' ? null : 'features')}
               isRTL={isRTL}
             >
-              {product.features.map((feature: string, index: number) => (
-                <View key={index} style={[styles.featureItem, isRTL && styles.rowReverse]}>
-                  <View style={styles.featureBullet} />
-                  <Text style={[styles.featureText, isRTL && styles.rtlText]}>{feature}</Text>
-                </View>
-              ))}
+              <View style={[isRTL && styles.featuresListRTL]}>
+                {product.features.map((feature: any, index: number) => {
+                  const featureText = getLocalizedValue(feature) || (typeof feature === 'string' ? feature : '');
+                  if (!featureText) return null;
+                  return (
+                    <View key={`${featureText}-${index}`} style={[styles.featureItem, isRTL && styles.rowReverse]}>
+                      <View style={[styles.featureBullet, isRTL && styles.featureBulletRTL]} />
+                      <Text style={[styles.featureText, isRTL && styles.rtlText]}>{featureText}</Text>
+                    </View>
+                  );
+                })}
+              </View>
             </ExpandableSection>
           ) : null}
 
           {/* Your Way to Pay */}
           <View style={styles.paymentSection}>
-            <Text style={[styles.paymentTitle, isRTL && styles.rtlText]}>
+            <Text style={[styles.paymentTitle, isRTL && styles.paymentTitleRTL]}>
               {isRTL ? 'طرق الدفع المتاحة' : 'Your Way to Pay'}
             </Text>
             <View style={[styles.paymentMethods, isRTL && styles.rowReverse]}>
@@ -920,7 +1024,7 @@ export default function ProductDetailsScreen() {
 
           {/* Welcome Message */}
           <View style={styles.welcomeMessage}>
-            <Text style={[styles.welcomeText, isRTL && styles.rtlText]}>
+            <Text style={styles.welcomeText}>
               {isRTL 
                 ? '🌟 شكراً لاختيارك ساب ستور! نحن سعداء بخدمتك وتقديم أفضل المنتجات لك 🌟'
                 : '🌟 Thank you for choosing Sab Store! We are happy to serve you and provide the best products 🌟'}
@@ -937,9 +1041,23 @@ export default function ProductDetailsScreen() {
         <View style={styles.bottomBarContent}>
           {/* Add to Cart Button */}
           <TouchableOpacity
-            style={[styles.addToCartButton, !product.inStock && styles.addToCartButtonDisabled]}
+            style={[
+              styles.addToCartButton,
+              (!product.inStock || 
+               quantity < 1 ||
+               (!isGroceryProduct && product.sizes && product.sizes.length > 0 && !selectedSize) ||
+               (!isGroceryProduct && product.colors && product.colors.length > 0 && !selectedColor) ||
+               (!isGroceryProduct && product.ageRange && product.ageRange.length > 0 && !selectedAge)
+              ) && styles.addToCartButtonDisabled
+            ]}
             onPress={handleAddToCart}
-            disabled={!product.inStock}
+            disabled={
+              !product.inStock ||
+              quantity < 1 ||
+              (!isGroceryProduct && product.sizes && product.sizes.length > 0 && !selectedSize) ||
+              (!isGroceryProduct && product.colors && product.colors.length > 0 && !selectedColor) ||
+              (!isGroceryProduct && product.ageRange && product.ageRange.length > 0 && !selectedAge)
+            }
             activeOpacity={0.8}
           >
             <Text style={styles.addToCartText}>
@@ -1243,6 +1361,28 @@ export default function ProductDetailsScreen() {
   );
 }
 
+// Specification Row Component
+function SpecificationRow({
+  label,
+  value,
+  isRTL,
+}: {
+  label: string;
+  value: string;
+  isRTL: boolean;
+}) {
+  if (!value) return null;
+
+  return (
+    <View style={[styles.specRow, isRTL && styles.rowReverse]}>
+      <Text style={[styles.specLabel, isRTL && styles.rtlText]}>{label}</Text>
+      <Text style={[styles.specValue, isRTL && styles.rtlText]} numberOfLines={3}>
+        {value}
+      </Text>
+    </View>
+  );
+}
+
 // Feature Item Component
 function FeatureItem({ 
   icon, 
@@ -1284,13 +1424,24 @@ function ExpandableSection({
     <View style={styles.expandableSection}>
       <View style={styles.expandableSectionInner}>
         <TouchableOpacity 
-          style={[styles.expandableHeader, isRTL && styles.rowReverse]} 
+          style={styles.expandableHeader}
           onPress={onToggle}
         >
-          <Text style={[styles.expandableTitle, isRTL && styles.rtlText]}>{title}</Text>
-          <View style={{ transform: [{ rotate: expanded ? '180deg' : '0deg' }] }}>
-            <ChevronDown size={20} color={Colors.text.secondary} />
-          </View>
+          {isRTL ? (
+            <>
+              <Text style={styles.expandableTitleRTL}>{title}</Text>
+              <View style={{ transform: [{ rotate: expanded ? '180deg' : '0deg' }] }}>
+                <ChevronDown size={20} color={Colors.text.secondary} />
+              </View>
+            </>
+          ) : (
+            <>
+              <Text style={styles.expandableTitle}>{title}</Text>
+              <View style={{ transform: [{ rotate: expanded ? '180deg' : '0deg' }] }}>
+                <ChevronDown size={20} color={Colors.text.secondary} />
+              </View>
+            </>
+          )}
         </TouchableOpacity>
         {expanded ? (
           <View style={styles.expandableContent}>
@@ -1468,11 +1619,13 @@ const styles = StyleSheet.create({
     marginTop: -20,
     paddingTop: Spacing.lg,
     paddingHorizontal: Spacing.lg,
+    direction: 'inherit',
   },
   breadcrumb: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: Spacing.sm,
+    alignSelf: 'flex-start',
   },
   breadcrumbText: {
     fontSize: FontSizes.sm,
@@ -1497,6 +1650,7 @@ const styles = StyleSheet.create({
     fontWeight: FontWeights.bold,
     color: Colors.text.primary,
     lineHeight: FontSizes.xl * 1.3,
+    textAlign: 'left',
   },
   expandButton: {
     padding: 4,
@@ -1506,6 +1660,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 0,
+    alignSelf: 'flex-start',
   },
   ratingStars: {
     flexDirection: 'row',
@@ -1526,6 +1681,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 0,
+    alignSelf: 'flex-start',
   },
   priceWrapper: {
     flexDirection: 'row',
@@ -1582,11 +1738,13 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     marginTop: 0,
     marginBottom: 0,
+    textAlign: 'left',
   },
   stockContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 0,
+    alignSelf: 'flex-start',
   },
   stockDot: {
     width: 8,
@@ -1637,11 +1795,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.md,
     gap: Spacing.sm,
+    alignSelf: 'flex-start',
   },
   deliveryDateText: {
     fontSize: FontSizes.sm,
     color: Colors.text.secondary,
     fontWeight: FontWeights.medium,
+    textAlign: 'left',
   },
   deliveryDateRange: {
     color: Colors.text.primary,
@@ -1668,6 +1828,7 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.text.secondary,
     fontWeight: FontWeights.medium,
+    textAlign: 'left',
   },
   locationCity: {
     color: Colors.text.primary,
@@ -1690,6 +1851,9 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: Spacing.sm,
     marginTop: Spacing.sm,
+  },
+  quantityGridRTL: {
+    flexDirection: 'row-reverse',
   },
   quantityOption: {
     width: 50,
@@ -1719,6 +1883,7 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     marginTop: Spacing.sm,
     fontStyle: 'italic',
+    textAlign: 'left',
   },
 
   // Options
@@ -1854,21 +2019,31 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     flex: 1,
   },
+  noticeTextRTL: {
+    fontSize: FontSizes.sm,
+    color: Colors.text.secondary,
+    flex: 1,
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
   shippedByContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: Spacing.sm,
     marginBottom: Spacing.md,
+    alignSelf: 'stretch',
   },
   shippedByLabel: {
     fontSize: FontSizes.sm,
     color: Colors.text.secondary,
+    textAlign: 'left',
   },
   shippedByValue: {
     fontSize: FontSizes.sm,
     color: Colors.text.primary,
     fontWeight: '600',
+    textAlign: 'right',
   },
 
   // Expandable Sections
@@ -1898,6 +2073,13 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     fontWeight: FontWeights.semibold,
     color: Colors.text.primary,
+    textAlign: 'left',
+  },
+  expandableTitleRTL: {
+    fontSize: FontSizes.md,
+    fontWeight: FontWeights.semibold,
+    color: Colors.text.primary,
+    textAlign: 'right',
   },
   expandableContent: {
     paddingHorizontal: Spacing.sm,
@@ -1908,6 +2090,7 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     lineHeight: FontSizes.md * 1,
     marginTop: 0,
+    textAlign: 'left',
   },
   featureItem: {
     flexDirection: 'row',
@@ -1922,11 +2105,49 @@ const styles = StyleSheet.create({
     marginTop: 7,
     marginRight: Spacing.sm,
   },
+  featureBulletRTL: {
+    marginRight: 0,
+    marginLeft: Spacing.sm,
+  },
   featureText: {
     flex: 1,
     fontSize: FontSizes.md,
     color: Colors.text.secondary,
     lineHeight: FontSizes.md * 1.5,
+    textAlign: 'left',
+  },
+  featuresListRTL: {
+    direction: 'rtl',
+  },
+
+  // Specifications
+  specSection: {
+    gap: Spacing.xs,
+    paddingVertical: Spacing.xs,
+  },
+  specSectionRTL: {
+    direction: 'rtl',
+  },
+  specRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  specLabel: {
+    flexShrink: 0,
+    maxWidth: '45%',
+    fontSize: FontSizes.sm,
+    color: Colors.text.secondary,
+    fontWeight: FontWeights.medium,
+  },
+  specValue: {
+    flex: 1,
+    fontSize: FontSizes.sm,
+    color: Colors.text.primary,
+    fontWeight: FontWeights.semibold,
+    textAlign: 'right',
   },
 
   // Bottom Bar
@@ -2116,6 +2337,9 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     marginBottom: Spacing.sm,
   },
+  paymentTitleRTL: {
+    textAlign: 'left',
+  },
   paymentMethods: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -2302,8 +2526,10 @@ const styles = StyleSheet.create({
   rtlText: {
     writingDirection: 'rtl',
     textAlign: 'right',
+    alignSelf: 'flex-end',
   },
   rowReverse: {
     flexDirection: 'row-reverse',
   },
 });
+

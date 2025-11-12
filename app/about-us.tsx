@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
@@ -34,7 +35,11 @@ export default function AboutUsScreen() {
         >
           <View style={styles.heroSection}>
             <View style={styles.iconContainer}>
-              <Feather name="shopping-bag" size={48} color={Colors.primary} />
+              <Image 
+                source={require('@/assets/images/favicon.png')} 
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
             </View>
             <Text style={styles.title}>{t('aboutUs.title')}</Text>
             <Text style={styles.subtitle}>{t('aboutUs.welcome')}</Text>
@@ -180,11 +185,13 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 100,
     height: 100,
-    borderRadius: 50,
-    backgroundColor: Colors.primary + '15',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.lg,
+  },
+  logoImage: {
+    width: 80,
+    height: 80,
   },
   title: {
     fontSize: FontSizes.xxxl,

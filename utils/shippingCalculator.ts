@@ -175,7 +175,7 @@ export async function getDefaultShipping(cartTotal: number = 0): Promise<Shippin
  */
 export function getShippingMessage(
   shipping: ShippingCalculation,
-  language: string = 'en'
+  language: string = 'ar'
 ): string {
   if (shipping.cost === 0) {
     return language === 'ar' ? '🎉 شحن مجاني!' : '🎉 FREE Shipping!';

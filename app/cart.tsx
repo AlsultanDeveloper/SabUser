@@ -43,7 +43,10 @@ function CartItemCard({ item, language, formatPrice, onRemove, onQuantityChange,
     <View style={styles.cartItem}>
       <View style={styles.cartItemContent}>
         <View style={styles.imageContainer}>
-          <SafeImage uri={item.product.image} style={styles.productImage} />
+          <SafeImage 
+            uri={item.product.image || item.product.images?.[0] || ''} 
+            style={styles.productImage} 
+          />
           {(item.product.discount ?? 0) > 0 && (
             <View style={styles.discountBadge}>
               <Text style={styles.discountText}>-{item.product.discount}%</Text>
@@ -351,8 +354,8 @@ export default function CartScreen() {
                   if (Platform.OS !== 'web') {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   }
-                  // Navigate to Sab Market category
-                  router.push('/category/cwt28D5gjoLno8SFqoxQ' as any);
+                  // Navigate to SAB Market
+                  router.push('/market' as any);
                 }}
                 activeOpacity={0.7}
               >
@@ -360,7 +363,7 @@ export default function CartScreen() {
                   <Image
                     source={require('@/assets/images/SAB-MARKET.png')}
                     style={styles.quickLinkImageStyle}
-                    resizeMode="contain"
+                    resizeMode="cover"
                   />
                 </View>
                 <Text style={styles.quickLinkText}>
@@ -701,14 +704,14 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: Colors.text.primary,
     marginTop: Spacing.lg,
-    textAlign: 'center',
+    textAlign: 'center' as const,
   },
 
   emptyDescription: {
     fontSize: FontSizes.md,
     color: Colors.text.secondary,
     marginTop: Spacing.xs,
-    textAlign: 'center',
+    textAlign: 'center' as const,
     lineHeight: 22,
     maxWidth: 280,
   },
@@ -745,7 +748,7 @@ const styles = StyleSheet.create({
   quickLinksTitle: {
     fontSize: FontSizes.sm,
     color: Colors.text.tertiary,
-    textAlign: 'center',
+    textAlign: 'center' as const,
     marginBottom: Spacing.md,
     fontWeight: '600' as const,
     letterSpacing: 0.5,
@@ -788,8 +791,10 @@ const styles = StyleSheet.create({
   },
 
   quickLinkImageStyle: {
-    width: 85,
-    height: 85,
+    width: 94,
+    height: 94,
+    borderRadius: 42.5,
+    alignSelf: 'center',
   },
 
   quickLinkText: {
@@ -1015,7 +1020,7 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: Colors.text.primary,
     minWidth: 24,
-    textAlign: 'center',
+    textAlign: 'center' as const,
   },
 
   promoSection: {
@@ -1207,7 +1212,7 @@ const styles = StyleSheet.create({
   distanceText: {
     fontSize: FontSizes.xs,
     color: Colors.text.tertiary,
-    fontStyle: 'italic' as const,
+    fontStyle: 'italic',
   },
 
   estimatedDaysText: {
@@ -1279,7 +1284,7 @@ const styles = StyleSheet.create({
   vatNotice: {
     fontSize: FontSizes.xs,
     color: Colors.text.tertiary,
-    textAlign: 'center',
+    textAlign: 'center' as const,
     fontStyle: 'italic',
   },
 

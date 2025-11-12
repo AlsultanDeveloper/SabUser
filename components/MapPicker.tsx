@@ -16,6 +16,7 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { Colors } from '@/constants/theme';
+import { useApp } from '@/contexts/AppContext';
 
 interface MapPickerProps {
   visible: boolean;
@@ -37,6 +38,9 @@ export default function MapPicker({
   onLocationSelected,
   initialLocation,
 }: MapPickerProps) {
+  const { language } = useApp();
+  const isRTL = language === 'ar';
+  
   const [selectedLocation, setSelectedLocation] = useState<{latitude: number; longitude: number} | null>(initialLocation || null);
   const [loading, setLoading] = useState(true);
   const [locationReady, setLocationReady] = useState(false);
@@ -232,7 +236,7 @@ export default function MapPicker({
     </head>
     <body>
       <div class="search-container">
-        <input id="search-input" type="text" placeholder="ابحث عن موقع..." />
+        <input id="search-input" type="text" placeholder="${isRTL ? 'وين وين وين' : 'Search for location...'}" />
       </div>
       <div id="map"></div>
       <div class="info-box">
@@ -495,8 +499,8 @@ export default function MapPicker({
             <Feather name="x" size={24} color="#1F2937" />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>Pick Delivery Location</Text>
-            <Text style={styles.headerSubtitle}>Move map to select location</Text>
+            <Text style={styles.headerTitle}>{isRTL ? 'وين بدك نوصل الطلب' : 'Pick Delivery Location'}</Text>
+            <Text style={styles.headerSubtitle}>{isRTL ? 'اصبعك و حدد عالخريطة' : 'Move map to select location'}</Text>
           </View>
           <TouchableOpacity
             style={styles.currentLocationButton}
@@ -541,31 +545,24 @@ export default function MapPicker({
           <View style={styles.infoCard}>
             <MaterialCommunityIcons name="information-outline" size={20} color="#6B7280" />
             <Text style={styles.infoText}>
-              Move the map to place the pin on your desired delivery location
+              {isRTL ? 'اصبعك و حدد عالخريطة' : 'Move the map to place the pin on your desired delivery location'}
             </Text>
           </View>
 
           <TouchableOpacity
-            style={styles.confirmButton}
+            style={[styles.confirmButton, styles.confirmGradient]}
             onPress={handleConfirmLocation}
             disabled={loading}
             activeOpacity={0.8}
           >
-            <LinearGradient
-              colors={[Colors.gradient.start, Colors.gradient.middle, Colors.gradient.end]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.confirmGradient}
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color="#FFF" />
-              ) : (
-                <>
-                  <Feather name="check-circle" size={20} color="#FFF" />
-                  <Text style={styles.confirmText}>Confirm Location</Text>
-                </>
-              )}
-            </LinearGradient>
+            {loading ? (
+              <ActivityIndicator size="small" color="#FFF" />
+            ) : (
+              <>
+                <Feather name="check-circle" size={20} color="#FFF" />
+                <Text style={styles.confirmText}>{isRTL ? 'خلص هيدا العنوان' : 'Confirm Location'}</Text>
+              </>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -651,12 +648,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: 14,
+    borderRadius: 10,
+    backgroundColor: '#3B82F6',
   },
   confirmText: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '600',
     color: '#FFF',
     marginLeft: 8,
   },

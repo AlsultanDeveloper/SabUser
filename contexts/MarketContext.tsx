@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
+import { useApp } from './AppContext';
 
 interface MarketProduct {
   id: string;
@@ -23,25 +24,24 @@ interface MarketContextType {
   marketCartTotal: number;
   marketCartCount: number;
   
-  // Language (shared with main app)
+  // Language (from AppContext)
   language: string;
-  setLanguage: (lang: string) => void;
   isRTL: boolean;
 }
 
 const MarketContext = createContext<MarketContextType | undefined>(undefined);
 
 const MARKET_CART_KEY = '@sab_market_cart';
-const MARKET_LANGUAGE_KEY = '@sab_market_language';
 
 export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [marketCart, setMarketCart] = useState<MarketProduct[]>([]);
-  const [language, setLanguageState] = useState('en');
+  
+  // Get language from AppContext
+  const { language, isRTL } = useApp();
 
   // Load cart from storage
   useEffect(() => {
     loadMarketCart();
-    loadLanguage();
   }, []);
 
   // Save cart to storage whenever it changes
@@ -65,26 +65,6 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       await AsyncStorage.setItem(MARKET_CART_KEY, JSON.stringify(marketCart));
     } catch (error) {
       console.error('Error saving market cart:', error);
-    }
-  };
-
-  const loadLanguage = async () => {
-    try {
-      const lang = await AsyncStorage.getItem(MARKET_LANGUAGE_KEY);
-      if (lang) {
-        setLanguageState(lang);
-      }
-    } catch (error) {
-      console.error('Error loading language:', error);
-    }
-  };
-
-  const setLanguage = async (lang: string) => {
-    try {
-      setLanguageState(lang);
-      await AsyncStorage.setItem(MARKET_LANGUAGE_KEY, lang);
-    } catch (error) {
-      console.error('Error saving language:', error);
     }
   };
 
@@ -169,8 +149,6 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     0
   );
 
-  const isRTL = language === 'ar';
-
   return (
     <MarketContext.Provider
       value={{
@@ -182,7 +160,6 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         marketCartTotal,
         marketCartCount,
         language,
-        setLanguage,
         isRTL,
       }}
     >
